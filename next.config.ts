@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
 const isProduction = process.env.NODE_ENV === 'production';
+const isRender = process.env.RENDER === 'true';
 
 if (isProduction) {
   console.log('🔍 [NEXT.CONFIG] Loading production configuration...');
   console.log('  NODE_ENV:', process.env.NODE_ENV);
   console.log('  NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+  console.log('  isRender:', isRender);
 }
 
 const nextConfig: NextConfig = {
@@ -79,6 +81,11 @@ const nextConfig: NextConfig = {
   // ✅ Experimental optimizations for faster builds
   experimental: {
     optimizePackageImports: ['@mui/material', '@mui/icons-material'],
+    // Limit CPU concurrency and disable worker threads on Render to prevent OOM crash
+    ...(isRender && {
+      cpus: 1,
+      workerThreads: false,
+    }),
   },
 };
 
