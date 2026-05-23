@@ -9,6 +9,7 @@ if (isProduction) {
   console.log('  NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
   console.log('  isRender:', isRender);
   console.log('  NODE_OPTIONS:', process.env.NODE_OPTIONS);
+  console.log('  NEXT_TELEMETRY_DISABLED:', process.env.NEXT_TELEMETRY_DISABLED);
 }
 
 const nextConfig: NextConfig = {
