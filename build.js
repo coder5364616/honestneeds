@@ -15,6 +15,7 @@ console.log('📊 Memory: 2GB');
 console.log('📍 Environment:', process.env.RENDER ? 'Render' : 'Local');
 console.log('🖥️  Platform:', process.platform);
 console.log('📝 Node version:', process.version);
+console.log('📂 CWD:', process.cwd());
 
 // Ensure NODE_OPTIONS is set for build (override any existing value)
 // This is critical for the build process
@@ -40,39 +41,53 @@ console.log('---');
 // Set a timeout for the entire build process (30 minutes)
 const buildTimeout = 30 * 60 * 1000;
 let timeoutId = null;
+let buildStartTime = Date.now();
+
+// Add activity logging
+let lastActivityTime = Date.now();
+const activityCheckInterval = setInterval(() => {
+  const elapsed = ((Date.now() - buildStartTime) / 1000).toFixed(1);
+  const sinceActivity = ((Date.now() - lastActivityTime) / 1000).toFixed(1);
+  console.log(`[${elapsed}s] Build in progress... (no output for ${sinceActivity}s)`);
+}, 10000); // Log every 10 seconds
 
 const build = spawn('next', ['build'], {
   env: env,
   cwd: process.cwd(),
-  stdio: ['inherit', 'pipe', 'pipe'], // Separate stdout and stderr
+  stdio: ['ignore', 'pipe', 'pipe'], // Separate stdout and stderr
   shell: false,
   detached: false,
-  timeout: buildTimeout,
 });
 
 let stdout = '';
 let stderr = '';
+let lastLine = '';
 
 // Pipe stdout to console AND capture it
 if (build.stdout) {
   build.stdout.on('data', (data) => {
+    lastActivityTime = Date.now();
     const text = data.toString();
     stdout += text;
+    lastLine = text.split('\n').filter(l => l.trim()).pop() || lastLine;
     process.stdout.write(text);
   });
 }
 
-// Pipe stderr to console AND capture it
+// Pipe stderr to console AND capture it  
 if (build.stderr) {
   build.stderr.on('data', (data) => {
+    lastActivityTime = Date.now();
     const text = data.toString();
     stderr += text;
+    lastLine = text.split('\n').filter(l => l.trim()).pop() || lastLine;
     process.stderr.write(text);
   });
 }
 
 // Set timeout
 timeoutId = setTimeout(() => {
+  clearInterval(activityCheckInterval);
   console.error('\n---');
   console.error('❌ Build timeout! Process exceeded 30 minutes.');
   try {
@@ -84,47 +99,59 @@ timeoutId = setTimeout(() => {
 }, buildTimeout);
 
 build.on('error', (error) => {
+  clearInterval(activityCheckInterval);
   if (timeoutId) clearTimeout(timeoutId);
   console.error('\n---');
   console.error('❌ Failed to start build process!');
   console.error('Error:', error.message);
+  console.error('Error code:', error.code);
   if (stderr) {
-    console.error('\n📋 Stderr output:', stderr);
+    console.error('\n📋 Stderr:', stderr);
   }
   process.exit(1);
 });
 
 build.on('exit', (code, signal) => {
+  clearInterval(activityCheckInterval);
   if (timeoutId) clearTimeout(timeoutId);
+  
+  const elapsed = ((Date.now() - buildStartTime) / 1000).toFixed(1);
   console.log('---');
   
   if (code === 0 || code === null) {
-    console.log('✅ Build completed successfully!');
+    console.log(`✅ Build completed successfully in ${elapsed}s!`);
     process.exit(0);
   } else {
-    console.error(`❌ Build failed!`);
+    console.error(`❌ Build failed after ${elapsed}s!`);
     console.error(`   Exit code: ${code}`);
     if (signal) {
       console.error(`   Signal: ${signal}`);
     }
     
     if (stderr) {
-      console.error('\n📋 Error output:');
+      console.error('\n📋 Stderr output:');
       console.error(stderr);
+    } else {
+      console.error('\n⚠️  No error output captured on stderr');
     }
     
-    if (stdout && stderr === '') {
-      // If there's stdout but no stderr, the issue might be in the output itself
-      console.error('\n📋 Last output lines:');
-      console.error(stdout.split('\n').slice(-20).join('\n'));
+    if (lastLine) {
+      console.error('\n📋 Last line before exit:');
+      console.error('   ', lastLine);
+    }
+    
+    if (stdout) {
+      console.error('\n📋 Last 30 lines of build output:');
+      const lines = stdout.split('\n');
+      console.error(lines.slice(-30).join('\n'));
     }
     
     console.error('\n💡 Troubleshooting tips:');
-    console.error('   1. Check backend API connectivity: ' + (process.env.NEXT_PUBLIC_API_URL || 'https://honestneeds-backend-rkrv.onrender.com/api'));
-    console.error('   2. Verify all required environment variables are set');
-    console.error('   3. Check available disk space and memory');
-    console.error('   4. Try running locally: npm run build');
-    console.error('   5. Review the full error output above');
+    console.error('   • Build completes but crashes during page generation');
+    console.error('   • Check if a page is causing the crash');
+    console.error('   • Verify backend API is accessible');
+    console.error('   • Run locally: npm run build');
+    console.error('   • Check disk space and memory');
     
     process.exit(code || 1);
   }
@@ -132,24 +159,19 @@ build.on('exit', (code, signal) => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
+  clearInterval(activityCheckInterval);
   if (timeoutId) clearTimeout(timeoutId);
   console.error('\n---');
   console.error('❌ Uncaught exception during build:');
   console.error(error.stack || error);
-  if (stderr) {
-    console.error('\nStderr:', stderr);
-  }
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
+  clearInterval(activityCheckInterval);
   if (timeoutId) clearTimeout(timeoutId);
   console.error('\n---');
   console.error('❌ Unhandled promise rejection during build:');
   console.error(reason);
   process.exit(1);
 });
-
-
-
-
