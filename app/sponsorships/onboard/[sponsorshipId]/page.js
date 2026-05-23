@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS, TRANSITIONS } from '@/styles/tokens'
 import apiClient from '@/lib/api'
-import { ArrowRight, Globe, MessageSquare, Share2, Image as ImageIcon } from 'lucide-react'
+import { ArrowRight, Globe, MessageSquare, Share2, Image as ImageIcon, Loader2 } from 'lucide-react'
 
 /* ───── Layout ───── */
 
@@ -180,6 +180,77 @@ const SubmitButton = styled.button`
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 `
 
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`
+
+const LoadingScreen = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+  padding: ${SPACING[8]};
+  background: ${COLORS.BG};
+`
+
+const LoadingCard = styled.div`
+  background: ${COLORS.SURFACE};
+  border: 1px solid ${COLORS.BORDER};
+  border-radius: ${BORDER_RADIUS.XL};
+  padding: ${SPACING[10]} ${SPACING[8]};
+  box-shadow: ${SHADOWS.LG};
+  max-width: 480px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`
+
+const SpinnerWrapper = styled.div`
+  color: ${COLORS.PRIMARY};
+  animation: ${spin} 2s linear infinite;
+  margin-bottom: ${SPACING[6]};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const StatusTitle = styled.h2`
+  font-size: ${TYPOGRAPHY.SIZE_XL};
+  font-weight: ${TYPOGRAPHY.WEIGHT_BOLD};
+  color: ${COLORS.TEXT};
+  margin: 0 0 ${SPACING[2]} 0;
+`
+
+const StatusDesc = styled.p`
+  color: ${COLORS.MUTED_TEXT};
+  font-size: ${TYPOGRAPHY.SIZE_SM};
+  line-height: ${TYPOGRAPHY.LINE_HEIGHT_RELAXED};
+  margin: 0 0 ${SPACING[6]} 0;
+`
+
+const TierSummaryBox = styled.div`
+  background: ${COLORS.BG};
+  border: 1px solid ${COLORS.BORDER};
+  border-radius: ${BORDER_RADIUS.LG};
+  padding: ${SPACING[4]};
+  width: 100%;
+  text-align: left;
+  font-size: ${TYPOGRAPHY.SIZE_SM};
+`
+
+const SummaryRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${SPACING[2]};
+  &:last-child { margin-bottom: 0; }
+  span:first-child { color: ${COLORS.MUTED_TEXT}; }
+  span:last-child { font-weight: ${TYPOGRAPHY.WEIGHT_SEMIBOLD}; color: ${COLORS.TEXT}; }
+`
+
 /* ───── Component ───── */
 
 export default function OnboardPage() {
@@ -187,6 +258,8 @@ export default function OnboardPage() {
   const router = useRouter()
   const sponsorshipId = params?.sponsorshipId
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [sponsorship, setSponsorship] = useState(null)
+  const [checkingPayment, setCheckingPayment] = useState(true)
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     defaultValues: {
@@ -201,6 +274,49 @@ export default function OnboardPage() {
       referralSource: '',
     },
   })
+
+  useEffect(() => {
+    if (!sponsorshipId) return
+
+    let active = true
+
+    const checkStatus = async () => {
+      try {
+        const res = await apiClient.get(`/sponsorships/${sponsorshipId}`)
+        if (!active) return
+
+        if (res.data?.success) {
+          const data = res.data.data
+          setSponsorship(data)
+          if (data.status === 'pending_onboarding') {
+            setCheckingPayment(false)
+          } else if (data.status === 'active') {
+            toast.info('Sponsorship is already active!')
+            router.push(`/sponsorships/success/${sponsorshipId}`)
+          } else if (data.status === 'pending_payment') {
+            // Keep polling
+            setTimeout(checkStatus, 2000)
+          } else {
+            setCheckingPayment(false)
+          }
+        } else {
+          setCheckingPayment(false)
+        }
+      } catch (err) {
+        console.error('Failed to verify payment status', err)
+        if (active) {
+          // In case of network errors, retry
+          setTimeout(checkStatus, 3000)
+        }
+      }
+    }
+
+    checkStatus()
+
+    return () => {
+      active = false
+    }
+  }, [sponsorshipId, router])
 
   const taglineValue = watch('tagline') || ''
   const missionValue = watch('missionStatement') || ''
@@ -231,6 +347,40 @@ export default function OnboardPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (checkingPayment) {
+    return (
+      <PageWrapper>
+        <LoadingScreen>
+          <LoadingCard>
+            <SpinnerWrapper>
+              <Loader2 size={48} />
+            </SpinnerWrapper>
+            <StatusTitle>Verifying Your Payment</StatusTitle>
+            <StatusDesc>
+              We are confirming your transaction with Stripe. Once verified, this page will automatically update to let you complete your profile.
+            </StatusDesc>
+            {sponsorship && (
+              <TierSummaryBox>
+                <SummaryRow>
+                  <span>Sponsorship Tier</span>
+                  <span>{sponsorship.tierName}</span>
+                </SummaryRow>
+                <SummaryRow>
+                  <span>Amount</span>
+                  <span>${sponsorship.grossAmount?.toLocaleString()}</span>
+                </SummaryRow>
+                <SummaryRow>
+                  <span>Status</span>
+                  <span>Awaiting Stripe...</span>
+                </SummaryRow>
+              </TierSummaryBox>
+            )}
+          </LoadingCard>
+        </LoadingScreen>
+      </PageWrapper>
+    )
   }
 
   return (

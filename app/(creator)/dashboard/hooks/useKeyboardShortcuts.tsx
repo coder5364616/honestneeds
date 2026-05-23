@@ -169,5 +169,7 @@ export const KeyboardShortcutsHelp = ({ shortcuts }: { shortcuts: KeyboardShortc
 export function useKeyboardShortcutsWithHelp(shortcuts: KeyboardShortcut[], enabled = true) {
   const [showHelp, setShowHelp] = useState<boolean>(false)
   
-  // Could extend this to show help modal on ? key
+  useKeyboardShortcuts(shortcuts, enabled)
+
+  return { showHelp, setShowHelp }
 }

@@ -1,8 +1,18 @@
 import type { NextConfig } from "next";
 
+// Enable verbose logging for debugging
+if (process.env.NODE_ENV === 'production') {
+  console.log('🔍 [BUILD] Starting Next.js build in production mode');
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   productionBrowserSourceMaps: false,
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
   
   // ✅ Image optimization configuration
   images: {

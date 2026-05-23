@@ -268,18 +268,15 @@ export default function CheckoutPage() {
   const tier = findTierById(tierId)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
       sponsorName: '',
       businessName: '',
       email: '',
-      paymentMethod: '',
-      paymentConfirmed: false,
       termsAccepted: false,
     },
   })
 
-  const selectedPayment = watch('paymentMethod')
   const fees = useMemo(() => tier ? calculateSponsorshipFees(tier.price) : null, [tier])
 
   if (!tier) {
@@ -295,10 +292,6 @@ export default function CheckoutPage() {
   }
 
   const onSubmit = async (data) => {
-    if (!data.paymentConfirmed) {
-      toast.error('Please confirm you have completed the payment.')
-      return
-    }
     if (!data.termsAccepted) {
       toast.error('Please accept the terms to continue.')
       return
@@ -311,13 +304,13 @@ export default function CheckoutPage() {
         sponsorName: data.sponsorName,
         businessName: data.businessName,
         email: data.email,
-        paymentMethod: data.paymentMethod,
-        paymentConfirmedBySponsor: true,
       })
 
-      if (res.data?.success) {
-        toast.success('Sponsorship created! Redirecting to onboarding...')
-        router.push(`/sponsorships/onboard/${res.data.data.sponsorshipId}`)
+      if (res.data?.success && res.data.data?.url) {
+        toast.success('Sponsorship created! Redirecting to Stripe checkout...')
+        window.location.href = res.data.data.url
+      } else {
+        toast.error('Failed to initiate checkout session')
       }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to create sponsorship')
@@ -382,29 +375,6 @@ export default function CheckoutPage() {
               {errors.email && <ErrorText>{errors.email.message}</ErrorText>}
             </FieldGroup>
 
-            <FieldGroup>
-              <Label htmlFor="paymentMethod">Payment Method *</Label>
-              <Select
-                id="paymentMethod"
-                $error={errors.paymentMethod}
-                {...register('paymentMethod', { required: 'Please select a payment method' })}
-              >
-                <option value="">Select payment method</option>
-                {Object.entries(PAYMENT_DETAILS).map(([key, val]) => (
-                  <option key={key} value={key}>{val.label}</option>
-                ))}
-              </Select>
-              {errors.paymentMethod && <ErrorText>{errors.paymentMethod.message}</ErrorText>}
-
-              {selectedPayment && PAYMENT_DETAILS[selectedPayment] && (
-                <PaymentInfo>
-                  <strong>{PAYMENT_DETAILS[selectedPayment].label} Details:</strong><br />
-                  {PAYMENT_DETAILS[selectedPayment].info}<br />
-                  Amount to send: <strong>${tier.price.toLocaleString()}</strong>
-                </PaymentInfo>
-              )}
-            </FieldGroup>
-
             <FeeBox>
               <Info size={18} style={{ flexShrink: 0, marginTop: 1 }} />
               <div>
@@ -414,19 +384,14 @@ export default function CheckoutPage() {
             </FeeBox>
 
             <CheckboxRow>
-              <Checkbox type="checkbox" {...register('paymentConfirmed')} />
-              <span>I have completed this payment of <strong>${tier.price.toLocaleString()}</strong> using the method selected above.</span>
-            </CheckboxRow>
-
-            <CheckboxRow>
               <Checkbox type="checkbox" {...register('termsAccepted')} />
               <span>I accept the <a href="/terms" style={{ color: COLORS.PRIMARY }}>Terms of Service</a> and sponsorship agreement.</span>
             </CheckboxRow>
 
             <SubmitButton type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Processing...' : (
+              {isSubmitting ? 'Redirecting to Stripe...' : (
                 <>
-                  <Shield size={18} /> Confirm Sponsorship
+                  <CreditCard size={18} /> Pay with Stripe
                 </>
               )}
             </SubmitButton>
