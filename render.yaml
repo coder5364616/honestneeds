@@ -3,9 +3,9 @@ services:
     name: honestneeds
     env: node
     plan: free
-    # Build with explicit memory settings via build.js script
-    buildCommand: npm install && npm run build && cp -r public .next/standalone/ 2>/dev/null; cp -r .next/static .next/standalone/.next/ 2>/dev/null; true
-    startCommand: node .next/standalone/server.js
+    # Simple build command - let Next.js handle optimization
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production
