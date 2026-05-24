@@ -5,6 +5,7 @@ import { Providers } from './providers'
 import { StyledComponentsRegistry } from '@/lib/styled-components-registry'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import BackgroundMusicPlayer from '@/components/BackgroundMusicPlayer'
 
 // Styled Components
 const StyledBody = styled.div`
@@ -119,6 +120,9 @@ export default function AppLayout({ children }) {
               pauseOnHover
               theme="light"
             />
+
+            {/* Global Persistent Background Music Player */}
+            <BackgroundMusicPlayer />
           </Providers>
         </StyledComponentsRegistry>
       </body>

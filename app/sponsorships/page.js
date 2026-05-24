@@ -318,7 +318,7 @@ export default function SponsorshipsPage() {
       </HeroSection>
 
       {/* ── Individual Tiers ── */}
-      <Section>
+      <Section id="sponsorship-tiers">
         <SectionTitle>Choose Your Sponsorship Tier</SectionTitle>
         <SectionSubtitle>
           Every tier makes an impact. Select the level that matches your commitment to community.
@@ -348,12 +348,106 @@ export default function SponsorshipsPage() {
         </TierGrid>
       </Section>
 
+      {/* ================================================
+          NEW SECTION: Community Impact Video
+          Page: /sponsorships
+          Placement: After tier cards, before FAQ/footer
+          Video: mission-video.mp4
+      ================================================ */}
+      <section style={{
+        padding: '80px 24px',
+        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 100%)',
+        textAlign: 'center'
+      }}>
+        {/* Section Header */}
+        <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '12px' }}>
+          See the Community You&apos;ll Be Sponsoring
+        </h2>
+        <p style={{
+          fontSize: '1.1rem',
+          opacity: 0.75,
+          maxWidth: '600px',
+          margin: '0 auto 16px'
+        }}>
+          This is what your sponsorship makes possible — real neighborhoods,
+          real families, real change.
+        </p>
+        <p style={{
+          fontSize: '1rem',
+          opacity: 0.65,
+          maxWidth: '680px',
+          margin: '0 auto 40px',
+          lineHeight: '1.7'
+        }}>
+          When you become a founding sponsor of Honest Need, your brand doesn&apos;t
+          just get placement — it gets purpose. Watch how we&apos;re already showing up
+          in communities, running giveaways, and creating moments that people will
+          never forget.
+        </p>
+
+        {/* Video Player */}
+        <div style={{
+          maxWidth: '800px',
+          margin: '0 auto 40px',
+          borderRadius: '20px',
+          overflow: 'hidden',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          background: '#000'
+        }}>
+          <div style={{ position: 'relative', paddingTop: '56.25%' }}>
+            <video
+              src="/videos/mission-video.mp4"
+              controls
+              playsInline
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+
+        {/* Post-Video CTA */}
+        <p style={{
+          fontSize: '1.1rem',
+          fontWeight: '600',
+          marginBottom: '20px',
+          opacity: 0.9
+        }}>
+          Ready to put your brand at the heart of this movement?
+        </p>
+        <a
+          href="#sponsorship-tiers"
+          style={{
+            display: 'inline-block',
+            padding: '16px 36px',
+            borderRadius: '9999px',
+            fontWeight: '700',
+            fontSize: '1rem',
+            textDecoration: 'none',
+            background: 'linear-gradient(135deg, #10B981, #3B82F6)',
+            color: '#fff',
+            boxShadow: '0 4px 20px rgba(16,185,129,0.4)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          }}
+        >
+          Become a Founding Sponsor Today →
+        </a>
+      </section>
+
       {/* ── Mission Video ── */}
       <MissionSection>
         <MissionContent>
           <SectionTitle>Our Mission</SectionTitle>
           <SectionSubtitle>
-            "See Good. Do Good. Together We Win." — Honest Need is a faith-based, community-driven
+            &quot;See Good. Do Good. Together We Win.&quot; — Honest Need is a faith-based, community-driven
             platform built on transparency and mutual support.
           </SectionSubtitle>
           <MissionVideo>

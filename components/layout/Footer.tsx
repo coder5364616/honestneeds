@@ -11,30 +11,23 @@ interface FooterLink {
 
 const footerLinks: Record<string, FooterLink[]> = {
   Explore: [
-    { label: 'Active Campaigns', href: '/campaigns' },
-    { label: 'How It Works', href: '/how-it-works' },
-    { label: 'Success Stories', href: '/stories' },
-    { label: 'Pricing', href: '/pricing' },
+    { label: 'Browse Campaigns', href: '#campaigns' },
+    { label: 'How It Works', href: '#how-it-works' },
+    { label: 'Pricing', href: '#pricing' },
   ],
-  Company: [
-    { label: 'About HonestNeed', href: '/about' },
-    { label: 'Blog & Updates', href: '/blog' },
+  Support: [
     { label: 'Contact Us', href: '/contact' },
-    { label: 'Careers', href: '/careers' },
   ],
   Legal: [
     { label: 'Terms of Service', href: '/terms' },
-    { label: 'Privacy Policy', href: '/privacy' },
-    { label: 'Community Guidelines', href: '/guidelines' },
-    { label: 'Cookie Policy', href: '/cookies' },
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Refund Policy', href: '/refund-policy' },
+    { label: 'Cookie Policy', href: '/cookie-policy' },
   ],
 }
 
 const socialLinks = [
-  { icon: Share2, label: 'Twitter', href: 'https://twitter.com/honestneed' },
-  { icon: Code, label: 'GitHub', href: 'https://github.com/honestneed' },
-  { icon: Briefcase, label: 'LinkedIn', href: 'https://linkedin.com/company/honestneed' },
-  { icon: Mail, label: 'Email', href: 'mailto:hello@honestneed.com' },
+  { icon: Mail, label: 'Email', href: 'mailto:jbowser727@gmail.com' },
 ]
 
 const impactMetrics = [
@@ -442,6 +435,14 @@ export default function Footer() {
           <BrandTagline>
             Building trust through transparent fundraising and community-powered support.
           </BrandTagline>
+          <div style={{ marginBottom: '1.5rem', opacity: 0.8, fontSize: '0.9rem', lineHeight: '1.8', color: '#4b5563' }}>
+            📧 jbowser727@gmail.com<br />
+            📞 (209) 622-9391<br />
+            🌐 honestneed.com<br />
+            <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+              Responses within 24–48 business hours
+            </span>
+          </div>
 
           {/* Impact Metrics */}
           <ImpactSection>

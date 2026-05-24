@@ -39,6 +39,16 @@ export interface DashboardData {
   totalCount: number
 }
 
+const EMPTY_CAMPAIGNS: Campaign[] = []
+const DEFAULT_STATS: DashboardStats = {
+  totalRaised: 0,
+  totalActiveCampaigns: 0,
+  totalDonors: 0,
+  totalCampaigns: 0,
+  averageDonation: 0,
+  successRate: 0,
+}
+
 /**
  * Main hook for fetching all dashboard data
  */
@@ -153,15 +163,8 @@ export function useDashboardData(
   })
 
   return {
-    campaigns: data?.campaigns || [],
-    stats: data?.stats || {
-      totalRaised: 0,
-      totalActiveCampaigns: 0,
-      totalDonors: 0,
-      totalCampaigns: 0,
-      averageDonation: 0,
-      successRate: 0,
-    },
+    campaigns: data?.campaigns || EMPTY_CAMPAIGNS,
+    stats: data?.stats || DEFAULT_STATS,
     totalCount: data?.totalCount || 0,
     isLoading,
     error,

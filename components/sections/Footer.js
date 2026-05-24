@@ -203,19 +203,9 @@ const footerLinks = {
     { label: 'Browse Campaigns', href: '#campaigns' },
     { label: 'How it Works', href: '#how-it-works' },
     { label: 'Pricing', href: '#pricing' },
-    { label: 'Success Stories', href: '#' },
   ],
   support: [
-    { label: 'Help Center', href: '#' },
-    { label: 'Contact Us', href: '#' },
-    { label: 'Safety Tips', href: '#' },
-    { label: 'Report Issue', href: '#' },
-  ],
-  company: [
-    { label: 'About Us', href: '#' },
-    { label: 'Careers', href: '#' },
-    { label: 'Press', href: '#' },
-    { label: 'Blog', href: '#' },
+    { label: 'Contact Us', href: '/contact' },
   ],
 };
 
@@ -299,14 +289,15 @@ export default function Footer() {
           </Column>
 
           <Column>
-            <ColumnTitle>Company</ColumnTitle>
-            <LinkList>
-              {footerLinks.company.map((link) => (
-                <LinkItem key={link.label}>
-                  <FooterLink href={link.href}>{link.label}</FooterLink>
-                </LinkItem>
-              ))}
-            </LinkList>
+            <ColumnTitle>Contact Us</ColumnTitle>
+            <p style={{ opacity: 0.7, fontSize: '0.9rem', lineHeight: '1.8', color: 'rgba(255, 255, 255, 0.7)' }}>
+              📧 jbowser727@gmail.com<br />
+              📞 (209) 622-9391<br />
+              🌐 honestneed.com<br />
+              <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+                Responses within 24–48 business hours
+              </span>
+            </p>
           </Column>
         </FooterGrid>
 
@@ -315,9 +306,11 @@ export default function Footer() {
             © 2024 HonestNeed. All rights reserved. HonestNeed lists payment options; users transfer funds P2P.
           </Copyright>
           <LegalLinks>
-            <LegalLink href="#">Privacy Policy</LegalLink>
-            <LegalLink href="#">Terms of Service</LegalLink>
-            <LegalLink href="#">Cookie Policy</LegalLink>
+            <LegalLink href="/privacy-policy">Privacy Policy</LegalLink>
+            <LegalLink href="/terms">Terms of Service</LegalLink>
+            <LegalLink href="/refund-policy">Refund Policy</LegalLink>
+            <LegalLink href="/cookie-policy">Cookie Policy</LegalLink>
+            <LegalLink href="/contact">Contact Us</LegalLink>
           </LegalLinks>
         </BottomBar>
       </Container>

@@ -270,6 +270,23 @@ export default function HowPaymentsWork() {
             HonestNeed displays payment options, but the transfer happens directly between you and the recipient.
           </SafetyText>
         </SafetyNote>
+
+        <div style={{
+          marginTop: '24px',
+          fontSize: '0.85rem',
+          opacity: 0.65,
+          textAlign: 'center',
+          lineHeight: '1.6',
+          maxWidth: '720px',
+          margin: '24px auto 0',
+          color: '#475569'
+        }}>
+          Honest Need is a payment directory platform. Campaign creation fees are 
+          processed securely via Stripe. All peer-to-peer donations are sent directly 
+          from supporter to recipient through their chosen payment application 
+          (PayPal, Venmo, Cash App, Zelle, or Chime). Honest Need does not hold, 
+          process, or have access to peer-to-peer donation funds.
+        </div>
       </Container>
     </Section>
   );

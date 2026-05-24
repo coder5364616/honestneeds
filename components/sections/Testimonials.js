@@ -238,27 +238,48 @@ export default function Testimonials() {
           </TestimonialsGrid>
         </motion.div>
 
-        <VideoSection
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <VideoContent>
-            <VideoTitle>Watch Sarah&apos;s Story</VideoTitle>
-            <VideoDescription>
-              See how one mother&apos;s emergency campaign brought her community together 
-              to keep her family housed during a difficult time.
-            </VideoDescription>
-            <PlayButton
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+        {/* ================================================
+            UPDATED SECTION: Mission Video — Success Stories
+            Replaces: "Watch Sarah's Story" placeholder
+            Video: mission-video.mp4
+        ================================================ */}
+        <div style={{
+          maxWidth: '720px',
+          margin: '0 auto',
+          borderRadius: '16px',
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          background: '#000'
+        }}>
+          <div style={{ position: 'relative', paddingTop: '56.25%' /* 16:9 ratio */ }}>
+            <video
+              src="/videos/mission-video.mp4"
+              controls
+              playsInline
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
             >
-              <FiPlay />
-            </PlayButton>
-            <VideoDuration>2:34 min</VideoDuration>
-          </VideoContent>
-        </VideoSection>
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+
+        {/* Video caption below player */}
+        <p style={{
+          textAlign: 'center',
+          marginTop: '16px',
+          fontSize: '0.9rem',
+          opacity: 0.7,
+          fontStyle: 'italic'
+        }}>
+          Real communities. Real impact. Real kindness — powered by Honest Need.
+        </p>
       </Container>
     </Section>
   );
