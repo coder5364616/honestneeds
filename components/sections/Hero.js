@@ -192,8 +192,8 @@ export default function Hero() {
     router.push('/login');
   };
 
-  const handleBrowseNeeds = () => {
-    router.push('/login');
+  const handleViewSponsorships = () => {
+    router.push('/sponsorships');
   };
 
   return (
@@ -218,8 +218,8 @@ export default function Hero() {
               <Button size="large" icon={FiHeart} onClick={handleStartCampaign}>
                 Start a Campaign — $19.99
               </Button>
-              <Button variant="ghost" icon={FiArrowRight} onClick={handleBrowseNeeds}>
-                Browse Needs
+              <Button variant="ghost" icon={FiArrowRight} onClick={handleViewSponsorships}>
+                View Sponsorships
               </Button>
             </CTAGroup>
 
