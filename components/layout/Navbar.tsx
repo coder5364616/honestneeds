@@ -47,15 +47,10 @@ const sharedAuthLinks: NavLink[] = []
 
 // Admin-specific links
 const adminNavLinks: NavLink[] = [
-  { label: 'Admin Dashboard', href: '/admin/dashboard', icon: '🛡️', roles: ['admin'], group: 'Admin Panel' },
-  { label: 'Campaigns Review', href: '/admin/campaigns', icon: '📋', roles: ['admin'], group: 'Admin Panel' },
-  { label: 'Users', href: '/admin/users', icon: '👥', roles: ['admin'], group: 'Admin Panel' },
-  { label: 'Transactions', href: '/admin/transactions', icon: '💸', roles: ['admin'], group: 'Admin Panel' },
-  { label: 'Sweepstakes', href: '/admin/sweepstakes', icon: '🎲', roles: ['admin'], group: 'Admin Panel' },
-  { label: 'Manage Sweepstakes', href: '/admin/manage-sweepstakes', icon: '⚙️', roles: ['admin'], group: 'Admin Panel' },
+  
+  { label: 'Manage Sweepstakes', href: '/admin/sweepstakes', icon: '🎲', roles: ['admin'], group: 'Admin Panel' },
   { label: 'Manage Sponsorships', href: '/admin/sponsorships', icon: '💼', roles: ['admin'], group: 'Admin Panel' },
-  { label: 'Reports', href: '/admin/reports', icon: '📊', roles: ['admin'], group: 'Admin Panel' },
-  { label: 'Settings', href: '/admin/settings', icon: '🔧', roles: ['admin'], group: 'Admin Panel' },
+  
 ]
 
 // Styled Components
