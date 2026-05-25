@@ -782,17 +782,20 @@ export default function Navbar() {
                 )}
 
                 {/* Admin-specific section */}
-                {user?.role === 'admin' && (
+                {user?.role === 'admin' && adminNavLinks.filter(l => l.roles?.includes('admin')).length > 0 && (
                   <MobileMenuSection>
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', textTransform: 'uppercase', padding: '0.5rem 0.75rem' }}>
                       Admin Panel
                     </div>
-                    <MobileMenuLink
-                      href="/admin/sweepstakes"
-                      onClick={handleNavClick}
-                    >
-                      ⚙️ Manage Sweepstakes
-                    </MobileMenuLink>
+                    {adminNavLinks.filter(l => l.roles?.includes('admin')).map((link) => (
+                      <MobileMenuLink
+                        key={link.href}
+                        href={link.href}
+                        onClick={handleNavClick}
+                      >
+                        {link.icon} {link.label}
+                      </MobileMenuLink>
+                    ))}
                   </MobileMenuSection>
                 )}
 
