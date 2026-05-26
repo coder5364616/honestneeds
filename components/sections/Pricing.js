@@ -27,13 +27,9 @@ const SectionSubtitle = styled.p`
 `;
 
 const PricingGrid = styled.div`
-  display: grid;
-  gap: ${({ theme }) => theme?.spacing?.xl || '24px'};
+  display: flex;
+  justify-content: center;
   margin-bottom: ${({ theme }) => theme?.spacing?.['3xl'] || '48px'};
-
-  @media (min-width: ${({ theme }) => theme?.breakpoints?.tablet || '1024px'}) {
-    grid-template-columns: repeat(3, 1fr);
-  }
 `;
 
 const PricingCard = styled(motion.div)`
@@ -44,6 +40,8 @@ const PricingCard = styled(motion.div)`
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 480px;
 
   ${({ featured, theme }) => featured && `
     border: 2px solid ${theme?.colors?.primary || '#6366F1'};
@@ -211,43 +209,17 @@ const NoteText = styled.p`
 
 const plans = [
   {
-    name: 'Basic',
+    name: 'Standard Campaign',
     price: 19.99,
-    description: 'Perfect for personal needs',
+    description: 'Launch your crowdfunding campaign today. Simple, direct, transparent.',
     features: [
-      { text: 'Campaign listing', included: true },
-      { text: 'Basic analytics', included: true },
-      { text: 'Email support', included: true },
-      { text: 'Share rewards', included: false },
-      { text: 'Boost options', included: false },
-    ],
-    featured: false,
-  },
-  {
-    name: 'Pro',
-    price: 49.99,
-    description: 'Best for community causes',
-    features: [
-      { text: 'Everything in Basic', included: true },
-      { text: 'Advanced analytics', included: true },
-      { text: 'Priority support', included: true },
-      { text: 'Share rewards', included: true },
-      { text: 'Boost options', included: false },
+      { text: 'Campaign listing & visibility', included: true },
+      { text: 'Real-time progress analytics', included: true },
+      { text: 'Email & priority support', included: true },
+      { text: 'Share reward integration', included: true },
+      { text: 'Visibility boost options', included: true },
     ],
     featured: true,
-  },
-  {
-    name: 'Premium',
-    price: 99.99,
-    description: 'For organizations & teams',
-    features: [
-      { text: 'Everything in Pro', included: true },
-      { text: 'Team collaboration', included: true },
-      { text: 'Dedicated support', included: true },
-      { text: 'Custom branding', included: true },
-      { text: 'Boost options', included: true },
-    ],
-    featured: false,
   },
 ];
 
@@ -299,7 +271,7 @@ export default function Pricing() {
           <PricingGrid>
             {plans.map((plan) => (
               <PricingCard key={plan.name} featured={plan.featured} variants={itemVariants}>
-                {plan.featured && <FeaturedBadge>Most Popular</FeaturedBadge>}
+                {plan.featured && <FeaturedBadge>Flat Rate</FeaturedBadge>}
                 <PlanName>{plan.name}</PlanName>
                 <PlanPrice>
                   <PriceAmount>${plan.price}</PriceAmount>
@@ -336,7 +308,7 @@ export default function Pricing() {
             <div>
               <BreakdownItem>
                 <BreakdownLabel>Campaign Creation</BreakdownLabel>
-                <BreakdownValue>$19.99 - $99.99</BreakdownValue>
+                <BreakdownValue>$19.99</BreakdownValue>
               </BreakdownItem>
               <BreakdownItem>
                 <BreakdownLabel>Boost Pricing</BreakdownLabel>
