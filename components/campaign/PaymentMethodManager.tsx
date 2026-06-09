@@ -1,11 +1,416 @@
 'use client'
 
 import React, { useState } from 'react'
-import styled from 'styled-components'
-import { Copy, Check } from 'lucide-react'
+import styled, { keyframes, css } from 'styled-components'
+import { Star, CreditCard, Building2, Smartphone, Copy, Check, Plus, Pencil, Trash2, Shield } from 'lucide-react'
 import { PaymentMethod, PaymentMethodType } from './AddPaymentMethodForm'
 import Button from '@/components/ui/Button'
 
+// ─── Brand Tokens ────────────────────────────────────────────────────────────
+// Extracted from HonestNeed logo
+const BRAND = {
+  yellow:      '#F5C000',
+  yellowLight: '#FFF8D6',
+  yellowDark:  '#B88C00',
+  blue:        '#29ABE2',
+  blueLight:   '#E6F6FD',
+  blueDark:    '#1A7FB0',
+  green:       '#2E8B1A',
+  greenLight:  '#EAF7E6',
+  navy:        '#1A1464',
+  pink:        '#E8338A',
+  pinkLight:   '#FDE8F3',
+  surface:     '#FAFAFA',
+  border:      '#E8EDF2',
+  text:        '#1A1464',
+  textMuted:   '#6B7B8D',
+  white:       '#FFFFFF',
+}
+
+// ─── Animations ──────────────────────────────────────────────────────────────
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+`
+
+const pulse = keyframes`
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,192,0,0.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(245,192,0,0); }
+`
+
+// ─── Layout ──────────────────────────────────────────────────────────────────
+const Container = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  animation: ${fadeIn} 0.3s ease;
+`
+
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`
+
+const SectionTitle = styled.h3`
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${BRAND.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  span.count {
+    background: ${BRAND.blueLight};
+    color: ${BRAND.blue};
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+  }
+`
+
+// ─── Add Button ───────────────────────────────────────────────────────────────
+const AddBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: ${BRAND.yellow};
+  color: ${BRAND.navy};
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.15s ease;
+  white-space: nowrap;
+
+  svg { width: 16px; height: 16px; }
+
+  &:hover:not(:disabled) {
+    background: ${BRAND.yellowDark};
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) { transform: translateY(0); }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 480px) {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem;
+  }
+`
+
+// ─── Grid ─────────────────────────────────────────────────────────────────────
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(288px, 1fr));
+  gap: 1rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`
+
+// ─── Method Card ─────────────────────────────────────────────────────────────
+const Card = styled.article<{ $isPrimary: boolean }>`
+  position: relative;
+  background: ${BRAND.white};
+  border: 1.5px solid ${p => p.$isPrimary ? BRAND.yellow : BRAND.border};
+  border-radius: 16px;
+  padding: 1.25rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  overflow: visible;
+
+  /* Signature: left accent rail */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 16px;
+    bottom: 16px;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: ${p => p.$isPrimary ? BRAND.yellow : BRAND.blue};
+    transition: background 0.2s;
+  }
+
+  ${p => p.$isPrimary && css`
+    animation: ${pulse} 2.5s ease-in-out;
+  `}
+
+  &:hover {
+    border-color: ${p => p.$isPrimary ? BRAND.yellow : BRAND.blue};
+    box-shadow: 0 4px 20px rgba(41,171,226,0.10);
+  }
+`
+
+const PrimaryBadge = styled.div`
+  position: absolute;
+  top: -11px;
+  left: 1.25rem;
+  background: ${BRAND.yellow};
+  color: ${BRAND.navy};
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  box-shadow: 0 2px 6px rgba(245,192,0,0.35);
+
+  svg { width: 10px; height: 10px; }
+`
+
+const CardTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  margin-bottom: 1rem;
+  padding-left: 0.5rem;
+`
+
+const IconWrap = styled.div<{ $type: PaymentMethodType }>`
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  background: ${p => ({
+    stripe:        BRAND.blueLight,
+    bank_transfer: BRAND.greenLight,
+    mobile_money:  BRAND.pinkLight,
+  }[p.$type] ?? BRAND.surface)};
+
+  color: ${p => ({
+    stripe:        BRAND.blue,
+    bank_transfer: BRAND.green,
+    mobile_money:  BRAND.pink,
+  }[p.$type] ?? BRAND.textMuted)};
+
+  svg { width: 22px; height: 22px; }
+`
+
+const CardMeta = styled.div`
+  flex: 1;
+  min-width: 0;
+`
+
+const CardTitle = styled.p`
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: ${BRAND.text};
+  margin: 0 0 0.2rem;
+`
+
+const CardSub = styled.p`
+  font-size: 0.78rem;
+  color: ${BRAND.textMuted};
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`
+
+// ─── Detail chip ──────────────────────────────────────────────────────────────
+const DetailChip = styled.div`
+  background: ${BRAND.surface};
+  border: 1px solid ${BRAND.border};
+  border-radius: 10px;
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 1rem;
+  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+`
+
+const DetailInner = styled.div``
+
+const DetailLabel = styled.p`
+  font-size: 0.7rem;
+  color: ${BRAND.textMuted};
+  margin: 0 0 0.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+`
+
+const DetailValue = styled.p`
+  font-size: 0.88rem;
+  color: ${BRAND.text};
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+`
+
+const CopyBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${BRAND.textMuted};
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+
+  svg { width: 15px; height: 15px; }
+
+  &:hover { color: ${BRAND.blue}; background: ${BRAND.blueLight}; }
+`
+
+// ─── Card Actions ─────────────────────────────────────────────────────────────
+const CardActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+`
+
+const ActionBtn = styled.button<{ $variant?: 'danger' | 'primary' | 'ghost' }>`
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 9px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+
+  svg { width: 14px; height: 14px; }
+
+  ${p => p.$variant === 'danger' ? css`
+    background: ${BRAND.pinkLight};
+    color: ${BRAND.pink};
+    border-color: transparent;
+    &:hover { background: #fbd0e5; border-color: ${BRAND.pink}; }
+  ` : p.$variant === 'primary' ? css`
+    background: ${BRAND.blueLight};
+    color: ${BRAND.blue};
+    border-color: transparent;
+    &:hover { background: #c8ecf9; border-color: ${BRAND.blue}; }
+  ` : css`
+    background: ${BRAND.yellowLight};
+    color: ${BRAND.yellowDark};
+    border-color: transparent;
+    &:hover { background: #faebb0; border-color: ${BRAND.yellow}; }
+  `}
+`
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+const EmptyWrap = styled.div`
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  border: 2px dashed ${BRAND.border};
+  border-radius: 16px;
+  background: ${BRAND.surface};
+`
+
+const EmptyIconRing = styled.div`
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: ${BRAND.blueLight};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  color: ${BRAND.blue};
+
+  svg { width: 32px; height: 32px; }
+`
+
+const EmptyTitle = styled.p`
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${BRAND.text};
+  margin: 0 0 0.35rem;
+`
+
+const EmptyText = styled.p`
+  font-size: 0.875rem;
+  color: ${BRAND.textMuted};
+  margin: 0 0 1.5rem;
+  line-height: 1.55;
+`
+
+// ─── Security Note ────────────────────────────────────────────────────────────
+const SecurityNote = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: ${BRAND.greenLight};
+  border-radius: 10px;
+  margin-top: 0.25rem;
+
+  svg { width: 16px; height: 16px; color: ${BRAND.green}; flex-shrink: 0; }
+
+  p {
+    font-size: 0.78rem;
+    color: ${BRAND.green};
+    margin: 0;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+`
+
+// ─── Type maps ────────────────────────────────────────────────────────────────
+const methodLabels: Record<PaymentMethodType, string> = {
+  stripe:        'Credit / Debit Card',
+  bank_transfer: 'Bank Transfer',
+  mobile_money:  'Mobile Money',
+}
+
+const MethodIcon: React.FC<{ type: PaymentMethodType }> = ({ type }) => {
+  const icons = {
+    stripe:        <CreditCard />,
+    bank_transfer: <Building2 />,
+    mobile_money:  <Smartphone />,
+  }
+  return <IconWrap $type={type}>{icons[type] ?? <CreditCard />}</IconWrap>
+}
+
+const getDetail = (m: PaymentMethod) => {
+  switch (m.type) {
+    case 'stripe':
+      return { label: 'Card number', value: m.card_last_four ? `•••• •••• •••• ${m.card_last_four}` : '••••' }
+    case 'bank_transfer':
+      return { label: 'Account holder', value: m.bank_account?.account_holder || 'Bank Account' }
+    case 'mobile_money':
+      return { label: 'Mobile number', value: m.mobile_number || '•••• ••••' }
+    default:
+      return null
+  }
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 interface PaymentMethodManagerProps {
   methods: PaymentMethod[]
   onAdd: () => void
@@ -15,187 +420,6 @@ interface PaymentMethodManagerProps {
   isLoading?: boolean
 }
 
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  width: 100%;
-`
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-
-  @media (max-width: 640px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`
-
-const Title = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-`
-
-const MethodsList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-  width: 100%;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`
-
-const MethodCard = styled.div<{ isPrimary: boolean }>`
-  background: white;
-  border: 2px solid ${(props) => (props.isPrimary ? '#22c55e' : '#e2e8f0')};
-  border-radius: 12px;
-  padding: 1.5rem;
-  position: relative;
-  transition: all 0.2s ease;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border-color: ${(props) => (props.isPrimary ? '#16a34a' : '#cbd5e1')};
-  }
-`
-
-const PrimaryBadge = styled.div`
-  position: absolute;
-  top: -10px;
-  right: 1rem;
-  background-color: #22c55e;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-
-  svg {
-    width: 0.75rem;
-    height: 0.75rem;
-  }
-`
-
-const MethodHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-`
-
-const MethodIcon = styled.div`
-  font-size: 1.75rem;
-`
-
-const MethodInfo = styled.div`
-  flex: 1;
-`
-
-const MethodType = styled.p`
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 0.25rem 0;
-`
-
-const MethodSubtype = styled.p`
-  font-size: 0.8rem;
-  color: #64748b;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-`
-
-const MethodDetails = styled.div`
-  background-color: #f8fafc;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  word-break: break-all;
-`
-
-const DetailLabel = styled.p`
-  font-size: 0.75rem;
-  color: #64748b;
-  margin: 0 0 0.25rem 0;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  font-weight: 600;
-`
-
-const DetailValue = styled.p`
-  font-size: 0.95rem;
-  color: #0f172a;
-  margin: 0;
-  font-family: 'Courier New', monospace;
-  font-weight: 500;
-`
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 1.5rem;
-  background-color: #f8fafc;
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-`
-
-const EmptyIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-`
-
-const EmptyText = styled.p`
-  color: #64748b;
-  font-size: 1rem;
-  margin: 0 0 1.5rem 0;
-`
-
-const methodEmojis: Record<PaymentMethodType, string> = {
-  stripe: '💳',
-  bank_transfer: '🏦',
-  mobile_money: '📱',
-}
-
-const methodLabels: Record<PaymentMethodType, string> = {
-  stripe: 'Credit/Debit Card',
-  bank_transfer: 'Bank Transfer',
-  mobile_money: 'Mobile Money',
-}
-
-const getMethodDetails = (method: PaymentMethod): { label: string; value: string } | null => {
-  switch (method.type) {
-    case 'stripe':
-      return { label: 'Card Last 4', value: method.card_last_four ? `****${method.card_last_four}` : 'Card' }
-    case 'bank_transfer':
-      return { 
-        label: 'Account', 
-        value: method.bank_account?.account_holder || 'Bank Account' 
-      }
-    case 'mobile_money':
-      return { 
-        label: 'Mobile Number', 
-        value: method.mobile_number || '••••••••' 
-      }
-    default:
-      return null
-  }
-}
-
-/**
- * PaymentMethodManager Component
- * Production-ready display and management of payment methods
- */
 export const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({
   methods,
   onAdd,
@@ -205,8 +429,6 @@ export const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({
   isLoading = false,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null)
-
-  // Ensure methods is always an array
   const methodsList = Array.isArray(methods) ? methods : []
 
   const handleCopy = (text: string, id: string) => {
@@ -218,68 +440,107 @@ export const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({
   if (methodsList.length === 0) {
     return (
       <Container>
-        <Header>
-          <Title>💳 Payment Methods</Title>
-          <Button variant="primary" onClick={onAdd} disabled={isLoading}>
-            + Add Payment Method
-          </Button>
-        </Header>
+        <SectionHeader>
+          <SectionTitle>Payment methods</SectionTitle>
+          <AddBtn onClick={onAdd} disabled={isLoading}>
+            <Plus /> Add method
+          </AddBtn>
+        </SectionHeader>
 
-        <EmptyState>
-          <EmptyIcon>💳</EmptyIcon>
-          <EmptyText>No payment methods added yet</EmptyText>
-          <Button variant="primary" onClick={onAdd}>
-            Add Your First Payment Method
-          </Button>
-        </EmptyState>
+        <EmptyWrap>
+          <EmptyIconRing><CreditCard /></EmptyIconRing>
+          <EmptyTitle>No payment methods yet</EmptyTitle>
+          <EmptyText>
+            Add a card, bank account, or mobile money number to<br />
+            start receiving payouts from your campaigns.
+          </EmptyText>
+          <AddBtn onClick={onAdd}>
+            <Plus /> Add your first method
+          </AddBtn>
+        </EmptyWrap>
+
+        <SecurityNote>
+          <Shield />
+          <p>Your payment details are encrypted end-to-end and never shared with third parties.</p>
+        </SecurityNote>
       </Container>
     )
   }
 
-  const primaryMethod = methodsList.find((m) => m.isPrimary)
+  const primaryMethod = methodsList.find(m => m.isPrimary)
 
   return (
     <Container>
-      <Header>
-        <Title>💳 Payment Methods ({methodsList.length})</Title>
-        <Button variant="primary" onClick={onAdd} disabled={isLoading}>
-          + Add Payment Method
-        </Button>
-      </Header>
+      <SectionHeader>
+        <SectionTitle>
+          Payment methods
+          <span className="count">{methodsList.length}</span>
+        </SectionTitle>
+        <AddBtn onClick={onAdd} disabled={isLoading}>
+          <Plus /> Add method
+        </AddBtn>
+      </SectionHeader>
 
-      <MethodsList>
+      <Grid>
         {methodsList.map((method, index) => {
-          const details = getMethodDetails(method)
-          const methodId = method.id || `method-${index}`
+          const detail    = getDetail(method)
+          const methodId  = method.id || `method-${index}`
           const isPrimary = method.isPrimary || methodId === primaryMethod?.id
 
           return (
-            <MethodCard key={methodId} isPrimary={isPrimary}>
+            <Card key={methodId} $isPrimary={isPrimary}>
               {isPrimary && (
                 <PrimaryBadge>
-                  <Star size={12} />
-                  Primary
+                  <Star /> Primary
                 </PrimaryBadge>
               )}
 
-              <MethodHeader>
-                <MethodIcon>{methodEmojis[method.type] || '📝'}</MethodIcon>
-                <MethodInfo>
-                  <MethodType>{methodLabels[method.type] || 'Payment Method'}</MethodType>
-                  <MethodSubtype>{method.displayName || methodLabels[method.type] || 'Unknown'}</MethodSubtype>
-                </MethodInfo>
-              </MethodHeader>
+              <CardTop>
+                <MethodIcon type={method.type} />
+                <CardMeta>
+                  <CardTitle>{methodLabels[method.type] || 'Payment method'}</CardTitle>
+                  <CardSub>{method.displayName || methodLabels[method.type]}</CardSub>
+                </CardMeta>
+              </CardTop>
 
-              {details && (
-                <MethodDetails>
-                  <DetailLabel>{details.label}</DetailLabel>
-                  <DetailValue>{details.value}</DetailValue>
-                </MethodDetails>
+              {detail && (
+                <DetailChip>
+                  <DetailInner>
+                    <DetailLabel>{detail.label}</DetailLabel>
+                    <DetailValue>{detail.value}</DetailValue>
+                  </DetailInner>
+                  <CopyBtn
+                    onClick={() => handleCopy(detail.value, methodId)}
+                    title="Copy to clipboard"
+                    aria-label="Copy value"
+                  >
+                    {copiedId === methodId ? <Check /> : <Copy />}
+                  </CopyBtn>
+                </DetailChip>
               )}
-            </MethodCard>
+
+              <CardActions>
+                {!isPrimary && (
+                  <ActionBtn $variant="ghost" onClick={() => onSetPrimary(methodId)}>
+                    <Star /> Set primary
+                  </ActionBtn>
+                )}
+                <ActionBtn $variant="primary" onClick={() => onEdit(method)}>
+                  <Pencil /> Edit
+                </ActionBtn>
+                <ActionBtn $variant="danger" onClick={() => onDelete(methodId)}>
+                  <Trash2 /> Remove
+                </ActionBtn>
+              </CardActions>
+            </Card>
           )
         })}
-      </MethodsList>
+      </Grid>
+
+      <SecurityNote>
+        <Shield />
+        <p>All payment information is encrypted and secured. Your data is never shared with third parties.</p>
+      </SecurityNote>
     </Container>
   )
 }

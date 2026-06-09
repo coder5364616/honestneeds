@@ -3,9 +3,11 @@
 import { useMemo, useRef, useImperativeHandle, forwardRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
 import { donationAmountSchema, type DonationAmountFormData } from '@/utils/validationSchemas'
 import { FeeBreakdown } from './FeeBreakdown'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Step1AmountProps {
   initialAmount?: number
@@ -17,44 +19,69 @@ export interface Step1AmountRef {
   submitForm: () => void
 }
 
+// ─── Keyframes ────────────────────────────────────────────────────────────────
+
+const shimmer = keyframes`
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+`
+
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+`
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
 const Container = styled.div`
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
+  animation: ${fadeUp} 0.4s ease forwards;
+`
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+const StepEyebrow = styled.p`
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #F59E0B;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
 `
 
 const Title = styled.h2`
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 0.5rem 0;
-
-  @media (max-width: 640px) {
-    font-size: 1.5rem;
-  }
+  font-family: 'Nunito', 'Poppins', sans-serif;
+  font-size: clamp(20px, 4vw, 26px);
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 `
 
 const Subtitle = styled.p`
-  font-size: 0.95rem;
-  color: #64748b;
-  margin: 0 0 2rem 0;
+  font-size: 14px;
+  color: #64748B;
+  margin: 0 0 28px;
+  line-height: 1.6;
+  font-weight: 500;
 `
 
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
 const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: 20px;
 `
 
 const Label = styled.label`
   display: block;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
 
-  span {
-    color: #ef4444;
-    margin-left: 0.25rem;
-  }
+  .req { color: #EF4444; margin-left: 3px; }
 `
 
 const InputWrapper = styled.div`
@@ -65,233 +92,247 @@ const InputWrapper = styled.div`
 
 const CurrencySymbol = styled.span`
   position: absolute;
-  left: 1rem;
-  font-weight: 600;
-  font-size: 1.125rem;
-  color: #0f172a;
+  left: 16px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0F172A;
   pointer-events: none;
+  line-height: 1;
 `
 
-const Input = styled.input<{ error?: boolean }>`
+const AmountInput = styled.input<{ $error?: boolean }>`
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
-  font-size: 1.125rem;
-  border: 2px solid ${(props) => (props.error ? '#ef4444' : '#e2e8f0')};
-  border-radius: 0.5rem;
-  transition: all 0.2s ease;
-  font-weight: 600;
+  padding: 16px 16px 16px 40px;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: 'Nunito', sans-serif;
+  color: #0F172A;
+  border: 2px solid ${({ $error }) => $error ? '#EF4444' : '#E2E8F0'};
+  border-radius: 16px;
+  background: ${({ $error }) => $error ? 'rgba(239,68,68,0.03)' : '#FAFAFA'};
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  -moz-appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: #F59E0B;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 4px rgba(245,158,11,0.12);
   }
 
   &:disabled {
-    background-color: #f1f5f9;
-    color: #94a3b8;
+    background: #F1F5F9;
+    color: #94A3B8;
     cursor: not-allowed;
   }
 
-  @media (max-width: 640px) {
-    font-size: 1rem;
+  &::placeholder { color: #CBD5E1; font-weight: 600; font-size: 20px; }
+`
+
+const ErrorMsg = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #EF4444;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 6px;
+
+  &::before { content: '⚠'; font-size: 11px; }
+`
+
+// ─── Preset Grid ──────────────────────────────────────────────────────────────
+
+const PresetLabel = styled.p`
+  font-size: 12px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 16px 0 10px;
+`
+
+const PresetGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+
+  @media (min-width: 400px) {
+    grid-template-columns: repeat(6, 1fr);
   }
 `
 
-const ErrorMessage = styled.span`
-  display: block;
-  color: #ef4444;
-  font-size: 0.8125rem;
-  margin-top: 0.375rem;
+const PresetBtn = styled.button<{ $selected?: boolean }>`
+  position: relative;
+  padding: 10px 6px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+  border: 2px solid ${({ $selected }) => $selected ? 'transparent' : '#E2E8F0'};
+  background: ${({ $selected }) => $selected
+    ? 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)'
+    : '#FFFFFF'};
+  color: ${({ $selected }) => $selected ? '#FFFFFF' : '#475569'};
+  box-shadow: ${({ $selected }) => $selected
+    ? '0 4px 14px rgba(245,158,11,0.35)'
+    : '0 1px 3px rgba(15,23,42,0.06)'};
+
+  &:hover:not(:disabled) {
+    border-color: ${({ $selected }) => $selected ? 'transparent' : '#F59E0B'};
+    color: ${({ $selected }) => $selected ? '#FFFFFF' : '#F59E0B'};
+    transform: translateY(-2px);
+    box-shadow: ${({ $selected }) => $selected
+      ? '0 6px 20px rgba(245,158,11,0.40)'
+      : '0 4px 12px rgba(245,158,11,0.18)'};
+  }
+
+  &:active:not(:disabled) { transform: translateY(0); }
+
+  &:focus-visible {
+    outline: 2px solid #F59E0B;
+    outline-offset: 2px;
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`
+
+// ─── Fee Card ─────────────────────────────────────────────────────────────────
+
+const FeeCard = styled.div`
+  margin-top: 20px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1.5px solid #E2E8F0;
+  background: #FFFFFF;
+`
+
+// ─── Info Box ─────────────────────────────────────────────────────────────────
+
+const InfoBox = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.07) 0%, rgba(239,68,68,0.05) 100%);
+  border: 1.5px solid rgba(245,158,11,0.2);
+  border-radius: 14px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #92400E;
+  line-height: 1.55;
   font-weight: 500;
 `
 
-const PresetButtons = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 0.75rem;
-  margin-top: 1rem;
-`
-
-const PresetButton = styled.button<{ selected?: boolean }>`
-  padding: 0.5rem;
-  border: 2px solid ${(props) => (props.selected ? '#6366f1' : '#e2e8f0')};
-  background-color: ${(props) => (props.selected ? '#ecf0ff' : '#ffffff')};
-  color: ${(props) => (props.selected ? '#6366f1' : '#64748b')};
-  border-radius: 0.375rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #6366f1;
-    background-color: #ecf0ff;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #6366f1;
-    outline-offset: 2px;
-  }
-`
-
-const Info = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: #f0fdf4;
-  border: 1px solid #dcfce7;
-  border-radius: 0.5rem;
-  margin-top: 1.5rem;
-  font-size: 0.875rem;
-  color: #166534;
-  line-height: 1.5;
-`
-
-const InfoIcon = styled.span`
+const InfoDot = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  background-color: #10b981;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  background: linear-gradient(135deg, #F59E0B, #EF4444);
   color: white;
   border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
   flex-shrink: 0;
-  font-weight: 700;
-  font-size: 0.75rem;
 `
 
-/**
- * DonationStep1Amount Component
- * First step of donation wizard: amount selection with fee calculation
- * Exposed methods allow parent to request form submission
- */
-export const DonationStep1Amount = forwardRef<Step1AmountRef, Step1AmountProps>(
-  function DonationStep1AmountComponent(
-    {
-      initialAmount = 25,
-      onNext,
-      isLoading = false,
-    }: Step1AmountProps,
-    ref
-  ) {
-    const formRef = useRef<HTMLFormElement>(null)
-    const {
-      register,
-      formState: { errors },
-      watch,
-      setValue,
-      handleSubmit,
-    } = useForm<DonationAmountFormData>({
-      resolver: zodResolver(donationAmountSchema),
-      defaultValues: {
-        amount: initialAmount,
-      },
-      mode: 'onChange',
-    })
+// ─── Component ────────────────────────────────────────────────────────────────
 
-    // Expose submitForm method to parent via ref
+export const DonationStep1Amount = forwardRef<Step1AmountRef, Step1AmountProps>(
+  function DonationStep1AmountComponent({ initialAmount = 25, onNext, isLoading = false }, ref) {
+    const formRef = useRef<HTMLFormElement>(null)
+
+    const { register, formState: { errors }, watch, setValue, handleSubmit } =
+      useForm<DonationAmountFormData>({
+        resolver: zodResolver(donationAmountSchema),
+        defaultValues: { amount: initialAmount },
+        mode: 'onChange',
+      })
+
     useImperativeHandle(ref, () => ({
-      submitForm: () => {
-        if (formRef.current) {
-          formRef.current.requestSubmit()
-        }
-      },
+      submitForm: () => { formRef.current?.requestSubmit() },
     }), [])
 
     const amount = watch('amount')
-
     const presetAmounts = [10, 25, 50, 100, 250, 500]
 
-    const calculateFee = (value: number) => {
-      return Number((value * 0.2).toFixed(2))
-    }
-
-    const feeInfo = useMemo(() => {
-      if (!amount) {
-        return { gross: 0, fee: 0, net: 0 }
-      }
-      const gross = amount
-      const fee = calculateFee(amount)
-      const net = Number((amount - fee).toFixed(2))
-      return { gross, fee, net }
-    }, [amount])
-
-    const onSubmit = (data: DonationAmountFormData) => {
-      onNext(data.amount)
-    }
-
-    const handlePresetClick = (preset: number) => {
-      setValue('amount', preset, { shouldValidate: true })
-    }
+    const onSubmit = (data: DonationAmountFormData) => onNext(data.amount)
 
     return (
       <Container as="form" ref={formRef} onSubmit={handleSubmit(onSubmit)}>
-      <Title>How much would you like to donate?</Title>
-      <Subtitle>
-        Choose an amount that works for you. We'll calculate the platform fee so you know exactly how much reaches the
-        creator.
-      </Subtitle>
+        <StepEyebrow>Step 1 of 3 · Amount</StepEyebrow>
+        <Title>How much would you like to give?</Title>
+        <Subtitle>
+          Pick an amount below or type your own. We show the exact fee before you continue — no surprises.
+        </Subtitle>
 
-      <FormGroup>
-        <Label htmlFor="donation-amount">
-          Donation Amount
-          <span aria-label="required">*</span>
-        </Label>
+        <FormGroup>
+          <Label htmlFor="donation-amount">
+            Donation Amount
+            <span className="req" aria-label="required">*</span>
+          </Label>
 
-        <InputWrapper>
-          <CurrencySymbol>$</CurrencySymbol>
-          <Input
-            id="donation-amount"
-            type="number"
-            step="0.01"
-            min="1"
-            max="10000"
-            placeholder="25.00"
-            error={!!errors.amount}
-            disabled={isLoading}
-            {...register('amount', {
-              valueAsNumber: true,
-            })}
-            aria-describedby={errors.amount ? 'amount-error' : undefined}
-          />
-        </InputWrapper>
+          <InputWrapper>
+            <CurrencySymbol>$</CurrencySymbol>
+            <AmountInput
+              id="donation-amount"
+              type="number"
+              step="0.01"
+              min="1"
+              max="10000"
+              placeholder="0.00"
+              $error={!!errors.amount}
+              disabled={isLoading}
+              aria-describedby={errors.amount ? 'amount-error' : undefined}
+              {...register('amount', { valueAsNumber: true })}
+            />
+          </InputWrapper>
 
-        {errors.amount && (
-          <ErrorMessage id="amount-error" role="alert">
-            {errors.amount.message}
-          </ErrorMessage>
+          {errors.amount && (
+            <ErrorMsg id="amount-error" role="alert">{errors.amount.message}</ErrorMsg>
+          )}
+
+          <PresetLabel>Quick select</PresetLabel>
+          <PresetGrid>
+            {presetAmounts.map((preset) => (
+              <PresetBtn
+                key={preset}
+                type="button"
+                $selected={amount === preset}
+                onClick={() => setValue('amount', preset, { shouldValidate: true })}
+                disabled={isLoading}
+                aria-pressed={amount === preset}
+              >
+                ${preset}
+              </PresetBtn>
+            ))}
+          </PresetGrid>
+        </FormGroup>
+
+        {amount > 0 && (
+          <FeeCard>
+            <FeeBreakdown grossAmount={amount} />
+          </FeeCard>
         )}
 
-        <PresetButtons>
-          {presetAmounts.map((preset) => (
-            <PresetButton
-              key={preset}
-              type="button"
-              selected={amount === preset}
-              onClick={() => handlePresetClick(preset)}
-              disabled={isLoading}
-            >
-              ${preset}
-            </PresetButton>
-          ))}
-        </PresetButtons>
-      </FormGroup>
+        <InfoBox>
+          <InfoDot>i</InfoDot>
+          <div>
+            <strong>20% platform fee</strong> — covers secure payments, fraud prevention, and platform operations.
+            The remaining amount goes directly to the creator.
+          </div>
+        </InfoBox>
 
-      {amount > 0 && <FeeBreakdown grossAmount={amount} />}
-
-      <Info >
-        <InfoIcon>ℹ️</InfoIcon>
-        <div>
-          <strong>Platform fee transparency:</strong> We charge 20% to maintain secure payments, prevent fraud, and
-          support the platform. Your contribution helps creators directly.
-        </div>
-      </Info>
-
-      {/* Hidden submit button - triggered by clicking Next in parent component */}
-      <input type="submit" hidden aria-hidden="true" />
-    </Container>
+        <input type="submit" hidden aria-hidden="true" />
+      </Container>
     )
   }
 )

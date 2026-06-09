@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import styled from 'styled-components'
 import { X, ChevronRight, ChevronLeft } from 'lucide-react'
 import Button from '@/components/ui/Button'
@@ -471,6 +472,11 @@ export function ShareWizard({
   const [isSharing, setIsSharing] = useState(false)
   const [referralCode, setReferralCode] = useState<string | null>(null)
   const [sharedPlatform, setSharedPlatform] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const recordShareMutation = useRecordShare()
 
@@ -584,13 +590,13 @@ export function ShareWizard({
     onClose()
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !isMounted) return null
 
   const selectedPlatformData = SHARING_PLATFORMS.find(
     (p) => p.id === selectedPlatform
   )
 
-  return (
+  return createPortal(
     <Overlay onClick={handleClose}>
       <ModalContainer onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -810,6 +816,7 @@ export function ShareWizard({
           )}
         </Footer>
       </ModalContainer>
-    </Overlay>
+    </Overlay>,
+    document.body
   )
 }

@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import styled from 'styled-components'
-import { AlertCircle, CheckCircle2, Loader } from 'lucide-react'
+import styled, { keyframes } from 'styled-components'
+import { AlertCircle, CheckCircle2, Loader2, CreditCard, ArrowLeft, Info } from 'lucide-react'
 import { PaymentMethodManager } from '@/components/campaign/PaymentMethodManager'
 import { AddPaymentMethodModal } from '@/components/campaign/AddPaymentMethodModal'
 import { PaymentMethod } from '@/components/campaign/AddPaymentMethodForm'
@@ -15,495 +15,502 @@ import {
 } from '@/api/hooks/usePaymentMethods'
 import { useRouter } from 'next/navigation'
 
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-  width: 100%;
-  box-sizing: border-box;
-  overflow-x: hidden;
+// ─── Brand Tokens ─────────────────────────────────────────────────────────────
+const BRAND = {
+  yellow:      '#F5C000',
+  yellowLight: '#FFF8D6',
+  yellowMid:   '#FAEBB0',
+  yellowDark:  '#B88C00',
+  blue:        '#29ABE2',
+  blueLight:   '#E6F6FD',
+  blueDark:    '#1A7FB0',
+  green:       '#2E8B1A',
+  greenLight:  '#EAF7E6',
+  navy:        '#1A1464',
+  pink:        '#E8338A',
+  pinkLight:   '#FDE8F3',
+  surface:     '#F7F9FC',
+  border:      '#E2E8F0',
+  white:       '#FFFFFF',
+  text:        '#1A1464',
+  textMuted:   '#6B7B8D',
+  textLight:   '#9BA8B5',
+}
 
-  @media (max-width: 640px) {
-    padding: 1.5rem 0.75rem;
-  }
-
-  @media (max-width: 480px) {
-    padding: 1rem 0.5rem;
-  }
+// ─── Animations ───────────────────────────────────────────────────────────────
+const fadeSlide = keyframes`
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 `
 
-const Header = styled.div`
-  margin-bottom: 2rem;
-
-  @media (max-width: 480px) {
-    margin-bottom: 1.5rem;
-  }
+const spin = keyframes`
+  to { transform: rotate(360deg); }
 `
 
-const CardHeaderLayout = styled.div`
+// ─── Page Shell ───────────────────────────────────────────────────────────────
+const PageWrap = styled.div`
+  min-height: 100vh;
+  background: ${BRAND.surface};
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+`
+
+// ─── Top nav bar ──────────────────────────────────────────────────────────────
+const TopBar = styled.header`
+  background: ${BRAND.white};
+  border-bottom: 1px solid ${BRAND.border};
+  padding: 0 1.5rem;
+  height: 60px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
   gap: 1rem;
-  flex-wrap: wrap;
-  width: 100%;
-  box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 
-  @media (max-width: 480px) {
-    flex-direction: column;
-    align-items: stretch;
-    margin-bottom: 1rem;
+  @media (max-width: 640px) {
+    padding: 0 1rem;
   }
 `
 
-const Title = styled.h1`
-  font-size: 2rem;
+const BackBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${BRAND.textMuted};
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+
+  svg { width: 17px; height: 17px; }
+
+  &:hover { background: ${BRAND.surface}; color: ${BRAND.text}; }
+`
+
+const TopBarTitle = styled.span`
+  font-size: 0.95rem;
   font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 0.5rem;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  color: ${BRAND.text};
+`
+
+const LogoBadge = styled.div`
+  margin-left: auto;
+  background: ${BRAND.yellow};
+  color: ${BRAND.navy};
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+`
+
+// ─── Main layout ──────────────────────────────────────────────────────────────
+const Main = styled.main`
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
 
   @media (max-width: 640px) {
-    font-size: 1.5rem;
+    padding: 1.5rem 1rem 3rem;
   }
 
   @media (max-width: 480px) {
-    font-size: 1.25rem;
+    padding: 1.25rem 0.75rem 2.5rem;
   }
 `
 
-const Subtitle = styled.p`
-  font-size: 1rem;
-  color: #64748b;
-  word-break: break-word;
-  overflow-wrap: break-word;
-
-  @media (max-width: 640px) {
-    font-size: 0.9rem;
-  }
+// ─── Page hero ────────────────────────────────────────────────────────────────
+const Hero = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
 
   @media (max-width: 480px) {
-    font-size: 0.85rem;
+    margin-bottom: 1.75rem;
+    gap: 1rem;
   }
 `
 
-const Card = styled.div`
-  background: white;
+const HeroIcon = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: ${BRAND.yellowLight};
+  border: 2px solid ${BRAND.yellow};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: ${BRAND.yellowDark};
+
+  svg { width: 26px; height: 26px; }
+
+  @media (max-width: 480px) {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    svg { width: 22px; height: 22px; }
+  }
+`
+
+const HeroText = styled.div``
+
+const HeroTitle = styled.h1`
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: ${BRAND.text};
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.02em;
+
+  @media (max-width: 640px) { font-size: 1.35rem; }
+  @media (max-width: 480px) { font-size: 1.2rem; }
+`
+
+const HeroSub = styled.p`
+  font-size: 0.9rem;
+  color: ${BRAND.textMuted};
+  margin: 0;
+  line-height: 1.5;
+
+  @media (max-width: 480px) { font-size: 0.82rem; }
+`
+
+// ─── Toast / Alert ────────────────────────────────────────────────────────────
+const Toast = styled.div<{ $type: 'error' | 'success' | 'info' }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1.125rem;
   border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-  box-sizing: border-box;
-  width: 100%;
-  overflow-x: hidden;
+  margin-bottom: 1.5rem;
+  animation: ${fadeSlide} 0.25s ease;
+  border-left: 4px solid transparent;
+
+  svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  ${p => p.$type === 'success' && `
+    background: ${BRAND.greenLight};
+    border-left-color: ${BRAND.green};
+    color: ${BRAND.green};
+  `}
+  ${p => p.$type === 'error' && `
+    background: #FFF0F0;
+    border-left-color: #E53935;
+    color: #B71C1C;
+  `}
+  ${p => p.$type === 'info' && `
+    background: ${BRAND.blueLight};
+    border-left-color: ${BRAND.blue};
+    color: ${BRAND.blueDark};
+  `}
+`
+
+const ToastText = styled.div`
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: 500;
+`
+
+// ─── Content Card ─────────────────────────────────────────────────────────────
+const Card = styled.div`
+  background: ${BRAND.white};
+  border-radius: 20px;
+  border: 1px solid ${BRAND.border};
+  padding: 1.75rem;
+  margin-bottom: 1.25rem;
 
   @media (max-width: 640px) {
-    padding: 1.5rem;
-    border-radius: 8px;
+    padding: 1.25rem;
+    border-radius: 16px;
   }
 
   @media (max-width: 480px) {
     padding: 1rem;
-    border-radius: 6px;
+    border-radius: 14px;
   }
 `
 
-const SectionHeader = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 1.5rem;
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+const shimmer = keyframes`
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+`
+
+const SkeletonRow = styled.div`
+  height: 140px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e8edf2 50%, #f0f2f5 75%);
+  background-size: 600px 100%;
+  animation: ${shimmer} 1.4s infinite linear;
+  margin-bottom: 0.75rem;
+`
+
+const LoadingWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+`
+
+const LoadingSpinner = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  color: ${BRAND.textMuted};
+  font-size: 0.9rem;
+  font-weight: 500;
 
   svg {
-    width: 1.5rem;
-    height: 1.5rem;
-    flex-shrink: 0;
-  }
-
-  @media (max-width: 640px) {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 1rem;
-    margin-bottom: 0.75rem;
+    width: 20px;
+    height: 20px;
+    color: ${BRAND.blue};
+    animation: ${spin} 0.75s linear infinite;
   }
 `
 
-const AlertBox = styled.div<{ type: 'error' | 'success' | 'info' }>`
-  padding: 1rem;
-  border-radius: 8px;
+// ─── Info Box ─────────────────────────────────────────────────────────────────
+const InfoBox = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: flex-start;
-  margin-bottom: 1.5rem;
-  box-sizing: border-box;
-  width: 100%;
-  overflow-x: hidden;
+  padding: 1rem 1.25rem;
+  background: ${BRAND.yellowLight};
+  border: 1px solid ${BRAND.yellow};
+  border-radius: 12px;
+
+  svg { width: 18px; height: 18px; color: ${BRAND.yellowDark}; flex-shrink: 0; margin-top: 1px; }
+`
+
+const InfoText = styled.div`
+  font-size: 0.84rem;
+  color: ${BRAND.yellowDark};
+  line-height: 1.55;
+  font-weight: 500;
+
+  strong { color: ${BRAND.navy}; }
+`
+
+// ─── Stats strip ──────────────────────────────────────────────────────────────
+const StatsStrip = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 
   @media (max-width: 480px) {
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-
-  ${(props) => {
-    switch (props.type) {
-      case 'error':
-        return `
-          background: #fee2e2;
-          border: 1px solid #fca5a5;
-          color: #7f1d1d;
-        `
-      case 'success':
-        return `
-          background: #dcfce7;
-          border: 1px solid #86efac;
-          color: #166534;
-        `
-      case 'info':
-        return `
-          background: #dbeafe;
-          border: 1px solid #93c5fd;
-          color: #0c4a6e;
-        `
-    }
-  }}
-
-  svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    flex-shrink: 0;
-    margin-top: 0.125rem;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
   }
 `
 
-const AlertText = styled.div`
-  font-size: 0.875rem;
-  line-height: 1.5;
-  word-break: break-word;
-  overflow-wrap: break-word;
+const StatCard = styled.div`
+  background: ${BRAND.white};
+  border: 1px solid ${BRAND.border};
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
 
-  @media (max-width: 480px) {
-    font-size: 0.8rem;
+  p.label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: ${BRAND.textMuted};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.3rem;
+  }
+
+  p.value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: ${BRAND.text};
+    margin: 0;
+  }
+
+  p.sub {
+    font-size: 0.75rem;
+    color: ${BRAND.textLight};
+    margin: 0.15rem 0 0;
   }
 `
 
-const LoadingContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  gap: 1rem;
-
-  svg {
-    width: 1.5rem;
-    height: 1.5rem;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  @media (max-width: 480px) {
-    padding: 1.5rem;
-    flex-direction: column;
-    text-align: center;
-  }
-`
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-  box-sizing: border-box;
-
-  svg {
-    width: 3rem;
-    height: 3rem;
-    color: #cbd5e1;
-    margin-bottom: 1rem;
-  }
-
-  p {
-    color: #64748b;
-    margin-bottom: 1.5rem;
-    word-break: break-word;
-    overflow-wrap: break-word;
-  }
-
-  @media (max-width: 480px) {
-    padding: 2rem 0.75rem;
-
-    svg {
-      width: 2.5rem;
-      height: 2.5rem;
-    }
-
-    p {
-      font-size: 0.9rem;
-    }
-  }
-`
-
-const AddButton = styled.button`
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  white-space: nowrap;
-
-  &:hover:not(:disabled) {
-    background: #2563eb;
-  }
-
-  &:disabled {
-    background: #cbd5e1;
-    cursor: not-allowed;
-  }
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-
-  @media (min-width: 481px) {
-    flex-shrink: 0;
-  }
-
-  @media (max-width: 640px) {
-    padding: 0.6rem 1rem;
-    font-size: 0.9rem;
-  }
-
-  @media (max-width: 480px) {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
-    width: 100%;
-  }
-`
-
-/**
- * Creator Settings Page
- * Allows creators to manage payment methods
- */
+// ─── Page Component ───────────────────────────────────────────────────────────
 export default function CreatorSettingsPage() {
   const router = useRouter()
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(
-    null
-  )
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isModalOpen,   setIsModalOpen]   = useState(false)
+  const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null)
+  const [successMsg,    setSuccessMsg]    = useState<string | null>(null)
+  const [errorMsg,      setErrorMsg]      = useState<string | null>(null)
 
-  // Queries and mutations
   const {
     data: paymentMethods = [],
     isLoading: isLoadingMethods,
     error: methodsError,
   } = usePaymentMethods()
 
-  const addPaymentMethod = useAddPaymentMethod()
+  const addPaymentMethod    = useAddPaymentMethod()
   const updatePaymentMethod = useUpdatePaymentMethod()
-  const setAsPrimary = useSetPrimaryPaymentMethod()
+  const setAsPrimary        = useSetPrimaryPaymentMethod()
   const deletePaymentMethod = useDeletePaymentMethod()
 
-  // Handle successful add
+  const flash = (type: 'success' | 'error', msg: string) => {
+    if (type === 'success') { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(null), 5000) }
+    else                    { setErrorMsg(msg);   setTimeout(() => setErrorMsg(null),   5000) }
+  }
+
   const handleAddMethod = useCallback(async (method: PaymentMethod) => {
     try {
       await addPaymentMethod.mutateAsync(method)
-      setSuccessMessage('✅ Payment method added successfully!')
+      flash('success', 'Payment method added successfully.')
       setEditingMethod(null)
       setIsModalOpen(false)
-      setTimeout(() => setSuccessMessage(null), 5000)
-    } catch (error) {
-      const message =
-        (error as any)?.message || 'Failed to add payment method'
-      setErrorMessage(message)
-      setTimeout(() => setErrorMessage(null), 5000)
+    } catch (err: any) {
+      flash('error', err?.message || 'Failed to add payment method.')
     }
   }, [addPaymentMethod])
 
-  // Handle successful update
-  const handleEditMethod = useCallback(
-    async (method: PaymentMethod) => {
-      if (!editingMethod?.id) return
-      try {
-        await updatePaymentMethod.mutateAsync({
-          id: editingMethod.id,
-          ...method,
-        })
-        setSuccessMessage('✅ Payment method updated successfully!')
-        setEditingMethod(null)
-        setIsModalOpen(false)
-        setTimeout(() => setSuccessMessage(null), 5000)
-      } catch (error) {
-        const message =
-          (error as any)?.message || 'Failed to update payment method'
-        setErrorMessage(message)
-        setTimeout(() => setErrorMessage(null), 5000)
-      }
-    },
-    [editingMethod, updatePaymentMethod]
-  )
+  const handleEditMethod = useCallback(async (method: PaymentMethod) => {
+    if (!editingMethod?.id) return
+    try {
+      await updatePaymentMethod.mutateAsync({ id: editingMethod.id, ...method })
+      flash('success', 'Payment method updated successfully.')
+      setEditingMethod(null)
+      setIsModalOpen(false)
+    } catch (err: any) {
+      flash('error', err?.message || 'Failed to update payment method.')
+    }
+  }, [editingMethod, updatePaymentMethod])
 
-  // Handle set as primary
-  const handleSetPrimary = useCallback(
-    async (methodId: string) => {
-      try {
-        await setAsPrimary.mutateAsync(methodId)
-        setSuccessMessage('✅ Primary payment method updated!')
-        setTimeout(() => setSuccessMessage(null), 5000)
-      } catch (error) {
-        const message =
-          (error as any)?.message || 'Failed to set primary payment method'
-        setErrorMessage(message)
-        setTimeout(() => setErrorMessage(null), 5000)
-      }
-    },
-    [setAsPrimary]
-  )
+  const handleSetPrimary = useCallback(async (methodId: string) => {
+    try {
+      await setAsPrimary.mutateAsync(methodId)
+      flash('success', 'Primary payment method updated.')
+    } catch (err: any) {
+      flash('error', err?.message || 'Failed to set primary payment method.')
+    }
+  }, [setAsPrimary])
 
-  // Handle delete
-  const handleDeleteMethod = useCallback(
-    async (methodId: string) => {
-      if (!confirm('Are you sure you want to delete this payment method?')) {
-        return
-      }
-      try {
-        await deletePaymentMethod.mutateAsync(methodId)
-        setSuccessMessage('✅ Payment method deleted successfully!')
-        setTimeout(() => setSuccessMessage(null), 5000)
-      } catch (error) {
-        const message =
-          (error as any)?.message || 'Failed to delete payment method'
-        setErrorMessage(message)
-        setTimeout(() => setErrorMessage(null), 5000)
-      }
-    },
-    [deletePaymentMethod]
-  )
+  const handleDeleteMethod = useCallback(async (methodId: string) => {
+    if (!confirm('Remove this payment method? This action cannot be undone.')) return
+    try {
+      await deletePaymentMethod.mutateAsync(methodId)
+      flash('success', 'Payment method removed.')
+    } catch (err: any) {
+      flash('error', err?.message || 'Failed to remove payment method.')
+    }
+  }, [deletePaymentMethod])
 
-  // Open modal for adding
-  const handleOpenAddModal = () => {
-    setEditingMethod(null)
-    setIsModalOpen(true)
-  }
+  const handleOpenAdd  = () => { setEditingMethod(null); setIsModalOpen(true) }
+  const handleOpenEdit = (m: PaymentMethod) => { setEditingMethod(m); setIsModalOpen(true) }
 
-  // Open modal for editing
-  const handleOpenEditModal = (method: PaymentMethod) => {
-    setEditingMethod(method)
-    setIsModalOpen(true)
-  }
+  const primaryCount = paymentMethods.filter(m => m.isPrimary).length
 
   return (
-    <Container>
-      <Header>
-        <Title>💳 Payment Methods</Title>
-        <Subtitle>
-          Manage your payment methods to receive payouts and support
-          crowdfunded campaigns.
-        </Subtitle>
-      </Header>
+    <PageWrap>
+      {/* ── Top bar ── */}
+      <TopBar>
+        <BackBtn onClick={() => router.back()} aria-label="Go back">
+          <ArrowLeft /> Back
+        </BackBtn>
+        <TopBarTitle>Payment Settings</TopBarTitle>
+        <LogoBadge>HonestNeed</LogoBadge>
+      </TopBar>
 
-      {successMessage && (
-        <AlertBox type="success">
-          <CheckCircle2 />
-          <AlertText>{successMessage}</AlertText>
-        </AlertBox>
-      )}
+      <Main>
+        {/* ── Hero ── */}
+        <Hero>
+          <HeroIcon><CreditCard /></HeroIcon>
+          <HeroText>
+            <HeroTitle>Payment Methods</HeroTitle>
+            <HeroSub>
+              Manage how you receive payouts from your campaigns and supporters.
+            </HeroSub>
+          </HeroText>
+        </Hero>
 
-      {errorMessage && (
-        <AlertBox type="error">
-          <AlertCircle />
-          <AlertText>{errorMessage}</AlertText>
-        </AlertBox>
-      )}
-
-      {methodsError && (
-        <AlertBox type="error">
-          <AlertCircle />
-          <AlertText>Failed to load payment methods. Please try again.</AlertText>
-        </AlertBox>
-      )}
-
-      <Card>
-        <CardHeaderLayout>
-          <SectionHeader>
-            {paymentMethods.length > 0 ? '📋' : '💳'} Your Payment Methods
-          </SectionHeader>
-          <AddButton
-            onClick={handleOpenAddModal}
-            disabled={isLoadingMethods}
-          >
-            ➕ Add Method
-          </AddButton>
-        </CardHeaderLayout>
-
-        {isLoadingMethods ? (
-          <LoadingContainer>
-            <Loader />
-            <span>Loading payment methods...</span>
-          </LoadingContainer>
-        ) : paymentMethods.length === 0 ? (
-          <PaymentMethodManager
-            methods={[]}
-            onSetPrimary={handleSetPrimary}
-            onEdit={handleOpenEditModal}
-            onAdd={handleOpenAddModal}
-            onDelete={handleDeleteMethod}
-            isLoading={isLoadingMethods}
-          />
-        ) : (
-          <PaymentMethodManager
-            methods={paymentMethods}
-            onSetPrimary={handleSetPrimary}
-            onEdit={handleOpenEditModal}
-            onAdd={handleOpenAddModal}
-            onDelete={handleDeleteMethod}
-            isLoading={setAsPrimary.isPending}
-          />
+        {/* ── Toasts ── */}
+        {successMsg && (
+          <Toast $type="success">
+            <CheckCircle2 />
+            <ToastText>{successMsg}</ToastText>
+          </Toast>
         )}
-      </Card>
+        {(errorMsg || methodsError) && (
+          <Toast $type="error">
+            <AlertCircle />
+            <ToastText>
+              {errorMsg || 'Failed to load payment methods. Please refresh the page.'}
+            </ToastText>
+          </Toast>
+        )}
 
-      <Card>
-        <SectionHeader>❓ Help & Information</SectionHeader>
-        <AlertBox type="info">
-          <AlertText>
-            <strong>💡 Tip:</strong> Set a primary payment method to receive
-            automatic payouts. You can have multiple payment methods and
-            switch your primary at any time. All sensitive information is
-            encrypted and never shared with third parties.
-          </AlertText>
-        </AlertBox>
-      </Card>
+        {/* ── Stats strip ── */}
+        {!isLoadingMethods && paymentMethods.length > 0 && (
+          <StatsStrip>
+            <StatCard>
+              <p className="label">Total methods</p>
+              <p className="value">{paymentMethods.length}</p>
+              <p className="sub">Connected</p>
+            </StatCard>
+            <StatCard>
+              <p className="label">Primary</p>
+              <p className="value">{primaryCount > 0 ? '✓' : '—'}</p>
+              <p className="sub">{primaryCount > 0 ? 'Set for payouts' : 'Not set yet'}</p>
+            </StatCard>
+            <StatCard>
+              <p className="label">Security</p>
+              <p className="value" style={{ fontSize: '1.1rem', paddingTop: '2px' }}>🔒</p>
+              <p className="sub">End-to-end encrypted</p>
+            </StatCard>
+          </StatsStrip>
+        )}
 
+        {/* ── Main card ── */}
+        <Card>
+          {isLoadingMethods ? (
+            <LoadingWrap>
+              <LoadingSpinner>
+                <Loader2 /> Loading payment methods…
+              </LoadingSpinner>
+              <SkeletonRow />
+              <SkeletonRow style={{ opacity: 0.6 }} />
+            </LoadingWrap>
+          ) : (
+            <PaymentMethodManager
+              methods={paymentMethods}
+              onSetPrimary={handleSetPrimary}
+              onEdit={handleOpenEdit}
+              onAdd={handleOpenAdd}
+              onDelete={handleDeleteMethod}
+              isLoading={setAsPrimary.isPending}
+            />
+          )}
+        </Card>
+
+        {/* ── Info box ── */}
+        <InfoBox>
+          <Info />
+          <InfoText>
+            <strong>Tip:</strong> Set a primary method to receive automatic payouts whenever
+            a campaign goal is reached. You can add multiple methods and switch your primary
+            at any time — changes take effect on the next payout cycle.
+          </InfoText>
+        </InfoBox>
+      </Main>
+
+      {/* ── Modal ── */}
       <AddPaymentMethodModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false)
-          setEditingMethod(null)
-        }}
+        onClose={() => { setIsModalOpen(false); setEditingMethod(null) }}
         onSubmit={editingMethod ? handleEditMethod : handleAddMethod}
-        isLoading={
-          editingMethod ? updatePaymentMethod.isPending : addPaymentMethod.isPending
-        }
+        isLoading={editingMethod ? updatePaymentMethod.isPending : addPaymentMethod.isPending}
         initialMethod={editingMethod || undefined}
         isEditing={!!editingMethod}
       />
-    </Container>
+    </PageWrap>
   )
 }

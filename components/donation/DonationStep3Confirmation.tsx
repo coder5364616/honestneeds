@@ -3,9 +3,16 @@
 import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import styled from 'styled-components'
-import { Upload, X, FileText, AlertCircle } from 'lucide-react'
-import { donationConfirmationSchema, type DonationConfirmationFormData, currencyUtils, type DonationPaymentMethod } from '@/utils/validationSchemas'
+import styled, { keyframes, css } from 'styled-components'
+import { Upload, X, FileText, CheckCircle } from 'lucide-react'
+import {
+  donationConfirmationSchema,
+  type DonationConfirmationFormData,
+  currencyUtils,
+  type DonationPaymentMethod,
+} from '@/utils/validationSchemas'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Step3ConfirmationProps {
   amount: number
@@ -15,276 +22,452 @@ interface Step3ConfirmationProps {
   isLoading?: boolean
 }
 
+// ─── Keyframes ────────────────────────────────────────────────────────────────
+
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+`
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`
+
+const checkPop = keyframes`
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+`
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
 const Container = styled.div`
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
+  animation: ${fadeUp} 0.4s ease forwards;
+`
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+const StepEyebrow = styled.p`
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #F59E0B;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
 `
 
 const Title = styled.h2`
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 0.5rem 0;
-
-  @media (max-width: 640px) {
-    font-size: 1.5rem;
-  }
+  font-family: 'Nunito', 'Poppins', sans-serif;
+  font-size: clamp(20px, 4vw, 26px);
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 `
 
 const Subtitle = styled.p`
-  font-size: 0.95rem;
-  color: #64748b;
-  margin: 0 0 2rem 0;
+  font-size: 14px;
+  color: #64748B;
+  margin: 0 0 24px;
+  line-height: 1.65;
+  font-weight: 500;
 `
+
+// ─── Summary Card ─────────────────────────────────────────────────────────────
 
 const SummaryCard = styled.div`
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1.5px solid #E2E8F0;
+  background: #FFFFFF;
+  box-shadow: 0 2px 12px rgba(15,23,42,0.06);
+  margin-bottom: 20px;
 `
 
-const SummaryRow = styled.div`
+const SummaryHeader = styled.div`
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`
+
+const SummaryHeaderText = styled.p`
+  font-size: 12px;
+  font-weight: 800;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0;
+`
+
+const SummaryBody = styled.div`
+  padding: 4px 0;
+`
+
+const SummaryRow = styled.div<{ $highlight?: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 12px 18px;
+  border-bottom: 1px solid #F8FAFC;
 
-  &:last-child {
-    border-bottom: none;
-  }
+  &:last-child { border-bottom: none; }
+
+  ${({ $highlight }) => $highlight && css`
+    background: rgba(245,158,11,0.04);
+  `}
 `
 
 const SummaryLabel = styled.span`
-  color: #64748b;
-  font-size: 0.95rem;
+  font-size: 13.5px;
+  color: #64748B;
+  font-weight: 500;
 `
 
-const SummaryValue = styled.span<{ bold?: boolean }>`
-  color: #0f172a;
-  font-weight: ${(props) => (props.bold ? 700 : 500)};
-  font-size: 0.95rem;
+const SummaryValue = styled.span<{ $bold?: boolean; $green?: boolean; $accent?: boolean }>`
+  font-size: 13.5px;
+  font-weight: ${({ $bold }) => $bold ? 800 : 600};
+  color: ${({ $green, $accent }) =>
+    $green ? '#16A34A' :
+    $accent ? '#0F172A' :
+    '#334155'};
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
 `
 
-const Instructions = styled.div`
-  background-color: #ecf0ff;
-  border: 1px solid #c7d2fe;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 2rem;
-  font-size: 0.95rem;
-  color: #4f46e5;
+const SummaryDivider = styled.div`
+  height: 1px;
+  background: #E2E8F0;
+  margin: 0 18px;
+`
+
+const CreatorReceivesRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: rgba(34,197,94,0.05);
+  border-top: 1.5px solid rgba(34,197,94,0.15);
+`
+
+const CreatorLabel = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #15803D;
+`
+
+const CreatorValue = styled.span`
+  font-size: 18px;
+  font-weight: 900;
+  font-family: 'Nunito', sans-serif;
+  color: #15803D;
+`
+
+// ─── Instructions ─────────────────────────────────────────────────────────────
+
+const InstructionsBox = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.07) 0%, rgba(239,68,68,0.05) 100%);
+  border: 1.5px solid rgba(245,158,11,0.22);
+  border-radius: 14px;
+  margin-bottom: 20px;
+  font-size: 13.5px;
+  color: #92400E;
   line-height: 1.6;
-
-  strong {
-    display: block;
-    margin-bottom: 0.5rem;
-  }
+  font-weight: 500;
 `
+
+const InstructionsDot = styled.div`
+  width: 22px; height: 22px; min-width: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F59E0B, #EF4444);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+`
+
+// ─── File Upload ──────────────────────────────────────────────────────────────
 
 const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: 18px;
 `
 
-const Label = styled.label`
+const FieldLabel = styled.label`
   display: block;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
 
-  span {
-    color: #64748b;
-    font-weight: 400;
-    margin-left: 0.25rem;
+  .optional {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #94A3B8;
+    margin-left: 6px;
   }
 `
 
-const FileInput = styled.input`
+const HiddenInput = styled.input`
   display: none;
 `
 
-const FileUploadBox = styled.div<{ isDragging: boolean; hasFile: boolean }>`
-  border: 2px dashed ${(props) => (props.isDragging ? '#6366f1' : '#e2e8f0')};
-  border-radius: 0.5rem;
-  padding: 2rem;
+const UploadZone = styled.div<{ $dragging: boolean; $hasFile: boolean }>`
+  border: 2px dashed ${({ $dragging, $hasFile }) =>
+    $dragging ? '#F59E0B' : $hasFile ? '#22C55E' : '#CBD5E1'};
+  border-radius: 16px;
+  padding: 28px 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: ${(props) => (props.isDragging ? '#ecf0ff' : props.hasFile ? '#f0fdf4' : '#ffffff')};
+  background: ${({ $dragging, $hasFile }) =>
+    $dragging ? 'rgba(245,158,11,0.05)' :
+    $hasFile ? 'rgba(34,197,94,0.04)' :
+    '#FAFAFA'};
 
   &:hover {
-    border-color: #6366f1;
+    border-color: #F59E0B;
+    background: rgba(245,158,11,0.04);
   }
+
+  &:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
 `
 
-const UploadIcon = styled(Upload)`
-  margin: 0 auto 0.5rem;
-  color: #6366f1;
+const UploadIconWrap = styled.div`
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.08));
+  border: 1.5px solid rgba(245,158,11,0.2);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px;
+
+  svg { color: #F59E0B; width: 20px; height: 20px; }
 `
 
-const UploadText = styled.p`
-  margin: 0;
-  color: #0f172a;
-  font-weight: 600;
-  font-size: 0.95rem;
+const UploadTitle = styled.p`
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 4px;
 `
 
 const UploadHint = styled.p`
-  margin: 0.25rem 0 0 0;
-  color: #64748b;
-  font-size: 0.8125rem;
+  font-size: 12px;
+  color: #94A3B8;
+  font-weight: 500;
+  margin: 0;
 `
 
 const FilePreview = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background-color: #f0fdf4;
-  border: 1px solid #dcfce7;
-  border-radius: 0.375rem;
-  margin-top: 0.75rem;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(34,197,94,0.07);
+  border: 1.5px solid rgba(34,197,94,0.2);
+  border-radius: 12px;
+  margin-bottom: 10px;
 `
 
-const FileIcon = styled(FileText)`
-  color: #10b981;
+const FileIconWrap = styled.div`
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: rgba(34,197,94,0.12);
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+
+  svg { color: #22C55E; width: 16px; height: 16px; }
 `
 
 const FileName = styled.span`
   flex: 1;
-  color: #0f172a;
-  font-weight: 500;
-  font-size: 0.875rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
   word-break: break-all;
+  line-height: 1.3;
 `
 
-const RemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: #ef4444;
-  cursor: pointer;
-  padding: 0.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+const RemoveBtn = styled.button`
+  background: none; border: none;
+  color: #EF4444; cursor: pointer;
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
 
-  &:hover {
-    background-color: #fee2e2;
-    border-radius: 0.25rem;
-  }
+  &:hover { background: rgba(239,68,68,0.08); }
+  svg { width: 14px; height: 14px; }
 `
 
-const CheckboxContainer = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-`
-
-const Checkbox = styled.input`
-  width: 1.25rem;
-  height: 1.25rem;
-  margin-top: 0.1875rem;
-  cursor: pointer;
-  accent-color: #6366f1;
-`
-
-const CheckboxLabel = styled.label`
-  flex: 1;
-  font-size: 0.95rem;
-  color: #0f172a;
-  cursor: pointer;
-  line-height: 1.5;
-
-  strong {
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-`
+// ─── Warning ──────────────────────────────────────────────────────────────────
 
 const WarningBox = styled.div`
   display: flex;
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: 0.5rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-  color: #92400e;
-  line-height: 1.5;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: rgba(251,191,36,0.08);
+  border: 1.5px solid rgba(251,191,36,0.28);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #78350F;
+  line-height: 1.55;
+  font-weight: 500;
+
+  .warn-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
 `
 
-const WarningIcon = styled(AlertCircle)`
-  flex-shrink: 0;
-  margin-top: 0.125rem;
-`
+// ─── Confirmation Checkbox ────────────────────────────────────────────────────
 
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 0.875rem;
-  background-color: #6366f1;
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 600;
+const CheckboxWrap = styled.div<{ $checked: boolean }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid ${({ $checked }) => $checked ? 'rgba(34,197,94,0.35)' : '#E2E8F0'};
+  background: ${({ $checked }) => $checked ? 'rgba(34,197,94,0.04)' : '#FAFAFA'};
+  margin-bottom: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  user-select: none;
+`
+
+const CustomCheckbox = styled.div<{ $checked: boolean }>`
+  width: 22px; height: 22px; min-width: 22px;
+  border-radius: 7px;
+  border: 2px solid ${({ $checked }) => $checked ? '#22C55E' : '#CBD5E1'};
+  background: ${({ $checked }) => $checked
+    ? 'linear-gradient(135deg, #22C55E, #16A34A)'
+    : '#FFFFFF'};
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+  margin-top: 1px;
+
+  svg {
+    width: 12px; height: 12px; color: white;
+    opacity: ${({ $checked }) => $checked ? 1 : 0};
+    animation: ${({ $checked }) => $checked ? css`${checkPop} 0.25s ease forwards` : 'none'};
+  }
+`
+
+const HiddenCheckbox = styled.input`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+`
+
+const CheckboxText = styled.div`
+  flex: 1;
+
+  .check-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0F172A;
+    margin-bottom: 3px;
+    display: block;
+  }
+
+  .check-sub {
+    font-size: 12.5px;
+    color: #64748B;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+`
+
+// ─── Error ────────────────────────────────────────────────────────────────────
+
+const ErrorMsg = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #EF4444;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 6px;
+
+  &::before { content: '⚠'; font-size: 11px; }
+`
+
+// ─── Submit Button ────────────────────────────────────────────────────────────
+
+const SubmitBtn = styled.button<{ $active: boolean }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  border: none;
+  border-radius: 14px;
+  letter-spacing: 0.01em;
+  cursor: ${({ $active }) => $active ? 'pointer' : 'not-allowed'};
+  transition: box-shadow 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+
+  background: ${({ $active }) =>
+    $active ? 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)' : '#F1F5F9'};
+  color: ${({ $active }) => $active ? '#FFFFFF' : '#94A3B8'};
+  box-shadow: ${({ $active }) =>
+    $active ? '0 4px 20px rgba(239,68,68,0.30)' : 'none'};
 
   &:hover:not(:disabled) {
-    background-color: #4f46e5;
+    box-shadow: 0 6px 28px rgba(239,68,68,0.40);
+    transform: translateY(-1px);
   }
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  &:active:not(:disabled) { transform: translateY(0); }
+  &:disabled { cursor: not-allowed; }
 
-  &:focus-visible {
-    outline: 2px solid #6366f1;
-    outline-offset: 2px;
+  &:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2.5px solid rgba(255,255,255,0.35);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: ${spin} 0.7s linear infinite;
+    flex-shrink: 0;
   }
 `
 
-const ErrorMessage = styled.span`
-  display: block;
-  color: #ef4444;
-  font-size: 0.8125rem;
-  margin-top: 0.375rem;
-  font-weight: 500;
-`
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const formatPaymentMethodDisplay = (method: DonationPaymentMethod): string => {
-  if (!method || !method.type) return 'Payment Method'
-  
+  if (!method?.type) return 'Payment Method'
   switch (method.type) {
-    case 'venmo':
-      return `Venmo: ${method.username || method.venmo_handle || 'Payment Account'}`
-    case 'paypal':
-      return `PayPal: ${method.email || 'Payment Account'}`
-    case 'cashapp':
-      return `Cash App: ${method.cashtag || method.cash_app_handle || 'Payment Account'}`
-    case 'bank':
-      return `Bank Transfer (Routing: ${method.routingNumber || method.routing_number || '****'})`
-    case 'crypto':
-      return `${method.cryptoType?.toUpperCase() || method.crypto_type?.toUpperCase() || 'Crypto'} Wallet`
-    case 'other':
-      return `Other: ${method.details || 'Payment Method'}`
-    default:
-      return `${method.type}: Payment Method`
+    case 'venmo':    return `Venmo: ${method.username || method.venmo_handle || 'Account'}`
+    case 'paypal':   return `PayPal: ${method.email || 'Account'}`
+    case 'cashapp':  return `Cash App: ${method.cashtag || method.cash_app_handle || 'Account'}`
+    case 'bank':     return `Bank Transfer (Routing: ${method.routingNumber || method.routing_number || '****'})`
+    case 'crypto':   return `${(method.cryptoType || method.crypto_type || 'Crypto').toUpperCase()} Wallet`
+    case 'other':    return `Other: ${method.details || 'Payment Method'}`
+    default:         return `${method.type}: Payment Method`
   }
 }
 
-/**
- * DonationStep3Confirmation Component
- * Third step of donation wizard: confirmation with proof upload
- */
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function DonationStep3Confirmation({
   amount,
   paymentMethod,
@@ -294,24 +477,18 @@ export function DonationStep3Confirmation({
 }: Step3ConfirmationProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const {
-    register,
-    watch,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<DonationConfirmationFormData>({
-    resolver: zodResolver(donationConfirmationSchema),
-    mode: 'onChange',
-  })
 
-  const screenshotProof = watch('screenshotProof')
+  const { register, watch, setValue, handleSubmit, formState: { errors } } =
+    useForm<DonationConfirmationFormData>({
+      resolver: zodResolver(donationConfirmationSchema),
+      mode: 'onChange',
+    })
+
+  const screenshotProof  = watch('screenshotProof')
   const agreePaymentSent = watch('agreePaymentSent')
 
   const feeInfo = currencyUtils.calculateFee(amount)
-
-  // formatCurrency expects cents, but calculateFee returns dollars, so multiply by 100
-  const formatFeeAmount = (dollars: number) => currencyUtils.formatCurrency(dollars * 100)
+  const fmt = (dollars: number) => currencyUtils.formatCurrency(dollars * 100)
 
   const handleFileSelect = (file: File | null) => {
     if (file && file.size <= 5 * 1024 * 1024) {
@@ -319,163 +496,168 @@ export function DonationStep3Confirmation({
     }
   }
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setIsDragging(false)
-    if (e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0])
-    }
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      handleFileSelect(e.target.files[0])
-    }
+    const file = e.dataTransfer.files[0]
+    if (file) handleFileSelect(file)
   }
 
   return (
     <Container as="form" onSubmit={handleSubmit(onSubmit)}>
-      <Title>Confirm your donation</Title>
+      <StepEyebrow>Step 3 of 3 · Confirm</StepEyebrow>
+      <Title>Almost there — confirm your donation</Title>
       <Subtitle>
-        Review your donation details. Please confirm you've sent the payment through your selected method.
+        Review the details below, upload proof if you have it, then confirm you've sent the payment.
       </Subtitle>
 
+      {/* Summary card */}
       <SummaryCard>
-        <SummaryRow>
-          <SummaryLabel>Campaign</SummaryLabel>
-          <SummaryValue bold>{campaignTitle}</SummaryValue>
-        </SummaryRow>
-        <SummaryRow>
-          <SummaryLabel>Your Donation</SummaryLabel>
-          <SummaryValue bold>{formatFeeAmount(feeInfo.gross)}</SummaryValue>
-        </SummaryRow>
-        <SummaryRow>
-          <SummaryLabel>Platform Fee (20%)</SummaryLabel>
-          <SummaryValue>{formatFeeAmount(feeInfo.fee)}</SummaryValue>
-        </SummaryRow>
-        <SummaryRow>
-          <SummaryLabel>Creator Receives</SummaryLabel>
-          <SummaryValue bold>{formatFeeAmount(feeInfo.net)}</SummaryValue>
-        </SummaryRow>
-        <SummaryRow>
-          <SummaryLabel>Payment Method</SummaryLabel>
-          <SummaryValue>{formatPaymentMethodDisplay(paymentMethod)}</SummaryValue>
-        </SummaryRow>
+        <SummaryHeader>
+          <SummaryHeaderText>Donation summary</SummaryHeaderText>
+        </SummaryHeader>
+        <SummaryBody>
+          <SummaryRow>
+            <SummaryLabel>Campaign</SummaryLabel>
+            <SummaryValue $bold $accent>{campaignTitle}</SummaryValue>
+          </SummaryRow>
+          <SummaryRow>
+            <SummaryLabel>Your donation</SummaryLabel>
+            <SummaryValue $bold>{fmt(feeInfo.gross)}</SummaryValue>
+          </SummaryRow>
+          <SummaryRow>
+            <SummaryLabel>Platform fee (20%)</SummaryLabel>
+            <SummaryValue>−{fmt(feeInfo.fee)}</SummaryValue>
+          </SummaryRow>
+          <SummaryRow>
+            <SummaryLabel>Payment method</SummaryLabel>
+            <SummaryValue>{formatPaymentMethodDisplay(paymentMethod)}</SummaryValue>
+          </SummaryRow>
+        </SummaryBody>
+        <CreatorReceivesRow>
+          <CreatorLabel>
+            <CheckCircle size={15} />
+            Creator receives
+          </CreatorLabel>
+          <CreatorValue>{fmt(feeInfo.net)}</CreatorValue>
+        </CreatorReceivesRow>
       </SummaryCard>
 
-      <Instructions>
-        <strong>Next steps:</strong>
-        Send {formatFeeAmount(feeInfo.gross)} to the payment method displayed above. Once sent, upload a
-        screenshot as proof and confirm below. The creator will review your payment and process it.
-      </Instructions>
+      {/* Instructions */}
+      <InstructionsBox>
+        <InstructionsDot>→</InstructionsDot>
+        <div>
+          <strong>Next:</strong> Send {fmt(feeInfo.gross)} to the payment method shown above.
+          Then upload a screenshot as proof (optional but recommended) and check the confirmation box below.
+        </div>
+      </InstructionsBox>
 
+      {/* File Upload */}
       <FormGroup>
-        <Label>Upload Payment Proof (Optional)</Label>
-        <FileUploadBox
-          isDragging={isDragging}
-          hasFile={!!screenshotProof}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+        <FieldLabel>
+          Payment screenshot
+          <span className="optional">(optional but recommended)</span>
+        </FieldLabel>
+
+        <UploadZone
+          $dragging={isDragging}
+          $hasFile={!!screenshotProof}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+          onDragLeave={(e) => { e.preventDefault(); setIsDragging(false) }}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          role="button"
           tabIndex={0}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              fileInputRef.current?.click()
-            }
-          }}
+          role="button"
           aria-label="Upload payment proof screenshot"
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click() }}
         >
           {screenshotProof ? (
-            <>
-              <FilePreview>
-                <FileIcon size={20} />
-                <FileName>{screenshotProof.name}</FileName>
-                <RemoveButton
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setValue('screenshotProof', undefined)
-                  }}
-                  aria-label="Remove file"
-                >
-                  <X size={20} />
-                </RemoveButton>
-              </FilePreview>
-              <UploadHint>Click to change or upload a different file</UploadHint>
-            </>
+            <FilePreview onClick={(e) => e.stopPropagation()}>
+              <FileIconWrap><FileText /></FileIconWrap>
+              <FileName>{screenshotProof.name}</FileName>
+              <RemoveBtn
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setValue('screenshotProof', undefined) }}
+                aria-label="Remove file"
+              >
+                <X />
+              </RemoveBtn>
+            </FilePreview>
           ) : (
             <>
-              <UploadIcon size={32} aria-hidden="true" />
-              <UploadText>Drag and drop your screenshot here</UploadText>
-              <UploadHint>or click to browse • Max 5MB • JPEG, PNG, or WebP</UploadHint>
+              <UploadIconWrap><Upload /></UploadIconWrap>
+              <UploadTitle>Drag your screenshot here, or click to browse</UploadTitle>
+              <UploadHint>JPEG, PNG or WebP · Max 5 MB</UploadHint>
             </>
           )}
-
-          <FileInput
+          <HiddenInput
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            onChange={handleFileChange}
+            onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
             disabled={isLoading}
             aria-describedby="file-error"
           />
-        </FileUploadBox>
+        </UploadZone>
+
         {errors.screenshotProof && (
-          <ErrorMessage id="file-error" role="alert">
-            {errors.screenshotProof.message as string}
-          </ErrorMessage>
+          <ErrorMsg id="file-error" role="alert">{errors.screenshotProof.message as string}</ErrorMsg>
         )}
       </FormGroup>
 
+      {/* Warning */}
       <WarningBox>
-        <WarningIcon size={18} aria-hidden="true" />
-        <span>
-          <strong>Important:</strong> Please keep a record of your transaction for your reference. The creator will
-          contact you if they need additional information.
-        </span>
+        <span className="warn-icon">⚠️</span>
+        <div>
+          <strong>Keep your receipt:</strong> Save a record of your transaction. The creator will follow up
+          if they need more information.
+        </div>
       </WarningBox>
 
-      <CheckboxContainer>
-        <Checkbox
+      {/* Confirmation checkbox */}
+      <CheckboxWrap
+        $checked={!!agreePaymentSent}
+        onClick={() => setValue('agreePaymentSent', !agreePaymentSent, { shouldValidate: true })}
+      >
+        <CustomCheckbox $checked={!!agreePaymentSent}>
+          <CheckCircle />
+        </CustomCheckbox>
+        <CheckboxText>
+          <span className="check-title">I have sent the payment</span>
+          <span className="check-sub">
+            to the payment method shown above. I understand the creator will review and process my donation.
+          </span>
+        </CheckboxText>
+        <HiddenCheckbox
           id="agree-payment-sent"
           type="checkbox"
           disabled={isLoading}
           {...register('agreePaymentSent')}
           aria-describedby={errors.agreePaymentSent ? 'agree-error' : undefined}
+          onClick={(e) => e.stopPropagation()}
         />
-        <CheckboxLabel htmlFor="agree-payment-sent">
-          <strong>I confirm that I have sent the payment</strong>
-          <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
-            to the payment method displayed above. I understand that creator will review and process my donation.
-          </div>
-        </CheckboxLabel>
-      </CheckboxContainer>
+      </CheckboxWrap>
 
       {errors.agreePaymentSent && (
-        <ErrorMessage id="agree-error" role="alert">
+        <ErrorMsg id="agree-error" role="alert" style={{ marginBottom: 14 }}>
           {errors.agreePaymentSent.message as string}
-        </ErrorMessage>
+        </ErrorMsg>
       )}
 
-      <SubmitButton
+      {/* Submit */}
+      <SubmitBtn
         type="submit"
+        $active={!!agreePaymentSent && !isLoading}
         disabled={isLoading || !agreePaymentSent}
         aria-label="Confirm and submit donation"
       >
-        {isLoading ? 'Processing...' : 'Confirm Donation'}
-      </SubmitButton>
+        {isLoading
+          ? <><div className="spinner" />Processing…</>
+          : agreePaymentSent
+            ? '🎉 Confirm Donation'
+            : 'Check the box above to continue'
+        }
+      </SubmitBtn>
     </Container>
   )
 }

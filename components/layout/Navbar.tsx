@@ -246,22 +246,6 @@ const DropdownMenu = styled.div`
   animation: ${dropdownIn} 150ms ease forwards;
 `
 
-const PortaledDropdownMenu = styled.div<{ $top: number; $left: number }>`
-  position: fixed;
-  top: ${({ $top }) => $top}px;
-  left: ${({ $left }) => $left}px;
-  transform: translateX(-50%);
-  min-width: 200px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
-  padding: 0.35rem;
-  z-index: 9990;
-  animation: ${dropdownIn} 150ms ease forwards;
-  pointer-events: auto;
-`
-
 const DropdownItem = styled(Link)<{ $active?: boolean }>`
   display: flex;
   align-items: center;
@@ -379,22 +363,6 @@ const UserDropdown = styled.div`
   padding: 0.35rem;
   z-index: 200;
   animation: ${dropdownIn} 150ms ease forwards;
-`
-
-const PortaledUserDropdown = styled.div<{ $top: number; $left: number }>`
-  position: fixed;
-  top: ${({ $top }) => $top}px;
-  left: ${({ $left }) => $left}px;
-  transform: translateX(-100%);
-  width: 220px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
-  padding: 0.35rem;
-  z-index: 9990;
-  animation: ${dropdownIn} 150ms ease forwards;
-  pointer-events: auto;
 `
 
 const UserInfo = styled.div`
@@ -700,13 +668,9 @@ export default function Navbar() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
   const [scrolled, setScrolled] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  const [dropdownPos, setDropdownPos] = useState<Record<string, { top: number; left: number }>>({})
-  const [userMenuPos, setUserMenuPos] = useState<{ top: number; left: number } | null>(null)
 
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const userMenuTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({})
-  const avatarButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const router = useRouter()
   const pathname = usePathname()
@@ -751,14 +715,6 @@ export default function Navbar() {
   // Dropdown hover handlers (shared leaveTimer fixes the gap bug)
   const handleDropdownEnter = useCallback((group: string) => {
     if (leaveTimer.current) clearTimeout(leaveTimer.current)
-    const el = triggerRefs.current[group]
-    if (el) {
-      const rect = el.getBoundingClientRect()
-      setDropdownPos(prev => ({
-        ...prev,
-        [group]: { top: rect.bottom + 8, left: rect.left + rect.width / 2 }
-      }))
-    }
     setOpenDropdown(group)
   }, [])
 
@@ -769,11 +725,6 @@ export default function Navbar() {
   // User menu hover handlers
   const handleUserMenuEnter = useCallback(() => {
     if (userMenuTimer.current) clearTimeout(userMenuTimer.current)
-    const el = avatarButtonRef.current
-    if (el) {
-      const rect = el.getBoundingClientRect()
-      setUserMenuPos({ top: rect.bottom + 8, left: rect.right })
-    }
     setUserMenuOpen(true)
   }, [])
 
@@ -847,7 +798,7 @@ export default function Navbar() {
           <Logo href="/" aria-label="HonestNeed home">
             <img src="/1000019752.png" alt="" aria-hidden="true" />
             <LogoText>HonestNeed</LogoText>
-            <LogoShort>HN</LogoShort>
+            <LogoShort>Honest Need</LogoShort>
           </Logo>
 
           {/* Desktop Nav */}
@@ -879,7 +830,6 @@ export default function Navbar() {
                   onMouseLeave={handleDropdownLeave}
                 >
                   <DropdownTrigger
-                    ref={(el) => { triggerRefs.current[group] = el }}
                     $active={anyActive}
                     aria-haspopup="true"
                     aria-expanded={openDropdown === group}
@@ -889,32 +839,23 @@ export default function Navbar() {
                     <DropdownChevron $open={openDropdown === group} />
                   </DropdownTrigger>
 
-                  {openDropdown === group && dropdownPos[group] && isMounted &&
-                    createPortal(
-                      <PortaledDropdownMenu
-                        $top={dropdownPos[group].top}
-                        $left={dropdownPos[group].left}
-                        onMouseEnter={() => handleDropdownEnter(group)}
-                        onMouseLeave={handleDropdownLeave}
-                        role="menu"
-                      >
-                        {links.map((link) => (
-                          <DropdownItem
-                            key={link.href}
-                            href={link.href}
-                            $active={isActive(link.href)}
-                            role="menuitem"
-                            aria-current={isActive(link.href) ? 'page' : undefined}
-                            onClick={() => setOpenDropdown(null)}
-                          >
-                            {link.icon}
-                            {link.label}
-                          </DropdownItem>
-                        ))}
-                      </PortaledDropdownMenu>,
-                      document.body
-                    )
-                  }
+                  {openDropdown === group && (
+                    <DropdownMenu role="menu">
+                      {links.map((link) => (
+                        <DropdownItem
+                          key={link.href}
+                          href={link.href}
+                          $active={isActive(link.href)}
+                          role="menuitem"
+                          aria-current={isActive(link.href) ? 'page' : undefined}
+                          onClick={() => setOpenDropdown(null)}
+                        >
+                          {link.icon}
+                          {link.label}
+                        </DropdownItem>
+                      ))}
+                    </DropdownMenu>
+                  )}
                 </DropdownWrapper>
               )
             })}
@@ -937,7 +878,6 @@ export default function Navbar() {
                 onMouseLeave={handleUserMenuLeave}
               >
                 <AvatarButton
-                  ref={avatarButtonRef}
                   aria-haspopup="true"
                   aria-expanded={userMenuOpen}
                   aria-label={`Account menu for ${user?.name || 'User'}`}
@@ -946,32 +886,22 @@ export default function Navbar() {
                   <AvatarChevron $open={userMenuOpen} />
                 </AvatarButton>
 
-                {userMenuOpen && userMenuPos && isMounted &&
-                  createPortal(
-                    <PortaledUserDropdown
-                      $top={userMenuPos.top}
-                      $left={userMenuPos.left}
-                      onMouseEnter={handleUserMenuEnter}
-                      onMouseLeave={handleUserMenuLeave}
-                      role="menu"
-                      aria-orientation="vertical"
+                {userMenuOpen && (
+                  <UserDropdown role="menu" aria-orientation="vertical">
+                    <UserInfo aria-hidden="true">
+                      <UserName>{user?.name}</UserName>
+                      <UserEmail>{user?.email || 'No email set'}</UserEmail>
+                    </UserInfo>
+                    <DropdownDivider />
+                    <DropdownActionButton
+                      role="menuitem"
+                      onClick={handleLogout}
                     >
-                      <UserInfo aria-hidden="true">
-                        <UserName>{user?.name}</UserName>
-                        <UserEmail>{user?.email || 'No email set'}</UserEmail>
-                      </UserInfo>
-                      <DropdownDivider />
-                      <DropdownActionButton
-                        role="menuitem"
-                        onClick={handleLogout}
-                      >
-                        <LogOut size={14} />
-                        Sign out
-                      </DropdownActionButton>
-                    </PortaledUserDropdown>,
-                    document.body
-                  )
-                }
+                      <LogOut size={14} />
+                      Sign out
+                    </DropdownActionButton>
+                  </UserDropdown>
+                )}
               </AvatarMenuWrapper>
             )}
 

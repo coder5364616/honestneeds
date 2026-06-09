@@ -551,7 +551,10 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
           newErrors.platforms = 'Select at least one platform'
       }
     } else if (currentStep === 6) {
-      if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions'
+      const isDetailsView = step4ReviewRef.current?.view === 'details'
+      if (isDetailsView && !termsAccepted) {
+        newErrors.terms = 'You must accept the terms and conditions'
+      }
     }
 
     setErrors(newErrors)

@@ -1,11 +1,40 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
-import styled from 'styled-components'
-import { AlertCircle, Copy, Check } from 'lucide-react'
-import Button from '@/components/ui/Button'
+import React, { useState } from 'react'
+import styled, { css, keyframes } from 'styled-components'
+import {
+  CreditCard, Building2, Smartphone,
+  AlertCircle, ShieldCheck, ChevronDown, Star
+} from 'lucide-react'
 
-// Payment method types supported by backend
+// ─── Brand Tokens ─────────────────────────────────────────────────────────────
+const B = {
+  yellow:      '#F5C000',
+  yellowLight: '#FFF8D6',
+  yellowMid:   '#FAEBB0',
+  yellowDark:  '#B88C00',
+  blue:        '#29ABE2',
+  blueLight:   '#E6F6FD',
+  blueDark:    '#1A7FB0',
+  green:       '#2E8B1A',
+  greenLight:  '#EAF7E6',
+  greenDark:   '#1D5E10',
+  navy:        '#1A1464',
+  pink:        '#E8338A',
+  pinkLight:   '#FDE8F3',
+  surface:     '#F7F9FC',
+  border:      '#E2E8F0',
+  borderFocus: '#29ABE2',
+  white:       '#FFFFFF',
+  text:        '#1A1464',
+  textMuted:   '#6B7B8D',
+  textLight:   '#9BA8B5',
+  error:       '#DC2626',
+  errorLight:  '#FEF2F2',
+  errorBorder: '#FCA5A5',
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 export type PaymentMethodType = 'stripe' | 'bank_transfer' | 'mobile_money'
 
 export interface PaymentMethod {
@@ -16,16 +45,12 @@ export interface PaymentMethod {
   isPrimary?: boolean
   status?: string
   verificationStatus?: string
-
-  // Stripe fields (credit/debit cards)
   stripe_token?: string
   card_brand?: 'visa' | 'mastercard' | 'amex' | 'discover'
   card_last_four?: string
   cardLastFour?: string
   card_expiry_month?: number
   card_expiry_year?: number
-
-  // Bank transfer fields - flat version for API responses
   bank_account_last_four?: string
   bankAccountLastFour?: string
   bank_account_holder?: string
@@ -34,8 +59,6 @@ export interface PaymentMethod {
   bankName?: string
   bank_account_type?: 'checking' | 'savings'
   bankAccountType?: 'checking' | 'savings'
-
-  // Bank transfer fields - object version for form submission
   bank_account?: {
     account_holder: string
     account_number: string
@@ -43,8 +66,6 @@ export interface PaymentMethod {
     bank_name?: string
     account_type?: 'checking' | 'savings'
   }
-
-  // Mobile money fields
   mobile_number?: string
   mobileNumber?: string
   mobile_provider?: string
@@ -53,184 +74,380 @@ export interface PaymentMethod {
 
 interface AddPaymentMethodFormProps {
   onSubmit: (method: PaymentMethod) => void
+  onCancel?: () => void
   isLoading?: boolean
   initialMethod?: PaymentMethod
   isEditing?: boolean
 }
 
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  background: white;
+// ─── Animations ───────────────────────────────────────────────────────────────
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 `
 
-const MethodTypeSelector = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+// ─── Form Shell ───────────────────────────────────────────────────────────────
+const Form = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+`
 
-  @media (max-width: 640px) {
+// ─── Type Selector ────────────────────────────────────────────────────────────
+const TypeGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.625rem;
+
+  @media (max-width: 480px) {
     grid-template-columns: 1fr;
+    gap: 0.5rem;
   }
 `
 
-const MethodTypeButton = styled.button<{ selected: boolean }>`
-  padding: 1rem;
-  border: 2px solid ${(props) => (props.selected ? '#3b82f6' : '#e2e8f0')};
-  background-color: ${(props) => (props.selected ? '#eff6ff' : 'white')};
-  border-radius: 8px;
+const TypeBtn = styled.button<{ $active: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  border-radius: 14px;
+  border: 2px solid ${p => p.$active ? B.blue : B.border};
+  background: ${p => p.$active ? B.blueLight : B.white};
   cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 600;
+  transition: all 0.18s ease;
   text-align: center;
-  transition: all 0.2s ease;
-  color: ${(props) => (props.selected ? '#1e40af' : '#64748b')};
+  position: relative;
+  overflow: hidden;
 
   &:hover {
-    border-color: #3b82f6;
-    background-color: #eff6ff;
+    border-color: ${B.blue};
+    background: ${B.blueLight};
   }
 
-  &:active {
-    transform: scale(0.98);
+  &:active { transform: scale(0.97); }
+
+  @media (max-width: 480px) {
+    flex-direction: row;
+    padding: 0.875rem 1rem;
+    text-align: left;
   }
 `
 
-const FormGroup = styled.div`
+const TypeIconWrap = styled.div<{ $type: PaymentMethodType; $active: boolean }>`
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.18s;
+
+  background: ${p => p.$active
+    ? ({ stripe: B.blue, bank_transfer: B.green, mobile_money: B.pink }[p.$type])
+    : ({ stripe: B.blueLight, bank_transfer: B.greenLight, mobile_money: B.pinkLight }[p.$type])
+  };
+  color: ${p => p.$active
+    ? B.white
+    : ({ stripe: B.blue, bank_transfer: B.green, mobile_money: B.pink }[p.$type])
+  };
+
+  svg { width: 20px; height: 20px; }
+`
+
+const TypeLabel = styled.span<{ $active: boolean }>`
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: ${p => p.$active ? B.blueDark : B.textMuted};
+  line-height: 1.3;
+
+  @media (max-width: 480px) { font-size: 0.875rem; }
+`
+
+const TypeDesc = styled.span`
+  font-size: 0.7rem;
+  color: ${B.textLight};
+  @media (max-width: 480px) { display: none; }
+`
+
+const ActiveDot = styled.div`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${B.blue};
+`
+
+// ─── Section Label ────────────────────────────────────────────────────────────
+const SectionLabel = styled.p`
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: ${B.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid ${B.border};
+`
+
+// ─── Field Group ──────────────────────────────────────────────────────────────
+const FieldGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.375rem;
 `
 
 const Label = styled.label`
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: ${B.text};
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  span.req { color: ${B.blue}; }
 `
 
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
+const inputBase = css`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid ${B.border};
+  border-radius: 10px;
+  font-size: 0.925rem;
+  color: ${B.text};
+  background: ${B.white};
+  transition: border-color 0.18s, box-shadow 0.18s;
+  outline: none;
+  font-family: inherit;
+  appearance: none;
+
+  &::placeholder { color: ${B.textLight}; }
+
+  &:hover:not(:disabled) { border-color: #b0c4d8; }
 
   &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: ${B.blue};
+    box-shadow: 0 0 0 3px rgba(41,171,226,0.15);
   }
 
-  &::placeholder {
-    color: #cbd5e1;
+  &:disabled {
+    background: ${B.surface};
+    color: ${B.textMuted};
+    cursor: not-allowed;
   }
 `
 
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
+const Input = styled.input<{ $hasError?: boolean }>`
+  ${inputBase}
+  ${p => p.$hasError && css`
+    border-color: ${B.error};
+    &:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.12); }
+  `}
+`
 
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+const SelectWrap = styled.div`
+  position: relative;
+
+  svg.chevron {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: ${B.textMuted};
+    pointer-events: none;
   }
+`
+
+const Select = styled.select<{ $hasError?: boolean }>`
+  ${inputBase}
+  padding-right: 2.5rem;
+  cursor: pointer;
+  ${p => p.$hasError && css`border-color: ${B.error};`}
 `
 
 const HelpText = styled.p`
-  font-size: 0.8rem;
-  color: #64748b;
+  font-size: 0.75rem;
+  color: ${B.textLight};
   margin: 0;
   line-height: 1.4;
 `
 
-const WarningBox = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  background-color: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: 8px;
-  padding: 1rem;
-  color: #78350f;
-  font-size: 0.9rem;
-  line-height: 1.5;
-`
-
-const Checkbox = styled.input`
-  cursor: pointer;
-  width: 1.125rem;
-  height: 1.125rem;
-  accent-color: #3b82f6;
-`
-
-const CheckboxLabel = styled.label`
+const ErrorText = styled.p`
+  font-size: 0.75rem;
+  color: ${B.error};
+  margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-  color: #0f172a;
-  font-weight: 600;
-  cursor: pointer;
+  gap: 0.3rem;
+  animation: ${fadeIn} 0.2s ease;
+
+  svg { width: 13px; height: 13px; flex-shrink: 0; }
 `
 
+// ─── Grid Row ─────────────────────────────────────────────────────────────────
 const GridRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.875rem;
 
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
+  @media (max-width: 560px) { grid-template-columns: 1fr; }
 `
 
-const Actions = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-
-  button {
-    flex: 1;
-  }
-`
-
-const InfoBox = styled.div<{ type?: string }>`
+// ─── Info Banner ──────────────────────────────────────────────────────────────
+const Banner = styled.div<{ $variant: 'info' | 'warning' | 'security' }>`
   display: flex;
   gap: 0.75rem;
-  background-color: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 8px;
-  padding: 1rem;
-  color: #0c4a6e;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin-bottom: 1rem;
+  align-items: flex-start;
+  padding: 0.875rem 1rem;
+  border-radius: 10px;
+  animation: ${fadeIn} 0.25s ease;
+
+  svg { width: 17px; height: 17px; flex-shrink: 0; margin-top: 1px; }
+
+  ${p => p.$variant === 'info' && css`
+    background: ${B.blueLight};
+    border: 1px solid rgba(41,171,226,0.3);
+    color: ${B.blueDark};
+    svg { color: ${B.blue}; }
+  `}
+  ${p => p.$variant === 'warning' && css`
+    background: ${B.yellowLight};
+    border: 1px solid rgba(245,192,0,0.4);
+    color: ${B.yellowDark};
+    svg { color: ${B.yellow}; }
+  `}
+  ${p => p.$variant === 'security' && css`
+    background: ${B.greenLight};
+    border: 1px solid rgba(46,139,26,0.25);
+    color: ${B.greenDark};
+    svg { color: ${B.green}; }
+  `}
 `
 
-const methodTypes: Record<
-  PaymentMethodType,
-  {
-    label: string
-    emoji: string
-    description: string
-  }
-> = {
-  stripe: { label: 'Credit/Debit Card', emoji: '💳', description: 'Visa, Mastercard, Amex' },
-  bank_transfer: { label: 'Bank Transfer', emoji: '🏦', description: 'Direct bank account' },
-  mobile_money: { label: 'Mobile Money', emoji: '📱', description: 'Mobile wallet' },
-}
+const BannerText = styled.div`
+  font-size: 0.82rem;
+  line-height: 1.5;
+  font-weight: 500;
+  strong { font-weight: 700; }
+`
 
-/**
- * AddPaymentMethodForm Component
- * Production-ready form for creators to add/edit payment methods
- * Supports 9 payment types including international options
- */
+// ─── Checkbox row ─────────────────────────────────────────────────────────────
+const CheckRow = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 1rem;
+  background: ${B.yellowLight};
+  border: 1.5px solid ${B.yellow};
+  border-radius: 12px;
+  transition: background 0.15s;
+
+  &:hover { background: ${B.yellowMid}; }
+`
+
+const CheckBox = styled.input`
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  accent-color: ${B.yellow};
+  cursor: pointer;
+`
+
+const CheckMeta = styled.div``
+
+const CheckTitle = styled.p`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: ${B.navy};
+  margin: 0 0 0.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  svg { width: 14px; height: 14px; color: ${B.yellow}; }
+`
+
+const CheckSub = styled.p`
+  font-size: 0.75rem;
+  color: ${B.yellowDark};
+  margin: 0;
+  line-height: 1.4;
+`
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+const Actions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+
+  @media (max-width: 480px) { flex-direction: column-reverse; }
+`
+
+const CancelBtn = styled.button`
+  flex: 1;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  border: 1.5px solid ${B.border};
+  background: ${B.white};
+  color: ${B.textMuted};
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+
+  &:hover { border-color: #b0c4d8; color: ${B.text}; background: ${B.surface}; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`
+
+const SubmitBtn = styled.button`
+  flex: 2;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  background: ${B.yellow};
+  color: ${B.navy};
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+
+  &:hover:not(:disabled) { background: ${B.yellowDark}; color: ${B.white}; transform: translateY(-1px); }
+  &:active:not(:disabled) { transform: translateY(0); }
+  &:disabled { background: ${B.border}; color: ${B.textMuted}; cursor: not-allowed; }
+`
+
+const Spinner = styled.span`
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(26,20,100,0.2);
+  border-top-color: ${B.navy};
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+  @keyframes spin { to { transform: rotate(360deg); } }
+`
+
+// ─── Config data ──────────────────────────────────────────────────────────────
+const TYPE_CONFIG = {
+  stripe:        { label: 'Card',         desc: 'Visa, Mastercard, Amex', Icon: CreditCard },
+  bank_transfer: { label: 'Bank transfer', desc: 'Direct bank account',    Icon: Building2  },
+  mobile_money:  { label: 'Mobile money', desc: 'Mobile wallet',           Icon: Smartphone },
+} as const
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
   onSubmit,
+  onCancel,
   isLoading = false,
   initialMethod,
   isEditing = false,
@@ -238,314 +455,300 @@ export const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
   const [selectedType, setSelectedType] = useState<PaymentMethodType>(
     initialMethod?.type || 'bank_transfer'
   )
-  // Initialize form data with proper defaults for bank_account object
   const [formData, setFormData] = useState<PaymentMethod>(() => {
-    const initial = initialMethod || { type: 'bank_transfer' }
-    // Ensure bank_account has all required fields with defaults
-    if (initial.type === 'bank_transfer' && !initial.bank_account) {
+    const base = initialMethod || { type: 'bank_transfer' as PaymentMethodType }
+    if (base.type === 'bank_transfer' && !base.bank_account) {
       return {
-        ...initial,
-        bank_account: {
-          account_holder: '',
-          account_number: '',
-          routing_number: '',
-          bank_name: '',
-          account_type: 'checking'
-        }
+        ...base,
+        bank_account: { account_holder: '', account_number: '', routing_number: '', bank_name: '', account_type: 'checking' },
       }
     }
-    return initial
+    return base
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [copied, setCopied] = useState(false)
 
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({
+  const setField = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    setErrors(prev => { const n = { ...prev }; delete n[field]; return n })
+  }
+
+  const setBankField = (field: string, value: string) => {
+    setFormData(prev => ({
       ...prev,
-      [field]: value,
+      bank_account: { ...prev.bank_account, [field]: value } as any,
     }))
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[field]
-        return newErrors
-      })
-    }
+    setErrors(prev => { const n = { ...prev }; delete n[field]; return n })
   }
 
   const handleTypeChange = (type: PaymentMethodType) => {
     setSelectedType(type)
-    setFormData((prev) => ({
-      ...prev,
-      type,
-    }))
+    setErrors({})
+    setFormData(prev => {
+      const next = { ...prev, type }
+      if (type === 'bank_transfer' && !next.bank_account) {
+        next.bank_account = { account_holder: '', account_number: '', routing_number: '', bank_name: '', account_type: 'checking' }
+      }
+      return next
+    })
   }
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    // Check selected type
-    if (!selectedType) {
-      return false
-    }
-
-    // Bank transfer validation
+  const validate = (): boolean => {
+    const e: Record<string, string> = {}
     if (selectedType === 'bank_transfer') {
-      if (!formData.bank_account?.account_holder?.trim()) {
-        newErrors.account_holder = 'Account holder name is required'
-      }
-      if (!formData.bank_account?.account_number?.trim()) {
-        newErrors.account_number = 'Account number is required'
-      } else if (!/^\d{1,17}$/.test(formData.bank_account.account_number)) {
-        newErrors.account_number = 'Account number must be 1-17 digits'
-      }
-      if (!formData.bank_account?.routing_number?.trim()) {
-        newErrors.routing_number = 'Routing number is required'
-      } else if (!/^\d{9}$/.test(formData.bank_account.routing_number)) {
-        newErrors.routing_number = 'Routing number must be exactly 9 digits'
-      }
+      if (!formData.bank_account?.account_holder?.trim()) e.account_holder = 'Account holder name is required'
+      if (!formData.bank_account?.account_number?.trim())  e.account_number = 'Account number is required'
+      else if (!/^\d{1,17}$/.test(formData.bank_account.account_number)) e.account_number = 'Account number must be 1–17 digits'
+      if (!formData.bank_account?.routing_number?.trim())  e.routing_number = 'Routing number is required'
+      else if (!/^\d{9}$/.test(formData.bank_account.routing_number))    e.routing_number = 'Must be exactly 9 digits'
     }
-
-    // Mobile money validation
     if (selectedType === 'mobile_money') {
-      if (!formData.mobile_number?.trim()) {
-        newErrors.mobile_number = 'Mobile number is required'
-      }
+      if (!formData.mobile_number?.trim()) e.mobile_number = 'Mobile number is required'
     }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    setErrors(e)
+    return Object.keys(e).length === 0
   }
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      onSubmit({ ...formData, type: selectedType })
-    }
-  }
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const handleSubmit = () => { if (validate()) onSubmit({ ...formData, type: selectedType }) }
 
   return (
-    <Container>
-      {/* Type Selection */}
-      <FormGroup>
-        <Label>Payment Method Type</Label>
-        <MethodTypeSelector>
-          {(Object.entries(methodTypes) as [PaymentMethodType, (typeof methodTypes)[PaymentMethodType]][]).map(
-            ([type, config]) => (
-              <MethodTypeButton
-                key={type}
-                selected={selectedType === type}
-                onClick={() => handleTypeChange(type)}
-                type="button"
-              >
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{config.emoji}</div>
-                <div>{config.label}</div>
-              </MethodTypeButton>
-            )
-          )}
-        </MethodTypeSelector>
-      </FormGroup>
+    <Form>
 
-      {/* Stripe (Coming Soon) */}
+      {/* ── Type selector ── */}
+      <div>
+        <SectionLabel>Select method type</SectionLabel>
+        <TypeGrid>
+          {(Object.entries(TYPE_CONFIG) as [PaymentMethodType, typeof TYPE_CONFIG[PaymentMethodType]][]).map(([type, cfg]) => {
+            const active = selectedType === type
+            return (
+              <TypeBtn key={type} $active={active} onClick={() => handleTypeChange(type)} type="button" aria-pressed={active}>
+                {active && <ActiveDot />}
+                <TypeIconWrap $type={type} $active={active}>
+                  <cfg.Icon />
+                </TypeIconWrap>
+                <div>
+                  <TypeLabel $active={active}>{cfg.label}</TypeLabel>
+                  <br />
+                  <TypeDesc>{cfg.desc}</TypeDesc>
+                </div>
+              </TypeBtn>
+            )
+          })}
+        </TypeGrid>
+      </div>
+
+      {/* ── Stripe (coming soon) ── */}
       {selectedType === 'stripe' && (
-        <InfoBox style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', padding: '1rem', color: '#0c4a6e', marginBottom: '1rem' }}>
-          <AlertCircle size={20} style={{ marginTop: '0.25rem' }} />
-          <div>
-            <strong>Credit/Debit Card Payment</strong>
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.875rem' }}>Stripe integration coming soon. For now, please use Bank Transfer or Mobile Money.</p>
-          </div>
-        </InfoBox>
+        <Banner $variant="info">
+          <AlertCircle />
+          <BannerText>
+            <strong>Card payments coming soon.</strong> Stripe integration is in progress.
+            Please use Bank Transfer or Mobile Money for now.
+          </BannerText>
+        </Banner>
       )}
 
-      {/* Bank Transfer */}
+      {/* ── Bank Transfer fields ── */}
       {selectedType === 'bank_transfer' && (
         <>
-          <FormGroup>
-            <Label htmlFor="bankAccountHolder">Account Holder Name *</Label>
-            <Input
-              id="bankAccountHolder"
-              type="text"
-              placeholder="Your Full Name"
-              value={formData.bank_account?.account_holder || ''}
-              onChange={(e) => {
-                setFormData(prev => ({
-                  ...prev,
-                  bank_account: {
-                    ...prev.bank_account,
-                    account_holder: e.target.value
-                  }
-                }))
-              }}
-              disabled={isLoading}
-            />
-            {errors.account_holder && <HelpText style={{ color: '#dc2626' }}>❌ {errors.account_holder}</HelpText>}
-          </FormGroup>
+          <div>
+            <SectionLabel>Account details</SectionLabel>
 
-          <GridRow>
-            <FormGroup>
-              <Label htmlFor="bankRoutingNumber">Routing Number (US) *</Label>
+            <FieldGroup style={{ marginBottom: '0.875rem' }}>
+              <Label htmlFor="accountHolder">
+                Account holder name <span className="req">*</span>
+              </Label>
               <Input
-                id="bankRoutingNumber"
+                id="accountHolder"
                 type="text"
-                placeholder="123456789"
-                maxLength={9}
-                value={formData.bank_account?.routing_number || ''}
-                onChange={(e) => {
-                  // Only allow digits, max 9
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 9)
-                  setFormData(prev => ({
-                    ...prev,
-                    bank_account: {
-                      ...prev.bank_account,
-                      routing_number: value
-                    }
-                  }))
-                }}
+                placeholder="Your full legal name"
+                value={formData.bank_account?.account_holder || ''}
+                onChange={e => setBankField('account_holder', e.target.value)}
+                $hasError={!!errors.account_holder}
                 disabled={isLoading}
+                autoComplete="name"
               />
-              {errors.routing_number && <HelpText style={{ color: '#dc2626' }}>❌ {errors.routing_number}</HelpText>}
-              <HelpText>Exactly 9 digits (no spaces, dashes, or letters)</HelpText>
-            </FormGroup>
+              {errors.account_holder
+                ? <ErrorText><AlertCircle />{errors.account_holder}</ErrorText>
+                : <HelpText>As it appears on your bank account</HelpText>
+              }
+            </FieldGroup>
 
-            <FormGroup>
-              <Label htmlFor="bankAccountNumber">Account Number *</Label>
-              <Input
-                id="bankAccountNumber"
-                type="password"
-                placeholder="••••••••••"
-                maxLength={17}
-                value={formData.bank_account?.account_number || ''}
-                onChange={(e) => {
-                  // Only allow digits, max 17
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 17)
-                  setFormData(prev => ({
-                    ...prev,
-                    bank_account: {
-                      ...prev.bank_account,
-                      account_number: value
-                    }
-                  }))
-                }}
-                disabled={isLoading}
-              />
-              {errors.account_number && <HelpText style={{ color: '#dc2626' }}>❌ {errors.account_number}</HelpText>}
-              <HelpText>1-17 digits only (encrypted and secure)</HelpText>
-            </FormGroup>
-          </GridRow>
+            <GridRow>
+              <FieldGroup>
+                <Label htmlFor="routingNumber">
+                  Routing number <span className="req">*</span>
+                </Label>
+                <Input
+                  id="routingNumber"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="123456789"
+                  maxLength={9}
+                  value={formData.bank_account?.routing_number || ''}
+                  onChange={e => setBankField('routing_number', e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  $hasError={!!errors.routing_number}
+                  disabled={isLoading}
+                />
+                {errors.routing_number
+                  ? <ErrorText><AlertCircle />{errors.routing_number}</ErrorText>
+                  : <HelpText>Exactly 9 digits</HelpText>
+                }
+              </FieldGroup>
+
+              <FieldGroup>
+                <Label htmlFor="accountNumber">
+                  Account number <span className="req">*</span>
+                </Label>
+                <Input
+                  id="accountNumber"
+                  type="password"
+                  inputMode="numeric"
+                  placeholder="••••••••••"
+                  maxLength={17}
+                  value={formData.bank_account?.account_number || ''}
+                  onChange={e => setBankField('account_number', e.target.value.replace(/\D/g, '').slice(0, 17))}
+                  $hasError={!!errors.account_number}
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+                {errors.account_number
+                  ? <ErrorText><AlertCircle />{errors.account_number}</ErrorText>
+                  : <HelpText>Encrypted — never visible to others</HelpText>
+                }
+              </FieldGroup>
+            </GridRow>
+          </div>
 
           <GridRow>
-            <FormGroup>
-              <Label htmlFor="bankName">Bank Name</Label>
+            <FieldGroup>
+              <Label htmlFor="bankName">Bank name</Label>
               <Input
                 id="bankName"
                 type="text"
-                placeholder="e.g., Chase, Bank of America"
+                placeholder="e.g., Chase, GTBank"
                 value={formData.bank_account?.bank_name || ''}
-                onChange={(e) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    bank_account: {
-                      ...prev.bank_account,
-                      bank_name: e.target.value
-                    }
-                  }))
-                }}
+                onChange={e => setBankField('bank_name', e.target.value)}
                 disabled={isLoading}
               />
-            </FormGroup>
+            </FieldGroup>
 
-            <FormGroup>
-              <Label htmlFor="accountType">Account Type</Label>
-              <Select
-                id="accountType"
-                value={formData.bank_account?.account_type || 'checking'}
-                onChange={(e) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    bank_account: {
-                      ...prev.bank_account,
-                      account_type: e.target.value as 'checking' | 'savings'
-                    }
-                  }))
-                }}
-                disabled={isLoading}
-              >
-                <option value="checking">Checking</option>
-                <option value="savings">Savings</option>
-              </Select>
-            </FormGroup>
+            <FieldGroup>
+              <Label htmlFor="accountType">Account type</Label>
+              <SelectWrap>
+                <Select
+                  id="accountType"
+                  value={formData.bank_account?.account_type || 'checking'}
+                  onChange={e => setBankField('account_type', e.target.value)}
+                  disabled={isLoading}
+                >
+                  <option value="checking">Checking</option>
+                  <option value="savings">Savings</option>
+                </Select>
+                <ChevronDown className="chevron" aria-hidden="true" />
+              </SelectWrap>
+            </FieldGroup>
           </GridRow>
 
-          <WarningBox>
-            🔒 <strong>Security:</strong> Your account information is encrypted and secured.
-          </WarningBox>
+          <Banner $variant="security">
+            <ShieldCheck />
+            <BannerText>
+              <strong>Your details are safe.</strong> All banking information is AES-256 encrypted
+              and never stored in plain text.
+            </BannerText>
+          </Banner>
         </>
       )}
 
-      {/* Mobile Money */}
+      {/* ── Mobile Money fields ── */}
       {selectedType === 'mobile_money' && (
         <>
-          <FormGroup>
-            <Label htmlFor="mobileNumber">Mobile Phone Number *</Label>
-            <Input
-              id="mobileNumber"
-              type="tel"
-              placeholder="+1 (555) 000-0000"
-              value={formData.mobile_number || ''}
-              onChange={(e) => handleInputChange('mobile_number', e.target.value)}
-              disabled={isLoading}
-            />
-            {errors.mobile_number && <HelpText style={{ color: '#dc2626' }}>❌ {errors.mobile_number}</HelpText>}
-            <HelpText>Your mobile money account number or phone number</HelpText>
-          </FormGroup>
+          <div>
+            <SectionLabel>Mobile wallet details</SectionLabel>
 
-          <FormGroup>
-            <Label htmlFor="mobileProvider">Mobile Money Provider</Label>
-            <Select
-              id="mobileProvider"
-              value={formData.mobile_provider || ''}
-              onChange={(e) => handleInputChange('mobile_provider', e.target.value)}
-              disabled={isLoading}
-            >
-              <option value="">Select a provider...</option>
-              <option value="mpesa">M-Pesa (Kenya)</option>
-              <option value="mtn">MTN Mobile Money (Africa)</option>
-              <option value="airtel">Airtel Money (Africa)</option>
-              <option value="vodafone">Vodafone Cash (Ghana)</option>
-              <option value="other">Other</option>
-            </Select>
-          </FormGroup>
+            <FieldGroup style={{ marginBottom: '0.875rem' }}>
+              <Label htmlFor="mobileNumber">
+                Mobile number <span className="req">*</span>
+              </Label>
+              <Input
+                id="mobileNumber"
+                type="tel"
+                placeholder="+234 800 000 0000"
+                value={formData.mobile_number || ''}
+                onChange={e => setField('mobile_number', e.target.value)}
+                $hasError={!!errors.mobile_number}
+                disabled={isLoading}
+                autoComplete="tel"
+              />
+              {errors.mobile_number
+                ? <ErrorText><AlertCircle />{errors.mobile_number}</ErrorText>
+                : <HelpText>Include country code, e.g. +234 for Nigeria</HelpText>
+              }
+            </FieldGroup>
+
+            <FieldGroup>
+              <Label htmlFor="mobileProvider">Mobile money provider</Label>
+              <SelectWrap>
+                <Select
+                  id="mobileProvider"
+                  value={formData.mobile_provider || ''}
+                  onChange={e => setField('mobile_provider', e.target.value)}
+                  disabled={isLoading}
+                >
+                  <option value="">Select a provider…</option>
+                  <option value="mpesa">M-Pesa (Kenya)</option>
+                  <option value="mtn">MTN Mobile Money (Africa)</option>
+                  <option value="airtel">Airtel Money (Africa)</option>
+                  <option value="vodafone">Vodafone Cash (Ghana)</option>
+                  <option value="opay">OPay (Nigeria)</option>
+                  <option value="palmpay">PalmPay (Nigeria)</option>
+                  <option value="other">Other</option>
+                </Select>
+                <ChevronDown className="chevron" aria-hidden="true" />
+              </SelectWrap>
+            </FieldGroup>
+          </div>
+
+          <Banner $variant="security">
+            <ShieldCheck />
+            <BannerText>
+              <strong>Verified &amp; secure.</strong> Your mobile wallet details are encrypted
+              and used solely for payout purposes.
+            </BannerText>
+          </Banner>
         </>
       )}
 
-      {/* Primary Method Checkbox */}
-      <FormGroup>
-        <CheckboxLabel>
-          <Checkbox
-            type="checkbox"
-            checked={formData.isPrimary || false}
-            onChange={(e) => handleInputChange('isPrimary', e.target.checked)}
-            disabled={isLoading}
-          />
-          Set as primary payment method
-        </CheckboxLabel>
-        <HelpText>Donors will see this method first when making a donation</HelpText>
-      </FormGroup>
+      {/* ── Primary checkbox ── */}
+      <CheckRow>
+        <CheckBox
+          type="checkbox"
+          checked={formData.isPrimary || false}
+          onChange={e => setField('isPrimary', e.target.checked)}
+          disabled={isLoading}
+          id="setPrimary"
+        />
+        <CheckMeta>
+          <CheckTitle htmlFor="setPrimary" as="label">
+            <Star /> Set as primary method
+          </CheckTitle>
+          <CheckSub>
+            This method will receive automatic payouts when your campaign goals are reached.
+          </CheckSub>
+        </CheckMeta>
+      </CheckRow>
 
-      {/* Actions */}
+      {/* ── Actions ── */}
       <Actions>
-        <Button variant="secondary" disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button variant="primary" onClick={handleSubmit} disabled={isLoading}>
-          {isLoading ? 'Saving...' : isEditing ? 'Update Method' : 'Add Method'}
-        </Button>
+        {onCancel && (
+          <CancelBtn type="button" onClick={onCancel} disabled={isLoading}>
+            Cancel
+          </CancelBtn>
+        )}
+        <SubmitBtn type="button" onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? <><Spinner /> Saving…</> : isEditing ? 'Save changes' : 'Add method'}
+        </SubmitBtn>
       </Actions>
-    </Container>
+
+    </Form>
   )
 }
