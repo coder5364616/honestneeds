@@ -5,9 +5,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+import { apiClient } from '@/lib/api'
 
 export interface ShareEarnings {
   campaignId: string
@@ -65,14 +63,10 @@ export const useShareEarnings = (campaignId: string) => {
   return useQuery(
     ['shareEarnings', campaignId],
     async () => {
-      const response = await axios.get<{
+      const response = await apiClient.get<{
         success: boolean
         data: ShareEarnings
-      }>(`${API_BASE_URL}/campaigns/${campaignId}/share-earnings`, {
-        headers: {
-          Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-        },
-      })
+      }>(`/campaigns/${campaignId}/share-earnings`)
       return response.data.data
     },
     {
@@ -91,14 +85,10 @@ export const useShareEarningPotential = (campaignId: string) => {
   return useQuery(
     ['shareEarningPotential', campaignId],
     async () => {
-      const response = await axios.get<{
+      const response = await apiClient.get<{
         success: boolean
         data: ShareEarningPotential
-      }>(`${API_BASE_URL}/campaigns/${campaignId}/share-earning-potential`, {
-        headers: {
-          Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-        },
-      })
+      }>(`/campaigns/${campaignId}/share-earning-potential`)
       return response.data.data
     },
     {
@@ -116,14 +106,10 @@ export const useShareEarningsLeaderboard = (campaignId: string, limit = 10) => {
   return useQuery(
     ['shareLeaderboard', campaignId, limit],
     async () => {
-      const response = await axios.get<{
+      const response = await apiClient.get<{
         success: boolean
         data: ShareLeaderboard[]
-      }>(`${API_BASE_URL}/campaigns/${campaignId}/share-leaderboard?limit=${limit}`, {
-        headers: {
-          Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-        },
-      })
+      }>(`/campaigns/${campaignId}/share-leaderboard?limit=${limit}`)
       return response.data.data
     },
     {
@@ -145,16 +131,10 @@ export const useRecordShareWithEarnings = () => {
       campaignId: string
       platform: string
     }) => {
-      const response = await axios.post(
-        `${API_BASE_URL}/campaigns/${data.campaignId}/shares`,
+      const response = await apiClient.post(
+        `/campaigns/${data.campaignId}/share`,
         {
           channel: data.platform,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-          },
         }
       )
       return response.data
@@ -180,18 +160,15 @@ export const useRequestSharePayout = () => {
     async (data: {
       campaignId: string
       amountCents: number
+      // C-1: payouts target a real saved payment method. Pass the chosen method's
+      // id; if omitted the backend falls back to the user's primary saved method.
+      paymentMethodId?: string
     }) => {
-      const response = await axios.post(
-        `${API_BASE_URL}/share-payouts/request`,
+      const response = await apiClient.post(
+        `/sharer/payout-requests`,
         {
-          campaign_id: data.campaignId,
-          amount_cents: data.amountCents,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-          },
+          amountCents: data.amountCents,
+          ...(data.paymentMethodId ? { payment_method_id: data.paymentMethodId } : {}),
         }
       )
       return response.data
@@ -212,14 +189,10 @@ export const useMyShareEarningsCampaigns = () => {
   return useQuery(
     ['myShareCampaigns'],
     async () => {
-      const response = await axios.get<{
+      const response = await apiClient.get<{
         success: boolean
         data: Array<{campaignId: string; title: string; totalEarnings: number; totalShares: number}>
-      }>(`${API_BASE_URL}/user/share-campaigns`, {
-        headers: {
-          Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-        },
-      })
+      }>(`/user/share-campaigns`)
       return response.data.data
     },
     {

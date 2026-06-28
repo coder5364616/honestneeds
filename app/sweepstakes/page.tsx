@@ -26,31 +26,32 @@ import {
 import { toast } from 'react-toastify'
 import { useCurrentSweepstakes, useCheckWinner } from '@/api/hooks/useSimpleSweepstakes'
 import { useAuthStore } from '@/store/authStore'
+import { DashboardFonts } from '@/features/dashboardUI'
 import Button from '@/components/ui/Button'
 
-// ─── Brand Tokens (from logo) ────────────────────────────────────────────────
+// ─── Brand Tokens — mapped to the creator dashboard design system ─────────────
 
 const B = {
-  navy:    '#1A1A4E',
-  blue:    '#29B6F6',
-  yellow:  '#FFD600',
-  red:     '#E53935',
-  green:   '#43A047',
-  purple:  '#7C3AED',
+  navy:    '#1A5FA8', // primary blue (buttons, dark accents)
+  blue:    '#1A5FA8',
+  yellow:  '#F5C961', // warm gold
+  red:     '#C0392B',
+  green:   '#1A7A4A',
+  purple:  '#1A5FA8',
   // Tints
-  blueT:   'rgba(41,182,246,0.12)',
-  yellowT: 'rgba(255,214,0,0.14)',
-  redT:    'rgba(229,57,53,0.10)',
-  greenT:  'rgba(67,160,71,0.12)',
-  purpleT: 'rgba(124,58,237,0.10)',
-  navyT:   'rgba(26,26,78,0.06)',
-  // Neutrals
-  bg:      '#F7F8FC',
+  blueT:   'rgba(26,95,168,0.10)',
+  yellowT: 'rgba(245,201,97,0.18)',
+  redT:    'rgba(192,57,43,0.10)',
+  greenT:  'rgba(26,122,74,0.12)',
+  purpleT: 'rgba(26,95,168,0.10)',
+  navyT:   'rgba(26,95,168,0.06)',
+  // Neutrals (dashboard canvas)
+  bg:      '#F7F5F1',
   card:    '#FFFFFF',
-  border:  '#E8EBF4',
-  text:    '#0F1123',
-  muted:   '#6B7280',
-  light:   '#9CA3AF',
+  border:  '#E2DDD6',
+  text:    '#18171A',
+  muted:   '#8C8790',
+  light:   '#8C8790',
 }
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -100,7 +101,8 @@ const Page = styled.div`
 `
 
 const HeroSection = styled.section`
-  background: ${B.navy};
+  background: ${B.bg};
+  border-bottom: 2px solid ${B.blue};
   position: relative;
   overflow: hidden;
   padding: 64px 20px 0;
@@ -135,28 +137,34 @@ const HeroEyebrow = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.18);
+  background: #FBF3E0;
+  border: 1px solid rgba(212,135,10,0.3);
   border-radius: 99px;
   padding: 6px 14px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: ${B.yellow};
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: #A8680A;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 24px;
 `
 
 const HeroTitle = styled.h1`
+  font-family: 'Syne', sans-serif;
   font-size: clamp(2rem, 7vw, 3.25rem);
   font-weight: 800;
-  color: #fff;
+  color: ${B.text};
   line-height: 1.1;
   letter-spacing: -0.03em;
   margin: 0 0 16px;
+  background: linear-gradient(135deg, ${B.text} 0%, ${B.blue} 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 
   span {
-    background: linear-gradient(90deg, ${B.yellow}, #FFA726);
+    background: linear-gradient(90deg, #D4870A, #F5C961);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -165,7 +173,7 @@ const HeroTitle = styled.h1`
 
 const HeroSub = styled.p`
   font-size: clamp(0.95rem, 2.5vw, 1.1rem);
-  color: rgba(255,255,255,0.72);
+  color: #4A4750;
   margin: 0 0 40px;
   line-height: 1.65;
 `
@@ -260,6 +268,7 @@ const Card = styled.div<{ $delay?: number }>`
 `
 
 const CardTitle = styled.h2`
+  font-family: 'Syne', sans-serif;
   font-size: 17px;
   font-weight: 700;
   color: ${B.text};
@@ -561,7 +570,7 @@ const FaqAnswerInner = styled.p`
 const SkeletonBlock = styled.div<{ $h?: number; $r?: number }>`
   height: ${p => p.$h ?? 24}px;
   border-radius: ${p => p.$r ?? 8}px;
-  background: #E8EBF4;
+  background: #EEEBe5;
   animation: ${skeletonPulse} 1.5s ease infinite;
 `
 
@@ -651,11 +660,12 @@ export default function SweepstakesPage() {
   if (isLoading) {
     return (
       <Page>
+        <DashboardFonts />
         <HeroSection style={{ paddingBottom: 120, minHeight: 280 }}>
           <HeroInner>
             <HeroEyebrow><Sparkles size={12} /> Monthly Sweepstakes</HeroEyebrow>
-            <SkeletonBlock $h={48} $r={12} style={{ marginBottom: 12, background: 'rgba(255,255,255,0.15)' }} />
-            <SkeletonBlock $h={24} $r={8} style={{ width: '60%', margin: '0 auto', background: 'rgba(255,255,255,0.1)' }} />
+            <SkeletonBlock $h={48} $r={12} style={{ marginBottom: 12 }} />
+            <SkeletonBlock $h={24} $r={8} style={{ width: '60%', margin: '0 auto' }} />
           </HeroInner>
         </HeroSection>
         <MainContent>
@@ -675,6 +685,7 @@ export default function SweepstakesPage() {
   if (!sweepstakes) {
     return (
       <Page>
+        <DashboardFonts />
         <HeroSection style={{ paddingBottom: 80 }}>
           <HeroInner>
             <HeroEyebrow><Sparkles size={12} /> Monthly Sweepstakes</HeroEyebrow>
@@ -702,6 +713,7 @@ export default function SweepstakesPage() {
 
   return (
     <Page>
+      <DashboardFonts />
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <HeroSection>
         {confetti.map((c, i) => (

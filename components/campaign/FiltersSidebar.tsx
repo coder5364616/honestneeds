@@ -4,6 +4,7 @@ import { useState } from 'react'
 import styled, { keyframes } from 'styled-components'
 import { ChevronDown, X, MapPin, Map, Globe, Zap, RotateCcw } from 'lucide-react'
 import { CampaignFilters } from '@/store/filterStore'
+import { tk } from '@/styles/dashboardTokens'
 
 interface FiltersSidebarProps {
   filters: CampaignFilters
@@ -42,10 +43,11 @@ const Drawer = styled.div`
   left: 0;
   bottom: 0;
   width: min(340px, 90vw);
-  background: white;
+  background: ${tk.white};
   z-index: 201;
   display: flex;
   flex-direction: column;
+  font-family: 'DM Sans', sans-serif;
   animation: ${slideIn} 280ms cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 8px 0 32px rgba(0, 0, 0, 0.12);
 `
@@ -55,32 +57,33 @@ const DrawerHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid ${tk.border};
   flex-shrink: 0;
 `
 
 const DrawerTitle = styled.h2`
+  font-family: 'Syne', sans-serif;
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: ${tk.heading};
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.3px;
 `
 
 const CloseBtn = styled.button`
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: white;
-  color: #6b7280;
+  border: 1px solid ${tk.border};
+  background: ${tk.white};
+  color: ${tk.muted};
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 180ms, color 180ms;
 
-  &:hover { background: #f3f4f6; color: #111827; }
+  &:hover { background: ${tk.canvasDeep}; color: ${tk.heading}; }
 `
 
 const DrawerScroll = styled.div`
@@ -90,20 +93,21 @@ const DrawerScroll = styled.div`
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 999px; }
+  &::-webkit-scrollbar-thumb { background: ${tk.border}; border-radius: 999px; }
 `
 
 const DrawerFooter = styled.div`
   padding: 14px 20px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid ${tk.border};
   flex-shrink: 0;
 `
 
 // ─── Sidebar container (desktop) ──────────────────────────────────────────────
 const Sidebar = styled.div`
-  background: white;
-  border-radius: 16px;
-  border: 1px solid #f0f0f0;
+  background: ${tk.white};
+  border-radius: 14px;
+  border: 1px solid ${tk.border};
+  font-family: 'DM Sans', sans-serif;
   overflow: hidden;
 `
 
@@ -112,20 +116,21 @@ const SidebarHead = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 16px 18px 14px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid ${tk.border};
 `
 
 const SidebarTitle = styled.h2`
+  font-family: 'Syne', sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #111827;
+  color: ${tk.heading};
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.3px;
 `
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 const Section = styled.div`
-  border-bottom: 1px solid #f7f7f7;
+  border-bottom: 1px solid ${tk.canvasDeep};
 
   &:last-child { border-bottom: none; }
 `
@@ -141,19 +146,20 @@ const SectionToggle = styled.button`
   cursor: pointer;
   text-align: left;
 
-  &:hover { background: #fafafa; }
+  &:hover { background: ${tk.canvas}; }
 `
 
 const SectionLabel = styled.span`
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #374151;
-  letter-spacing: 0.3px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: ${tk.body};
+  letter-spacing: 1px;
   text-transform: uppercase;
 `
 
 const ChevronIcon = styled(ChevronDown)<{ $open: boolean }>`
-  color: #9ca3af;
+  color: ${tk.muted};
   transition: transform 200ms;
   transform: ${p => p.$open ? 'rotate(0deg)' : 'rotate(-90deg)'};
   flex-shrink: 0;
@@ -175,11 +181,11 @@ const OptionLabel = styled.label<{ $selected?: boolean }>`
   border-radius: 9px;
   cursor: pointer;
   font-size: 0.83rem;
-  color: #374151;
-  background: ${p => p.$selected ? '#f5f3ff' : 'transparent'};
+  color: ${tk.body};
+  background: ${p => p.$selected ? tk.amberLight : 'transparent'};
   transition: background 150ms;
 
-  &:hover { background: ${p => p.$selected ? '#f5f3ff' : '#fafafa'}; }
+  &:hover { background: ${p => p.$selected ? tk.amberLight : tk.canvas}; }
 
   input { display: none; }
 `
@@ -188,8 +194,8 @@ const OptionDot = styled.span<{ $selected: boolean; $type?: 'radio' | 'check' }>
   width: 16px;
   height: 16px;
   border-radius: ${p => p.$type === 'radio' ? '50%' : '5px'};
-  border: 1.5px solid ${p => p.$selected ? '#6366f1' : '#d1d5db'};
-  background: ${p => p.$selected ? '#6366f1' : 'white'};
+  border: 1.5px solid ${p => p.$selected ? tk.amber : tk.border};
+  background: ${p => p.$selected ? tk.amber : tk.white};
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -215,9 +221,10 @@ const OptionText = styled.span`
 `
 
 const OptionCount = styled.span`
+  font-family: 'DM Mono', monospace;
   font-size: 0.72rem;
-  color: #9ca3af;
-  background: #f3f4f6;
+  color: ${tk.muted};
+  background: ${tk.canvasDeep};
   padding: 1px 7px;
   border-radius: 999px;
 `
@@ -225,7 +232,7 @@ const OptionCount = styled.span`
 // ─── Show more ────────────────────────────────────────────────────────────────
 const ShowMore = styled.button`
   font-size: 0.78rem;
-  color: #6366f1;
+  color: ${tk.blue};
   background: none;
   border: none;
   cursor: pointer;
@@ -234,7 +241,7 @@ const ShowMore = styled.button`
   margin-top: 2px;
   align-self: flex-start;
 
-  &:hover { color: #4f46e5; }
+  &:hover { color: ${tk.amber}; }
 `
 
 // ─── Text input ───────────────────────────────────────────────────────────────
@@ -243,27 +250,27 @@ const TextInput = styled.input`
   height: 36px;
   padding: 0 12px;
   border-radius: 9px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid ${tk.border};
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.83rem;
-  color: #111827;
-  background: white;
+  color: ${tk.heading};
+  background: ${tk.white};
   outline: none;
-  font-family: inherit;
   box-sizing: border-box;
   transition: border-color 200ms, box-shadow 200ms;
 
   &:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: ${tk.amber};
+    box-shadow: 0 0 0 3px rgba(212, 135, 10, 0.12);
   }
 
-  &::placeholder { color: #c4c9d4; }
+  &::placeholder { color: ${tk.muted}; }
 `
 
 const InputLabel = styled.label`
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: ${tk.muted};
   margin-bottom: 6px;
   display: block;
 `
@@ -283,15 +290,16 @@ const ResetBtn = styled.button`
   width: 100%;
   height: 38px;
   border-radius: 10px;
-  border: 1.5px solid #e5e7eb;
-  background: white;
-  color: #6b7280;
+  border: 1.5px solid ${tk.border};
+  background: ${tk.white};
+  color: ${tk.body};
+  font-family: 'Syne', sans-serif;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 180ms;
 
-  &:hover { border-color: #6366f1; color: #6366f1; background: #fafafa; }
+  &:hover { border-color: ${tk.blue}; color: ${tk.blue}; background: ${tk.canvas}; }
 `
 
 // ─── Apply button (mobile) ────────────────────────────────────────────────────
@@ -300,14 +308,15 @@ const ApplyBtn = styled.button`
   height: 44px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
-  color: white;
+  background: ${tk.ink};
+  color: ${tk.white};
+  font-family: 'Syne', sans-serif;
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 180ms;
+  transition: background 180ms;
 
-  &:hover { opacity: 0.9; }
+  &:hover { background: ${tk.inkLight}; }
 `
 
 // ─── Scope icons ──────────────────────────────────────────────────────────────
@@ -361,7 +370,15 @@ function FiltersContent({
   const update = (patch: Partial<CampaignFilters>) =>
     onFiltersChange({ ...filters, ...patch, page: 1 })
 
-  const visibleTypes = showAllTypes ? needTypes : needTypes.slice(0, MAX_VISIBLE)
+  // Alphabetize need types A→Z, keeping the catch-all 'Other' pinned to the end.
+  const sortedTypes = [...needTypes].sort((a, b) => {
+    const aOther = a.id === 'other'
+    const bOther = b.id === 'other'
+    if (aOther !== bOther) return aOther ? 1 : -1
+    return (a.name ?? '').localeCompare(b.name ?? '')
+  })
+
+  const visibleTypes = showAllTypes ? sortedTypes : sortedTypes.slice(0, MAX_VISIBLE)
 
   return (
     <>

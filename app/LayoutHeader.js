@@ -8,7 +8,10 @@ import styled from 'styled-components'
 const Header = styled.header`
   position: sticky;
   top: 0;
-  z-index: 40;
+  /* Must sit above page content so the navbar's hover dropdowns aren't
+     covered. backdrop-filter below makes this a stacking context, which
+     caps everything inside (incl. NavbarRoot z-index), so it has to be high. */
+  z-index: 1000;
   width: 100%;
   border-bottom: 1px solid rgba(229, 231, 235, 0.5);
   background-color: rgba(255, 255, 255, 0.8);

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import styled from 'styled-components'
 import Button from '@/components/ui/Button'
 import { AlertCircle, Home, RefreshCw } from 'lucide-react'
+import { isChunkLoadError, reloadOnceForChunkError } from '@/lib/chunkReload'
 
 interface ErrorProps {
   error: Error & { digest?: string }
@@ -136,6 +137,13 @@ const SupportLink = styled(Link)`
 
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
+    // A stale chunk after a redeploy is recoverable — reload once to fetch the
+    // new build instead of showing an error page the user can't act on.
+    if (isChunkLoadError(error)) {
+      reloadOnceForChunkError()
+      return
+    }
+
     // Log error to error reporting service (e.g., Sentry)
     console.error('Application error:', error)
 

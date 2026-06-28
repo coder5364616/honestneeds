@@ -3,8 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import styled from 'styled-components'
-import { Mail } from 'lucide-react'
-import Button from '@/components/ui/Button'
+import { MessageButton } from '@/features/messaging/components/MessageButton'
 
 interface CreatorProfileProps {
   creatorId: string
@@ -12,6 +11,8 @@ interface CreatorProfileProps {
   creatorAvatar?: string
   campaignCount?: number
   totalRaised?: number
+  /** When provided, the conversation is scoped to this campaign (MS-01). */
+  campaignId?: string
 }
 
 // Styled Components
@@ -107,20 +108,13 @@ const ContactButtonWrapper = styled.div`
   width: 100%;
 `
 
-const ContactButton = styled(Button)`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-`
-
 export function CreatorProfile({
   creatorId,
   creatorName,
   creatorAvatar,
   campaignCount = 0,
   totalRaised = 0,
+  campaignId,
 }: CreatorProfileProps) {
   return (
     <CardContainer>
@@ -169,15 +163,16 @@ export function CreatorProfile({
           </StatsGrid>
 
           <ContactButtonWrapper>
-            <a href={`mailto:${creatorId}@honestneed.com`} style={{ textDecoration: 'none' }}>
-              <ContactButton
-                variant="outline"
-                size="sm"
-              >
-                <Mail size={16} />
-                Contact Creator
-              </ContactButton>
-            </a>
+            <MessageButton
+              recipientId={creatorId}
+              recipientName={creatorName}
+              contextType={campaignId ? 'campaign' : 'direct'}
+              campaignId={campaignId}
+              label="Message Creator"
+              variant="outline"
+              size="sm"
+              fullWidth
+            />
           </ContactButtonWrapper>
         </InfoContainer>
       </ContentWrapper>

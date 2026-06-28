@@ -7,6 +7,35 @@ import { CheckCircle2, Loader2, AlertCircle, Rocket, FileText, Globe, Pause } fr
 import { usePublishCampaign } from '@/api/hooks/useCampaigns'
 import { toast } from 'react-toastify'
 
+// ─── Design Tokens (shared with /dashboard) ─────────────────────────────────────
+
+const tk = {
+  // Core palette
+  ink:         '#18171A',
+  inkLight:    '#242228',
+  inkBorder:   '#3D3A44',
+  // Canvas
+  canvas:      '#F7F5F1',
+  canvasDeep:  '#EEEBe5',
+  border:      '#E2DDD6',
+  // Type
+  white:       '#FFFFFF',
+  muted:       '#8C8790',
+  body:        '#4A4750',
+  heading:     '#18171A',
+  // Accent — warm amber
+  amber:       '#D4870A',
+  amberLight:  '#FBF3E0',
+  amberDark:   '#A8680A',
+  // Status
+  green:       '#1A7A4A',
+  greenLight:  '#E8F5EE',
+  red:         '#C0392B',
+  redLight:    '#FBE9E7',
+  blue:        '#1A5FA8',
+  blueLight:   '#E8F0FB',
+}
+
 // ─── Animations ────────────────────────────────────────────────────────────────
 
 const fadeUp = keyframes`
@@ -21,9 +50,9 @@ const popIn = keyframes`
 `
 
 const ringPulse = keyframes`
-  0%   { box-shadow: 0 0 0 0 rgba(21, 128, 61, 0.3); }
-  70%  { box-shadow: 0 0 0 16px rgba(21, 128, 61, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(21, 128, 61, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(26, 122, 74, 0.3); }
+  70%  { box-shadow: 0 0 0 16px rgba(26, 122, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(26, 122, 74, 0); }
 `
 
 const spinAnim = keyframes`
@@ -51,23 +80,17 @@ const IconRing = styled.div`
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: #f0fdf4;
-  border: 0.5px solid #bbf7d0;
+  background: ${tk.greenLight};
+  border: 1px solid ${tk.green}33;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: ${popIn} 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both, ${ringPulse} 1.2s 0.5s ease-out;
 
   svg {
-    color: #15803d;
+    color: ${tk.green};
     width: 36px;
     height: 36px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    background: #14532d;
-    border-color: #16a34a;
-    svg { color: #4ade80; }
   }
 `
 
@@ -82,14 +105,15 @@ const Title = styled.h2`
   font-family: 'Syne', 'DM Sans', sans-serif;
   font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 800;
-  color: #000000;
+  color: ${tk.heading};
   margin: 0 0 0.4rem;
   line-height: 1.2;
+  letter-spacing: -0.5px;
 `
 
 const Subtitle = styled.p`
   font-size: 0.9rem;
-  color: #64748b;
+  color: ${tk.muted};
   margin: 0;
   max-width: 380px;
   line-height: 1.6;
@@ -100,9 +124,9 @@ const Subtitle = styled.p`
 const SummaryCard = styled.div`
   width: 100%;
   max-width: 480px;
-  background: #f1f5f9;
-  border: 0.5px solid #cbd5e1;
-  border-radius: 12px;
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
   overflow: hidden;
   ${stagger(0.15)}
 `
@@ -112,15 +136,16 @@ const SummaryCardHead = styled.div`
   align-items: center;
   gap: 8px;
   padding: 0.875rem 1.25rem;
-  background: #e2e8f0;
-  border-bottom: 0.5px solid #cbd5e1;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #0f172a;
-  letter-spacing: 0.04em;
+  background: ${tk.canvasDeep};
+  border-bottom: 1px solid ${tk.border};
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: ${tk.heading};
+  letter-spacing: 1px;
   text-transform: uppercase;
 
-  svg { width: 14px; height: 14px; color: #0f172a; }
+  svg { width: 14px; height: 14px; color: ${tk.muted}; }
 `
 
 const SummaryRows = styled.div`
@@ -134,19 +159,19 @@ const SummaryRow = styled.div`
   padding: 0.65rem 1.25rem;
 
   & + & {
-    border-top: 0.5px solid #cbd5e1;
+    border-top: 1px solid ${tk.canvasDeep};
   }
 `
 
 const RowLabel = styled.span`
   font-size: 0.85rem;
-  color: #475569;
+  color: ${tk.muted};
 `
 
 const RowVal = styled.span`
   font-size: 0.875rem;
   font-weight: 600;
-  color: #0f172a;
+  color: ${tk.heading};
   text-align: right;
   max-width: 60%;
   overflow: hidden;
@@ -158,12 +183,15 @@ const DraftBadge = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #e2e8f0;
-  color: #0f172a;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  background: ${tk.canvasDeep};
+  color: ${tk.muted};
+  font-size: 0.65rem;
+  font-weight: 500;
   padding: 3px 10px;
   border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 `
 
 // ─── What happens next ────────────────────────────────────────────────────────
@@ -182,13 +210,19 @@ const NextStepsGrid = styled.div`
 `
 
 const NextStepItem = styled.div`
-  background: #f1f5f9;
-  border: 0.5px solid #cbd5e1;
-  border-radius: 10px;
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
   padding: 0.875rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  transition: border-color 180ms, box-shadow 180ms;
+
+  &:hover {
+    border-color: ${tk.blue};
+    box-shadow: 0 4px 16px rgba(26, 95, 168, 0.10);
+  }
 
   @media (max-width: 480px) {
     flex-direction: row;
@@ -199,7 +233,7 @@ const NextStepItem = styled.div`
 const NextStepIcon = styled.div<{ $bg: string; $color: string }>`
   width: 32px;
   height: 32px;
-  border-radius: 7px;
+  border-radius: 10px;
   background: ${({ $bg }) => $bg};
   color: ${({ $color }) => $color};
   display: flex;
@@ -212,15 +246,16 @@ const NextStepIcon = styled.div<{ $bg: string; $color: string }>`
 
 const NextStepText = styled.div`
   font-size: 0.78rem;
-  color: #475569;
+  color: ${tk.muted};
   line-height: 1.45;
 
   strong {
     display: block;
-    color: #0f172a;
-    font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    color: ${tk.heading};
+    font-weight: 700;
     margin-bottom: 2px;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
   }
 `
 
@@ -233,21 +268,15 @@ const ErrorBox = styled.div`
   align-items: flex-start;
   gap: 9px;
   padding: 0.875rem 1rem;
-  background: #fef2f2;
-  border-radius: 8px;
-  border: 0.5px solid #fecaca;
+  background: ${tk.redLight};
+  border-radius: 10px;
+  border: 1px solid rgba(192, 57, 43, 0.2);
   font-size: 0.85rem;
-  color: #991b1b;
+  color: ${tk.red};
   line-height: 1.5;
   animation: ${fadeUp} 0.25s ease both;
 
   svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
-
-  @media (prefers-color-scheme: dark) {
-    background: #450a0a;
-    border-color: #7f1d1d;
-    color: #fca5a5;
-  }
 `
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -264,13 +293,13 @@ const Actions = styled.div`
 const ActivateBtn = styled.button<{ $loading?: boolean }>`
   width: 100%;
   padding: 0.9rem;
-  background: ${({ $loading }) => $loading ? '#94a3b8' : '#15803d'};
-  color: #fff;
+  background: ${({ $loading }) => $loading ? tk.muted : tk.green};
+  color: ${tk.white};
   border: none;
-  border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: ${({ $loading }) => $loading ? 'not-allowed' : 'pointer'};
   display: flex;
   align-items: center;
@@ -280,7 +309,7 @@ const ActivateBtn = styled.button<{ $loading?: boolean }>`
 
   svg { width: 17px; height: 17px; }
 
-  &:hover:not(:disabled) { background: #166534; }
+  &:hover:not(:disabled) { background: #15633C; }
   &:active:not(:disabled) { transform: scale(0.99); }
 `
 
@@ -291,46 +320,41 @@ const SpinIcon = styled(Loader2)`
 const DraftBtn = styled.button`
   width: 100%;
   padding: 0.75rem;
-  background: transparent;
-  color: #64748b;
-  border: 0.5px solid #e2e8f0;
-  border-radius: 8px;
+  background: ${tk.white};
+  color: ${tk.body};
+  border: 1px solid ${tk.border};
+  border-radius: 10px;
   font-family: 'DM Sans', sans-serif;
   font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 
   svg { width: 15px; height: 15px; }
 
-  &:hover { background: #f8fafc; color: #0f172a; }
+  &:hover { background: ${tk.canvasDeep}; color: ${tk.heading}; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  @media (prefers-color-scheme: dark) {
-    border-color: #334155;
-    &:hover { background: #1e293b; color: #e2e8f0; }
-  }
 `
 
 const Divider = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #cbd5e1;
-  font-size: 0.75rem;
+  color: ${tk.muted};
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 
   &::before, &::after {
     content: '';
     flex: 1;
-    height: 0.5px;
-    background: #e2e8f0;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    &::before, &::after { background: #334155; }
+    height: 1px;
+    background: ${tk.border};
   }
 `
 
@@ -380,22 +404,22 @@ export const Step7ActivateCampaign: React.FC<Step7ActivateCampaignProps> = ({
   const NEXT_STEPS = [
     {
       icon: Globe,
-      iconBg: '#eff6ff',
-      iconColor: '#1d4ed8',
+      iconBg: tk.blueLight,
+      iconColor: tk.blue,
       label: 'Goes live',
       desc: 'Visible in feeds and search immediately',
     },
     {
       icon: Rocket,
-      iconBg: '#f0fdf4',
-      iconColor: '#15803d',
+      iconBg: tk.greenLight,
+      iconColor: tk.green,
       label: 'Supporters find you',
       desc: 'Donate, share, and follow updates',
     },
     {
       icon: Pause,
-      iconBg: '#fef9c3',
-      iconColor: '#a16207',
+      iconBg: tk.amberLight,
+      iconColor: tk.amberDark,
       label: 'Always in control',
       desc: 'Pause or complete anytime from your dashboard',
     },

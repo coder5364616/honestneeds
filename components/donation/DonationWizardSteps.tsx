@@ -2,6 +2,7 @@
 
 import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react'
 import styled, { keyframes, css } from 'styled-components'
+import { tk } from '@/styles/dashboardTokens'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -245,12 +246,13 @@ const BackBtn = styled.button`
   align-items: center;
   gap: 7px;
   padding: 11px 20px;
+  font-family: 'Syne', sans-serif;
   font-size: 14px;
   font-weight: 700;
-  color: #475569;
-  background: transparent;
-  border: 1.5px solid #CBD5E1;
-  border-radius: 12px;
+  color: ${tk.body};
+  background: ${tk.white};
+  border: 1.5px solid ${tk.border};
+  border-radius: 10px;
   cursor: pointer;
   transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
   letter-spacing: 0.01em;
@@ -258,9 +260,9 @@ const BackBtn = styled.button`
   white-space: nowrap;
 
   &:hover:not(:disabled) {
-    border-color: #94A3B8;
-    color: #334155;
-    background: rgba(15,23,42,0.03);
+    border-color: ${tk.muted};
+    color: ${tk.heading};
+    background: ${tk.canvasDeep};
   }
 
   &:disabled {
@@ -269,7 +271,7 @@ const BackBtn = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid #F59E0B;
+    outline: 2px solid ${tk.amber};
     outline-offset: 2px;
   }
 
@@ -290,39 +292,37 @@ const NextBtn = styled.button<{ $isSubmitting?: boolean }>`
   justify-content: center;
   gap: 8px;
   padding: 13px 28px;
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 15px;
-  font-weight: 800;
-  color: white;
-  background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  font-weight: 700;
+  color: ${tk.white};
+  background: ${tk.ink};
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
   letter-spacing: 0.01em;
   white-space: nowrap;
-  box-shadow: 0 4px 18px rgba(239,68,68,0.28);
 
   &:hover:not(:disabled) {
-    box-shadow: 0 6px 24px rgba(239,68,68,0.38);
+    background: ${tk.inkLight};
     transform: translateY(-1px);
   }
 
   &:active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 3px 12px rgba(239,68,68,0.22);
   }
 
   &:disabled {
-    background: #F1F5F9;
-    color: #94A3B8;
+    background: ${tk.canvasDeep};
+    color: ${tk.muted};
     box-shadow: none;
     cursor: not-allowed;
     transform: none;
   }
 
   &:focus-visible {
-    outline: 2px solid #F59E0B;
+    outline: 2px solid ${tk.amber};
     outline-offset: 2px;
   }
 

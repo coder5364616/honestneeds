@@ -4,10 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
 import { apiClient } from '@/lib/api';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // ===== Services =====
 
@@ -22,12 +19,9 @@ class ConversionTrackingService {
     conversionValue: number; // cents (0 if non-monetary)
     metadata?: Record<string, unknown>;
   }) {
-    const response = await axios.post(
-      `${API_BASE}/campaigns/${campaignId}/conversion`,
-      params,
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
+    const response = await apiClient.post(
+      `/campaigns/${campaignId}/conversion`,
+      params
     );
     return response.data;
   }
@@ -36,11 +30,8 @@ class ConversionTrackingService {
    * Get conversion analytics for campaign
    */
   static async getCampaignConversionAnalytics(campaignId: string) {
-    const response = await axios.get(
-      `${API_BASE}/campaigns/${campaignId}/analytics/conversions`,
-      {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      }
+    const response = await apiClient.get(
+      `/campaigns/${campaignId}/analytics/conversions`
     );
     return response.data;
   }
@@ -49,8 +40,8 @@ class ConversionTrackingService {
    * Get conversion analytics for specific share
    */
   static async getShareConversionAnalytics(shareId: string) {
-    const response = await axios.get(
-      `${API_BASE}/shares/${shareId}/analytics`
+    const response = await apiClient.get(
+      `/shares/${shareId}/analytics`
     );
     return response.data;
   }
@@ -65,7 +56,7 @@ class ConversionTrackingService {
     console.log('🔄 [ConversionTrackingService] getSupporterConversionAnalytics called', {
       hasToken: !!token,
       tokenKey: 'auth_token',
-      apiBase: API_BASE,
+      apiBase: apiClient.defaults.baseURL,
     });
 
     if (!token) {
@@ -157,8 +148,8 @@ export function useCampaignConversionAnalytics(
   campaignId: string,
   enabled: boolean = true
 ) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
   return useQuery({
     queryKey: ['campaign', campaignId, 'conversions'],
     queryFn: () => ConversionTrackingService.getCampaignConversionAnalytics(campaignId),
@@ -173,8 +164,8 @@ export function useCampaignConversionAnalytics(
  * @param shareId - Share ID (format: SHARE-YYYY-XXXXXX)
  */
 export function useShareConversionAnalytics(shareId: string) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
   return useQuery({
     queryKey: ['share', shareId, 'analytics'],
     queryFn: () => ConversionTrackingService.getShareConversionAnalytics(shareId),

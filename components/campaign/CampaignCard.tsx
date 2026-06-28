@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import styled, { keyframes, css } from 'styled-components'
-import { useState } from 'react'
 import {
   TrendingUp,
   Share2,
@@ -12,16 +11,14 @@ import {
   Map,
   Globe,
   Zap,
-  Copy,
-  Check,
   Users,
   Sparkles,
   ArrowRight,
 } from 'lucide-react'
 import { Campaign } from '@/api/services/campaignService'
 import { normalizeImageUrl } from '@/utils/imageUtils'
-import Button from '@/components/ui/Button'
-import { ShareWizard } from './ShareWizard'
+import { tk } from '@/styles/dashboardTokens'
+import { MiracleModeBadge } from '@/components/campaign/MiracleModeBadge'
 
 interface CampaignCardProps {
   campaign: Campaign
@@ -41,28 +38,40 @@ const fadeUp = keyframes`
 `
 
 // ─── Card Shell ───────────────────────────────────────────────────────────────
+// Horizontal layout with a fixed height so every card is the same size,
+// regardless of how much content it holds.
 const Card = styled.article`
-  background: #ffffff;
-  border-radius: 16px;
+  background: ${tk.white};
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid #f0f0f0;
+  border: 1px solid ${tk.border};
+  font-family: 'DM Sans', sans-serif;
   transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
   animation: ${fadeUp} 350ms ease both;
   display: flex;
+  /* Vertical (stacked) by default so two cards still fit per row on mobile. */
   flex-direction: column;
+  min-height: 330px;
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.09);
-    border-color: #e4e4f0;
+    box-shadow: 0 12px 32px rgba(26, 95, 168, 0.12);
+    border-color: ${tk.blue};
+  }
+
+  /* Horizontal layout once there's room for an image beside the body. */
+  @media (min-width: 1024px) {
+    flex-direction: row;
+    min-height: 230px;
   }
 `
 
 // ─── Image ─────────────────────────────────────────────────────────────────────
 const ImageWrap = styled.div`
   position: relative;
-  height: 180px;
-  background: linear-gradient(135deg, #f0efff 0%, #ede8ff 100%);
+  width: 100%;
+  height: 150px;
+  background: linear-gradient(135deg, ${tk.amberLight} 0%, ${tk.canvasDeep} 100%);
   overflow: hidden;
   flex-shrink: 0;
 
@@ -73,6 +82,12 @@ const ImageWrap = styled.div`
   ${Card}:hover & img {
     transform: scale(1.04);
   }
+
+  @media (min-width: 1024px) {
+    width: 42%;
+    max-width: 260px;
+    height: 100%;
+  }
 `
 
 const ImagePlaceholder = styled.div`
@@ -81,12 +96,12 @@ const ImagePlaceholder = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #e0f2fe 100%);
+  background: linear-gradient(135deg, ${tk.amberLight} 0%, ${tk.canvasDeep} 50%, ${tk.blueLight} 100%);
 
   svg {
     width: 40px;
     height: 40px;
-    color: #c4b5fd;
+    color: ${tk.amberMid};
   }
 `
 
@@ -135,11 +150,10 @@ const Badge = styled.span<{
     `
     if ($variant === 'boost') {
       const tierStyles: Record<string, string> = {
-        basic: 'background: rgba(219,234,254,0.95); color: #1e40af; border: 1px solid rgba(96,165,250,0.4);',
+        free: 'background: rgba(219,234,254,0.95); color: #1e40af; border: 1px solid rgba(96,165,250,0.4);',
         pro: 'background: rgba(233,213,255,0.95); color: #6b21a8; border: 1px solid rgba(192,132,252,0.4);',
-        premium: 'background: rgba(254,243,199,0.95); color: #b45309; border: 1px solid rgba(251,191,36,0.5);',
       }
-      return css`${tierStyles[$tier || 'basic'] || tierStyles.basic}`
+      return css`${tierStyles[$tier || 'pro'] || tierStyles.pro}`
     }
     if ($variant === 'scope') {
       const scopeMap: Record<string, string> = {
@@ -156,11 +170,12 @@ const Badge = styled.span<{
 
 // ─── Body ──────────────────────────────────────────────────────────────────────
 const Body = styled.div`
-  padding: 14px 16px 16px;
+  padding: 14px 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
+  min-width: 0;
 `
 
 const TitleRow = styled.div`
@@ -170,91 +185,125 @@ const TitleRow = styled.div`
 `
 
 const Title = styled.h3`
+  font-family: 'Syne', sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #111827;
+  color: ${tk.heading};
   line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.2px;
   transition: color 200ms;
 
   a:hover & {
-    color: #6366f1;
+    color: ${tk.blue};
   }
 `
 
 const CreatorName = styled.p`
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: ${tk.muted};
   margin: 0;
-  font-weight: 500;
+  font-weight: 400;
 
   span {
-    color: #6366f1;
+    color: ${tk.blue};
     transition: color 180ms;
   }
 
   a:hover span {
-    color: #4f46e5;
+    color: ${tk.amber};
   }
 `
 
 // ─── Progress ──────────────────────────────────────────────────────────────────
-const ProgressSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-`
-
-const ProgressMeta = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-`
-
-const RaisedAmount = styled.span`
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #111827;
-`
-
 const GoalAmount = styled.span`
+  font-family: 'DM Mono', monospace;
   font-size: 0.72rem;
-  color: #9ca3af;
-  font-weight: 500;
+  color: ${tk.muted};
+  font-weight: 400;
 `
 
 const ProgressTrack = styled.div`
   height: 5px;
-  background: #f3f4f6;
+  background: ${tk.canvasDeep};
   border-radius: 999px;
   overflow: hidden;
 `
 
-const ProgressFill = styled.div<{ $pct: number }>`
-  height: 100%;
-  width: ${p => Math.min(p.$pct, 100)}%;
-  background: ${p => p.$pct >= 100
-    ? 'linear-gradient(90deg, #10b981, #34d399)'
-    : 'linear-gradient(90deg, #6366f1, #818cf8)'};
-  border-radius: 999px;
-  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+// ─── Multi-meter (all meters visible) ───────────────────────────────────────────
+const MeterStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
 `
 
-const ProgressPct = styled.span<{ $pct: number }>`
-  font-size: 0.7rem;
+const MeterRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`
+
+const MeterTopLine = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+`
+
+const MeterLabel = styled.span<{ $color: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: ${tk.muted};
+
+  svg { color: ${p => p.$color}; flex-shrink: 0; }
+`
+
+const MeterValue = styled.span`
+  font-family: 'Syne', sans-serif;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: ${p => p.$pct >= 100 ? '#10b981' : '#6366f1'};
+  color: ${tk.heading};
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`
+
+const MeterRight = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
+`
+
+const MeterPct = styled.span<{ $color: string }>`
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: ${p => p.$color};
+`
+
+const MeterFill = styled.div<{ $pct: number; $color: string }>`
+  height: 100%;
+  width: ${p => Math.min(p.$pct, 100)}%;
+  background: ${p => p.$color};
+  border-radius: 999px;
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
 `
 
 // ─── Stats ─────────────────────────────────────────────────────────────────────
 const StatsRow = styled.div`
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 `
 
 const Stat = styled.div`
@@ -262,17 +311,18 @@ const Stat = styled.div`
   align-items: center;
   gap: 5px;
   font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 500;
+  color: ${tk.muted};
+  font-weight: 400;
 
   svg {
-    color: #d1d5db;
+    color: ${tk.amberMid};
     flex-shrink: 0;
   }
 
   strong {
-    color: #374151;
-    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    color: ${tk.heading};
+    font-weight: 500;
   }
 `
 
@@ -283,73 +333,27 @@ const Actions = styled.div`
   margin-top: auto;
 `
 
-const DonateBtn = styled.button`
+const ViewDetailsBtn = styled(Link)`
   flex: 1;
-  height: 38px;
+  height: 40px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
-  color: white;
-  font-size: 0.8rem;
+  background: ${tk.ink};
+  color: ${tk.white};
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   letter-spacing: 0.2px;
-  transition: opacity 180ms, transform 120ms;
+  transition: background 180ms, transform 120ms;
 
-  &:hover { opacity: 0.9; transform: scale(1.01); }
+  &:hover { background: ${tk.inkLight}; transform: scale(1.01); }
   &:active { transform: scale(0.98); }
-`
-
-const ShareBtn = styled.button`
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  border: 1.5px solid #e5e7eb;
-  background: #fafafa;
-  color: #6b7280;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: border-color 180ms, background 180ms, color 180ms;
-
-  &:hover {
-    border-color: #6366f1;
-    background: #eef2ff;
-    color: #6366f1;
-  }
-`
-
-const ShareEarnBtn = styled(DonateBtn)`
-  background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
-`
-
-const CopyBtn = styled(ShareBtn)<{ $copied?: boolean }>`
-  ${p => p.$copied && css`
-    border-color: #10b981;
-    background: #ecfdf5;
-    color: #10b981;
-  `}
-`
-
-const ViewLink = styled(Link)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #9ca3af;
-  text-decoration: none;
-  transition: color 180ms;
-  letter-spacing: 0.1px;
-
-  &:hover { color: #6366f1; }
   svg { transition: transform 180ms; }
   &:hover svg { transform: translateX(2px); }
 `
@@ -369,24 +373,98 @@ const fmt = (cents: number) =>
   (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
 // ─── Component ─────────────────────────────────────────────────────────────────
-export function CampaignCard({ campaign, onDonate, onShare }: CampaignCardProps) {
-  const [wizardOpen, setWizardOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+export function CampaignCard({ campaign }: CampaignCardProps) {
+  // SR-1/SR-2: the dollar meter uses the FUNDRAISING goal only (never goals[0],
+  // which could be a sharing_reach share-count). Reach is a separate shares meter.
+  const goals = (campaign.goals ?? []) as Array<{
+    goal_type: string
+    goal_name?: string
+    target_amount: number
+    current_amount: number
+  }>
+  const fundGoal = goals.find((g) => g.goal_type === 'fundraising')
+  const goalAmount = (campaign as any).goal_amount ?? fundGoal?.target_amount ?? 0
+  const raised =
+    fundGoal?.current_amount ??
+    (campaign as any).raised_amount ??
+    campaign.total_donation_amount ??
+    0
 
-  const goalAmount = campaign.goals?.[0]?.target_amount ?? 0
-  const raised = campaign.total_donation_amount ?? 0
-  const pct = goalAmount > 0 ? Math.min((raised / goalAmount) * 100, 100) : 0
+  const reach = (campaign as any).reach_goal as
+    | { target_shares: number; current_shares: number }
+    | null
+    | undefined
+  const reachGoalEntry = goals.find((g) => g.goal_type === 'sharing_reach')
+  const reachTarget = reachGoalEntry?.target_amount ?? reach?.target_shares ?? 0
+  const reachCurrent =
+    reachGoalEntry?.current_amount ?? reach?.current_shares ?? campaign.share_count ?? 0
 
-  const handleCopy = () => {
-    const url = `${window.location.origin}/campaigns/${campaign.id}`
-    navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const resourceGoal = goals.find((g) => g.goal_type === 'resource_collection')
+
+  // Build the full list of meters this campaign tracks (CA-meters: all visible).
+  const fmtCount = (n: number) => (n || 0).toLocaleString()
+  const meters: Array<{
+    key: string
+    label: string
+    icon: JSX.Element
+    color: string
+    currentDisplay: string
+    goalDisplay: string
+    pct: number
+  }> = []
+
+  if (goalAmount > 0) {
+    const pct = Math.min((raised / goalAmount) * 100, 100)
+    meters.push({
+      key: 'money',
+      label: 'Raised',
+      icon: <Heart size={11} />,
+      color: pct >= 100 ? tk.green : tk.amber,
+      currentDisplay: fmt(raised),
+      goalDisplay: fmt(goalAmount),
+      pct,
+    })
+  }
+  if (reachTarget > 0) {
+    const pct = Math.min((reachCurrent / reachTarget) * 100, 100)
+    meters.push({
+      key: 'reach',
+      label: 'Shares',
+      icon: <Share2 size={11} />,
+      color: '#0ea5e9',
+      currentDisplay: fmtCount(reachCurrent),
+      goalDisplay: fmtCount(reachTarget),
+      pct,
+    })
+  }
+  if (resourceGoal && resourceGoal.target_amount > 0) {
+    const pct = Math.min((resourceGoal.current_amount / resourceGoal.target_amount) * 100, 100)
+    meters.push({
+      key: 'resource',
+      label: resourceGoal.goal_name || 'Helping hands',
+      icon: <Users size={11} />,
+      color: tk.green,
+      currentDisplay: fmtCount(resourceGoal.current_amount),
+      goalDisplay: fmtCount(resourceGoal.target_amount),
+      pct,
+    })
+  }
+  // Fallback: always show at least the money meter so the card never looks empty.
+  if (meters.length === 0) {
+    meters.push({
+      key: 'money',
+      label: 'Raised',
+      icon: <Heart size={11} />,
+      color: tk.amber,
+      currentDisplay: fmt(raised),
+      goalDisplay: fmt(goalAmount),
+      pct: 0,
+    })
   }
 
   const isSharing = campaign.campaign_type === 'sharing'
-  const tierLabel = (campaign.current_boost_tier ?? 'basic')
-  const tierEmoji: Record<string, string> = { basic: '⚡', pro: '🚀', premium: '👑' }
+  const tierLabel = (campaign.current_boost_tier ?? 'pro')
+  const tierEmoji: Record<string, string> = { free: '⚡', pro: '🚀' }
 
   return (
     <Card>
@@ -411,6 +489,7 @@ export function CampaignCard({ campaign, onDonate, onShare }: CampaignCardProps)
               {tierEmoji[tierLabel]} {tierLabel.charAt(0).toUpperCase() + tierLabel.slice(1)}
             </Badge>
           )}
+          <MiracleModeBadge miracleMode={(campaign as any).miracle_mode} size="sm" />
           {isSharing && <Badge $variant="earn">💰 Share to Earn</Badge>}
           {campaign.geographicScope && (
             <Badge $variant="scope" $scope={campaign.geographicScope}>
@@ -436,19 +515,27 @@ export function CampaignCard({ campaign, onDonate, onShare }: CampaignCardProps)
           </Link>
         </TitleRow>
 
-        {/* Progress */}
-        <ProgressSection>
-          <ProgressMeta>
-            <RaisedAmount>{fmt(raised)}</RaisedAmount>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <GoalAmount>of {fmt(goalAmount)}</GoalAmount>
-              <ProgressPct $pct={pct}>{pct.toFixed(0)}%</ProgressPct>
-            </div>
-          </ProgressMeta>
-          <ProgressTrack>
-            <ProgressFill $pct={pct} />
-          </ProgressTrack>
-        </ProgressSection>
+        {/* Progress — every meter the campaign tracks (money, shares, helping hands) */}
+        <MeterStack>
+          {meters.map((m) => (
+            <MeterRow key={m.key}>
+              <MeterTopLine>
+                <MeterValue>
+                  {m.currentDisplay}
+                  {' '}
+                  <MeterLabel as="span" $color={m.color}>{m.icon}{m.label}</MeterLabel>
+                </MeterValue>
+                <MeterRight>
+                  <GoalAmount>of {m.goalDisplay}</GoalAmount>
+                  <MeterPct $color={m.color}>{m.pct.toFixed(0)}%</MeterPct>
+                </MeterRight>
+              </MeterTopLine>
+              <ProgressTrack>
+                <MeterFill $pct={m.pct} $color={m.color} />
+              </ProgressTrack>
+            </MeterRow>
+          ))}
+        </MeterStack>
 
         {/* Stats */}
         <StatsRow>
@@ -472,43 +559,13 @@ export function CampaignCard({ campaign, onDonate, onShare }: CampaignCardProps)
           </Stat>
         </StatsRow>
 
-        {/* Actions */}
+        {/* Action */}
         <Actions>
-          {isSharing ? (
-            <>
-              <ShareEarnBtn onClick={() => setWizardOpen(true)}>
-                💰 Share to Earn
-              </ShareEarnBtn>
-              <CopyBtn onClick={handleCopy} $copied={copied} title="Copy link">
-                {copied ? <Check size={15} /> : <Copy size={15} />}
-              </CopyBtn>
-            </>
-          ) : (
-            <>
-              <DonateBtn onClick={() => onDonate?.(campaign.id)}>
-                <Heart size={14} /> Donate
-              </DonateBtn>
-              <ShareBtn onClick={() => onShare?.(campaign.id)} title="Share">
-                <Share2 size={15} />
-              </ShareBtn>
-            </>
-          )}
+          <ViewDetailsBtn href={`/campaigns/${campaign.id}`}>
+            View Details <ArrowRight size={15} />
+          </ViewDetailsBtn>
         </Actions>
-
-        <ViewLink href={`/campaigns/${campaign.id}`}>
-          View details <ArrowRight size={12} />
-        </ViewLink>
       </Body>
-
-      <ShareWizard
-        isOpen={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        campaignId={campaign.id}
-        campaignTitle={campaign.title}
-        campaignDescription={campaign.description || campaign.full_description}
-        creator_name={campaign.creator_name}
-        share_config={campaign.share_config}
-      />
     </Card>
   )
 }

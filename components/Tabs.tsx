@@ -11,6 +11,13 @@ const TabsListStyled = styled.div`
   display: flex;
   border-bottom: 2px solid #e2e8f0;
   gap: 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 interface TabTriggerProps {
@@ -24,6 +31,8 @@ const TabTriggerStyled = styled.button<TabTriggerProps>`
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
   color: ${(props) => (props.$active ? '#667eea' : '#718096')};
   border-bottom-color: ${(props) => (props.$active ? '#667eea' : 'transparent')};
   transition: all 0.2s;

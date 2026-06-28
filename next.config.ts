@@ -49,6 +49,16 @@ const nextConfig: NextConfig = {
       ],
     };
   },
+
+  // ✅ Spec-friendly aliases → canonical routes used across the app.
+  //    The floating mobile nav links to the canonical routes directly (no hop);
+  //    these keep the spec URLs (/explore, /campaigns/create) resolving too.
+  async redirects() {
+    return [
+      { source: '/explore', destination: '/discover', permanent: false },
+      { source: '/campaigns/create', destination: '/campaigns/new', permanent: false },
+    ];
+  },
   
   // ✅ TypeScript
   typescript: {

@@ -1,18 +1,18 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
-import styled from 'styled-components'
+import React, { useState } from 'react'
+import styled, { keyframes, createGlobalStyle } from 'styled-components'
+import { ArrowLeft, Rocket } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { use } from 'react'
 import { useCampaign, useCampaignAnalytics, usePublishCampaign } from '@/api/hooks/useCampaigns'
 import { useCampaignEntries } from '@/api/hooks/useSweepstakes'
+import { useCampaignConversionAnalytics } from '@/api/hooks/useConversionTracking'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Card } from '@/components/Card'
-import { Button } from '@/components/Button'
 import { Badge } from '@/components/Badge'
 import {
   CampaignMetricsCards,
-  ActivityFeed,
   CsvExportButton,
 } from '@/components/analytics'
 import { FlyerBuilder } from '@/components/campaign/FlyerBuilder'
@@ -20,290 +20,275 @@ import { QRAnalyticsDashboard } from '@/components/campaign/QRAnalyticsDashboard
 import { ShareAnalyticsDashboard } from '@/components/campaign/ShareAnalyticsDashboard'
 import { ReferralAnalyticsDashboard } from '@/components/campaign/ReferralAnalyticsDashboard'
 import { PrayerAnalyticsDashboard } from '@/components/analytics/PrayerAnalyticsDashboard'
+import { PendingDonationsQueue } from '@/components/donation/PendingDonationsQueue'
+import { CampaignRefundRequestsQueue } from '@/components/donation/CampaignRefundRequestsQueue'
+import { ShareSetupChecklist } from '@/components/campaign/ShareSetupChecklist'
+import { ConversionFunnel } from '@/components/campaign/ConversionFunnel'
+import { ViralScoreCard } from '@/features/analytics'
 import { currencyUtils } from '@/utils/validationSchemas'
 
-// Skeleton Loading Component
-const SkeletonLine = styled.div`
-  height: 16px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-  border-radius: 4px;
-  margin-bottom: 8px;
+// ─── Design Tokens (mirrors /dashboard and /dashboard/campaigns) ─────────────
 
-  @keyframes loading {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
-  }
-`
-
-const SkeletonStatCard = styled(Card)`
-  padding: 20px;
-  border: 2px solid #e5e7eb;
-
-  ${SkeletonLine}:first-child {
-    width: 60%;
-    height: 14px;
-    margin-bottom: 12px;
-  }
-
-  ${SkeletonLine}:nth-child(2) {
-    width: 80%;
-    height: 32px;
-    margin-bottom: 8px;
-  }
-
-  ${SkeletonLine}:last-child {
-    width: 70%;
-    height: 14px;
-  }
-`
-
-const SkeletonGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-`
-
-const SkeletonLoadingContainer = styled.div`
-  animation: fadeIn 0.3s ease-in;
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-`
-
-function SkeletonLoader() {
-  return (
-    <SkeletonLoadingContainer>
-      {/* Header Skeleton */}
-      <PageHeader>
-        <HeaderContent>
-          <SkeletonLine style={{ width: '60%', height: '32px', marginBottom: '16px' }} />
-          <SkeletonLine style={{ width: '80%', height: '16px', marginBottom: '8px' }} />
-          <SkeletonLine style={{ width: '70%', height: '16px' }} />
-        </HeaderContent>
-        <Actions>
-          <SkeletonLine style={{ width: '120px', height: '40px' }} />
-          <SkeletonLine style={{ width: '120px', height: '40px' }} />
-        </Actions>
-      </PageHeader>
-
-      {/* Info Box Skeleton */}
-      <InfoBox>
-        <SkeletonLine style={{ width: '90%', height: '14px' }} />
-      </InfoBox>
-
-      {/* Stats Grid Skeleton */}
-      <Section>
-        <SkeletonGrid>
-          <SkeletonStatCard>
-            <SkeletonLine />
-            <SkeletonLine style={{ height: '28px' }} />
-            <SkeletonLine />
-          </SkeletonStatCard>
-          <SkeletonStatCard>
-            <SkeletonLine />
-            <SkeletonLine style={{ height: '28px' }} />
-            <SkeletonLine />
-          </SkeletonStatCard>
-          <SkeletonStatCard>
-            <SkeletonLine />
-            <SkeletonLine style={{ height: '28px' }} />
-            <SkeletonLine />
-          </SkeletonStatCard>
-          <SkeletonStatCard>
-            <SkeletonLine />
-            <SkeletonLine style={{ height: '28px' }} />
-            <SkeletonLine />
-          </SkeletonStatCard>
-        </SkeletonGrid>
-      </Section>
-
-      {/* Section Skeleton */}
-      <Section>
-        <SkeletonLine style={{ width: '40%', height: '22px', marginBottom: '20px' }} />
-        <Card style={{ padding: '20px' }}>
-          <SkeletonLine />
-          <SkeletonLine />
-          <SkeletonLine />
-          <SkeletonLine style={{ width: '60%' }} />
-        </Card>
-      </Section>
-    </SkeletonLoadingContainer>
-  )
+const tk = {
+  ink:         '#18171A',
+  inkLight:    '#242228',
+  inkBorder:   '#3D3A44',
+  canvas:      '#F7F5F1',
+  canvasDeep:  '#EEEBe5',
+  border:      '#E2DDD6',
+  white:       '#FFFFFF',
+  muted:       '#8C8790',
+  body:        '#4A4750',
+  heading:     '#18171A',
+  amber:       '#D4870A',
+  amberLight:  '#FBF3E0',
+  amberMid:    '#F5C961',
+  amberDark:   '#A8680A',
+  green:       '#1A7A4A',
+  greenLight:  '#E8F5EE',
+  red:         '#C0392B',
+  redLight:    '#FBE9E7',
+  blue:        '#1A5FA8',
+  blueLight:   '#E8F0FB',
 }
 
-/**
- * Campaign Analytics Page
- * Creator view: campaign metrics, donations, shares, and sweepstakes entries
- */
-
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px;
+const GlobalStyle = createGlobalStyle`
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; }
 `
 
-const PageHeader = styled.div`
-  margin-bottom: 32px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-  flex-wrap: wrap;
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+`
+const countUp = keyframes`
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+`
+const shimmer = keyframes`
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+`
 
-  @media (max-width: 640px) {
-    flex-direction: column;
-    gap: 16px;
+// ─── Page shell (matches /dashboard/campaigns: sticky TopBar + centered PageBody) ─
+
+const Page = styled.div`
+  min-height: 100vh;
+  background: ${tk.canvas};
+  font-family: 'DM Sans', sans-serif;
+  color: ${tk.body};
+  display: flex;
+  flex-direction: column;
+`
+
+const TopBar = styled.header`
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(247, 245, 241, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 2px solid ${tk.blue};
+  padding: 0 clamp(1rem, 3vw, 2rem);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`
+
+const IconBtn = styled.button<{ $primary?: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 0.875rem;
+  border-radius: 10px;
+  border: 1px solid ${p => p.$primary ? 'transparent' : tk.border};
+  background: ${p => p.$primary ? tk.blue : tk.white};
+  color: ${p => p.$primary ? tk.white : tk.body};
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 140ms;
+  white-space: nowrap;
+  text-decoration: none;
+
+  &:hover {
+    background: ${p => p.$primary ? '#0D4A8C' : tk.canvasDeep};
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `
 
-const HeaderContent = styled.div`
+const TopBarActions = styled.div`
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`
+
+const PageBody = styled.div`
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 3vw, 2rem) 4rem;
   flex: 1;
-  min-width: 300px;
+`
+
+// ─── Page Header ──────────────────────────────────────────────────────────────
+
+const PageHeader = styled.div`
+  margin-bottom: 1.75rem;
+  animation: ${fadeUp} 0.4s ease both;
 `
 
 const PageTitle = styled.h1`
-  font-size: clamp(18px, 5vw, 32px);
-  font-weight: 700;
-  color: #111827;
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, ${tk.heading} 0%, ${tk.blue} 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0 0 8px 0;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
   word-break: break-word;
   overflow-wrap: break-word;
-  hyphens: auto;
-
-  @media (max-width: 640px) {
-    font-size: 18px;
-  }
 `
 
 const PageSubtitle = styled.p`
-  font-size: 16px;
-  color: #6b7280;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  color: ${tk.muted};
   margin: 0;
 `
 
-const Actions = styled.div`
-  display: flex;
+const DraftBadgeBox = styled.div`
+  display: inline-flex;
+  align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
-
-  @media (max-width: 640px) {
-    width: 100%;
-    flex-direction: column;
-
-    button {
-      width: 100%;
-    }
-  }
+  margin-top: 12px;
 `
 
+// ─── Sections ─────────────────────────────────────────────────────────────────
+
 const Section = styled.div`
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
 `
 
 const SectionTitle = styled.h2`
-  font-size: 22px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 20px 0;
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${tk.heading};
+  margin: 0 0 1rem 0;
 `
 
 const SectionGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 480px) { gap: 0.75rem; }
 `
 
-const StatCard = styled(Card)`
-  padding: 20px;
-  border: 2px solid #e5e7eb;
-  transition: all 0.2s;
+const StatCard = styled.div<{ $delay?: number }>`
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem 1rem;
+  animation: ${fadeUp} 0.5s ease both;
+  animation-delay: ${p => (p.$delay || 0) * 80}ms;
+  transition: box-shadow 180ms, border-color 180ms;
 
   &:hover {
-    border-color: #d1d5db;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: ${tk.blue};
+    box-shadow: 0 4px 16px rgba(26, 95, 168, 0.12);
   }
 `
 
 const StatLabel = styled.p`
-  font-size: 13px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  margin: 0 0 8px 0;
-  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: ${tk.muted};
+  margin: 0 0 0.875rem 0;
 `
 
 const StatValue = styled.p`
-  font-size: 32px;
-  font-weight: 700;
-  color: #111827;
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(1.4rem, 2.5vw, 1.875rem);
+  font-weight: 800;
+  color: ${tk.heading};
   margin: 0;
   line-height: 1;
+  animation: ${countUp} 0.6s cubic-bezier(0.22,1,0.36,1) both;
+  animation-delay: 0.2s;
 `
 
-const InfoBox = styled(Card)`
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  padding: 16px;
-  margin-bottom: 24px;
+const StatSub = styled.div`
+  font-family: 'DM Mono', monospace;
+  font-size: 0.67rem;
+  color: ${tk.muted};
+  margin-top: 6px;
+`
+
+const InfoBox = styled.div`
+  background: ${tk.greenLight};
+  border: 1px solid ${tk.green}33;
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.5rem;
 `
 
 const InfoText = styled.p`
-  font-size: 14px;
-  color: #166534;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  color: ${tk.green};
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.5;
 `
 
-const BackButton = styled(Button)`
-  align-self: flex-start;
-`
-
-const SuccessBox = styled(Card)`
-  background: #ecfdf5;
-  border: 1px solid #86efac;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  border-radius: 8px;
+const SuccessBox = styled.div`
+  background: ${tk.greenLight};
+  border: 1px solid ${tk.green}33;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
 `
 
 const SuccessText = styled.p`
-  font-size: 14px;
-  color: #166534;
+  font-size: 0.875rem;
+  color: ${tk.green};
   margin: 0;
   line-height: 1.5;
 `
 
-const ErrorBox = styled(Card)`
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  border-radius: 8px;
+const ErrorBox = styled.div`
+  background: ${tk.redLight};
+  border: 1px solid rgba(192,57,43,0.2);
+  padding: 0.875rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
 `
 
 const ErrorText = styled.p`
-  font-size: 14px;
-  color: #991b1b;
+  font-size: 0.875rem;
+  color: ${tk.red};
   margin: 0;
   line-height: 1.5;
 `
 
-const QRFlyer = styled(Card)`
+const QRFlyer = styled.div`
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
   padding: 24px;
   overflow: hidden;
 
@@ -349,7 +334,7 @@ const QRFlyerContent = styled.div`
   p {
     margin: 0 0 16px 0;
     font-size: clamp(13px, 4vw, 14px);
-    color: #6b7280;
+    color: ${tk.muted};
     line-height: 1.5;
 
     @media (max-width: 640px) {
@@ -359,11 +344,118 @@ const QRFlyerContent = styled.div`
   }
 `
 
-const DraftBadgeBox = styled.div`
-  display: inline-flex;
+// Card shell matching /dashboard — wraps the embedded analytics dashboards
+const Panel = styled.div`
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
+  padding: 1.5rem;
+`
+
+// ─── Recent Donations table ───────────────────────────────────────────────────
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+`
+
+const Th = styled.th<{ $align?: string }>`
+  padding: 0.625rem 0.75rem;
+  text-align: ${p => p.$align || 'left'};
+  font-family: 'DM Mono', monospace;
+  font-size: 0.66rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: ${tk.muted};
+  border-bottom: 1px solid ${tk.border};
+`
+
+const Tr = styled.tr`
+  border-bottom: 1px solid ${tk.canvasDeep};
+  transition: background 140ms;
+  &:hover { background: ${tk.canvas}; }
+  &:last-child { border-bottom: none; }
+`
+
+const Td = styled.td<{ $align?: string; $strong?: boolean }>`
+  padding: 0.875rem 0.75rem;
+  text-align: ${p => p.$align || 'left'};
+  color: ${p => p.$strong ? tk.heading : tk.body};
+  font-family: ${p => p.$strong ? "'DM Mono', monospace" : "'DM Sans', sans-serif"};
+  font-weight: ${p => p.$strong ? 500 : 400};
+`
+
+// ─── Loading skeleton ──────────────────────────────────────────────────────────
+
+const SkeletonLine = styled.div`
+  height: 16px;
+  background: linear-gradient(90deg, ${tk.canvasDeep} 25%, ${tk.border} 50%, ${tk.canvasDeep} 75%);
+  background-size: 600px 100%;
+  animation: ${shimmer} 1.5s infinite linear;
+  border-radius: 100px;
+  margin-bottom: 8px;
+`
+
+const SkeletonStatCard = styled(Card)`
+  padding: 20px;
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
+
+  ${SkeletonLine}:first-child {
+    width: 60%;
+    height: 14px;
+    margin-bottom: 12px;
+  }
+
+  ${SkeletonLine}:nth-child(2) {
+    width: 80%;
+    height: 32px;
+    margin-bottom: 8px;
+  }
+
+  ${SkeletonLine}:last-child {
+    width: 70%;
+    height: 14px;
+  }
+`
+
+const SkeletonGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+`
+
+function SkeletonLoader() {
+  return (
+    <Section>
+      <PageHeader>
+        <SkeletonLine style={{ width: '60%', height: '32px', marginBottom: '16px' }} />
+        <SkeletonLine style={{ width: '40%', height: '16px' }} />
+      </PageHeader>
+      <SkeletonGrid>
+        <SkeletonStatCard><SkeletonLine /><SkeletonLine style={{ height: '28px' }} /><SkeletonLine /></SkeletonStatCard>
+        <SkeletonStatCard><SkeletonLine /><SkeletonLine style={{ height: '28px' }} /><SkeletonLine /></SkeletonStatCard>
+        <SkeletonStatCard><SkeletonLine /><SkeletonLine style={{ height: '28px' }} /><SkeletonLine /></SkeletonStatCard>
+        <SkeletonStatCard><SkeletonLine /><SkeletonLine style={{ height: '28px' }} /><SkeletonLine /></SkeletonStatCard>
+      </SkeletonGrid>
+      <Card style={{ padding: '20px' }}>
+        <SkeletonLine />
+        <SkeletonLine />
+        <SkeletonLine style={{ width: '60%' }} />
+      </Card>
+    </Section>
+  )
+}
+
+const CenterMessage = styled.div`
+  display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 12px;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
 `
 
 interface CampaignAnalyticsPageProps {
@@ -376,91 +468,19 @@ export default function CampaignAnalyticsPage({
   params,
 }: CampaignAnalyticsPageProps) {
   const { id } = use(params)
+  const router = useRouter()
   const [publishSuccess, setPublishSuccess] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
 
-  // All hooks MUST be called before any conditional returns
   const { data: campaign, isLoading: campaignLoading, error: campaignError, refetch: refetchCampaign } = useCampaign(id)
-  const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useCampaignAnalytics(id)
-  const { data: sweepstakesData, error: sweepstakesError } = useCampaignEntries(id)
+  const { data: analytics, isLoading: analyticsLoading } = useCampaignAnalytics(id)
+  const { data: sweepstakesData } = useCampaignEntries(id)
+  // Real per-share conversion counts (clicks/conversions/by-channel) — the
+  // source of truth for "is this share earning a reward", since reward
+  // payout is per CONVERTING share, not per share created.
+  const { data: conversionAnalytics } = useCampaignConversionAnalytics(id, !!campaign && campaign.campaign_type === 'sharing')
+  const conversionData = conversionAnalytics?.data
   const { mutate: publishCampaign, isPending: isPublishing } = usePublishCampaign()
-
-  // Log component mount and params
-  useEffect(() => {
-    console.log('📊 [Analytics] Component mounted', {
-      campaignId: id,
-      timestamp: new Date().toISOString(),
-    })
-  }, [id])
-
-  // Log campaign data fetch lifecycle
-  useEffect(() => {
-    if (campaignLoading) {
-      console.log('⏳ [Analytics] Campaign data loading...', { campaignId: id })
-    } else if (campaign) {
-      const goalAmount = campaign.goals?.[0]?.target_amount || 0
-      console.log('✅ [Analytics] Campaign data loaded', {
-        campaignId: id,
-        campaignTitle: campaign.title,
-        status: campaign.status,
-        goal_amount: goalAmount,
-        raised_amount: campaign.total_donation_amount,
-      })
-    } else if (campaignError) {
-      console.error('❌ [Analytics] Campaign data fetch failed', {
-        campaignId: id,
-        error: campaignError,
-        errorMessage: campaignError?.message,
-      })
-    }
-  }, [campaign, campaignLoading, campaignError, id])
-
-  // Log analytics data fetch lifecycle
-  useEffect(() => {
-    if (analyticsLoading) {
-      console.log('⏳ [Analytics] Analytics data loading...', { campaignId: id })
-    } else if (analytics) {
-      console.log('✅ [Analytics] Analytics data loaded', {
-        campaignId: id,
-        totalDonations: analytics.totalDonations || 0,
-        totalRaised: analytics.totalRaised || 0,
-        uniqueDonors: analytics.uniqueDonors || 0,
-        totalShares: analytics.totalShares || 0,
-        dataPoints: analytics.donationsByDate?.length || 0,
-        lastUpdated: analytics.lastUpdated,
-      })
-    } else if (analyticsError) {
-      console.error('❌ [Analytics] Analytics data fetch failed', {
-        campaignId: id,
-        error: analyticsError,
-        errorMessage: analyticsError?.message,
-      })
-    }
-  }, [analytics, analyticsLoading, analyticsError, id])
-
-  // Log sweepstakes data fetch lifecycle
-  useEffect(() => {
-    if (sweepstakesData) {
-      console.log('✅ [Analytics] Sweepstakes data loaded', {
-        campaignId: id,
-        entries: {
-          total: sweepstakesData.entries?.total || 0,
-          campaignCreation: sweepstakesData.entries?.campaignCreation || 0,
-          donations: sweepstakesData.entries?.donations || 0,
-          shares: sweepstakesData.entries?.shares || 0,
-        },
-        currentDrawing: {
-          status: sweepstakesData.currentDrawing?.status,
-          targetDate: sweepstakesData.currentDrawing?.targetDate,
-        },
-      })
-    } else if (sweepstakesError) {
-      console.warn('⚠️ [Analytics] Sweepstakes data fetch failed (gracefully handled)', {
-        campaignId: id,
-        error: sweepstakesError?.message,
-      })
-    }
-  }, [sweepstakesData, sweepstakesError, id])
 
   const isLoading = campaignLoading || analyticsLoading
 
@@ -473,134 +493,86 @@ export default function CampaignAnalyticsPage({
     status: 'completed',
   })) || []
 
-  // FIX: Use analytics data instead of raw campaign data (analytics has sanitized/calculated values)
-  // Backend analytics service already handles goal validation, currency conversion, and calculations
-  // Note: Backend returns values in cents, formatCurrency expects cents
-  
-  // FIX: Use correct data sources revealed by logging
-  // - Goal: campaign.goals[0].target_amount (in cents)
-  // - Raised: analytics.totalRaised (in cents)
-  // - Progress: calculated from raised/goal
-  
-  const goalAmountCents = campaign?.goals?.[0]?.target_amount ?? 0;
-  const raisedAmountCents = analytics?.totalRaised ?? 0;
-  const goalProgressPercentage = goalAmountCents > 0 
-    ? (raisedAmountCents / goalAmountCents) * 100 
-    : 0;
-  
-  console.log('💡 [Analytics] Corrected data sources:', {
-    campaignId: id,
-    goalAmountCents,
-    raisedAmountCents,
-    goalProgressPercentage: goalProgressPercentage.toFixed(2),
-    totalDonations: analytics?.totalDonations,
-    uniqueDonors: analytics?.uniqueDonors,
-    source: 'campaign.goals[0] + analytics.totalRaised',
-  })
+  // SR-1: dollar goal = canonical fundraising goal (never goals[0], which could
+  // be a sharing_reach share-count). The dollar stat cards are fundraising-only.
+  const goalAmountCents =
+    (campaign as any)?.goal_amount ??
+    campaign?.goals?.find((g: any) => g.goal_type === 'fundraising')?.target_amount ??
+    0
+  const raisedAmountCents = analytics?.totalRaised ?? 0
+  const goalProgressPercentage = goalAmountCents > 0
+    ? (raisedAmountCents / goalAmountCents) * 100
+    : 0
 
-  // Log rendering state transitions
-  useEffect(() => {
-    if (isLoading) {
-      console.log('🔄 [Analytics] Page rendering: Loading state', {
-        campaignId: id,
-        campaignLoading,
-        analyticsLoading,
-      })
-    } else {
-      console.log('🎨 [Analytics] Page rendering: Ready state', {
-        campaignId: id,
-        campaignType: campaign?.campaign_type,
-        hasCampaign: !!campaign,
-        hasAnalytics: !!analytics,
-        hasSweepstakes: !!sweepstakesData,
-        progressPercentage: goalProgressPercentage.toFixed(2) + '%',
-      })
-      
-      // Log which sections will render based on campaign type
-      if (campaign?.campaign_type === 'fundraising') {
-        console.log('📊 [Analytics] Fundraising campaign UI sections:', {
-          showMetrics: 'Raised, Donations, Donors, Goal Progress',
-          showSweepstakes: !!sweepstakesData?.entries,
-          showDonationTable: !!analytics?.donationsByDate,
-          hiddenSections: ['Share Analytics', 'Referral Tracking', 'Shares by Channel'],
-        })
-      } else if (campaign?.campaign_type === 'sharing') {
-        console.log('📊 [Analytics] Sharing campaign UI sections:', {
-          showMetrics: 'Total Shares, Total Raised, Conversion Rate, Active Sharers',
-          showSweepstakes: !!sweepstakesData?.entries,
-          showShareAnalytics: true,
-          showReferralTracking: true,
-          showSharesByChannel: !!analytics?.sharesByChannel,
-          hiddenSections: ['Recent Donations Table'],
-        })
-      }
-    }
-  }, [isLoading, campaignLoading, analyticsLoading, id, campaign, analytics, sweepstakesData, goalProgressPercentage])
-
-  // Handle publish/activate campaign
   const handlePublish = () => {
-    try {
-      setPublishError(null)
-      setPublishSuccess(false)
-      publishCampaign(id, {
-        onSuccess: () => {
-          console.log('✅ [Analytics] Campaign published successfully', { campaignId: id })
-          setPublishSuccess(true)
-          // Refetch campaign to update status
-          refetchCampaign()
-          // Hide success message after 5 seconds
-          setTimeout(() => setPublishSuccess(false), 5000)
-        },
-        onError: (error: any) => {
-          const errorMessage = error?.response?.data?.message || error?.message || 'Failed to publish campaign'
-          console.error('❌ [Analytics] Failed to publish campaign', { campaignId: id, error: errorMessage })
-          setPublishError(errorMessage)
-        },
-      })
-    } catch (error: any) {
-      setPublishError(error?.message || 'An error occurred')
-    }
+    setPublishError(null)
+    setPublishSuccess(false)
+    publishCampaign(id, {
+      onSuccess: () => {
+        setPublishSuccess(true)
+        refetchCampaign()
+        setTimeout(() => setPublishSuccess(false), 5000)
+      },
+      onError: (error: any) => {
+        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to publish campaign'
+        setPublishError(errorMessage)
+      },
+    })
   }
 
-  // NOW render with conditional logic in JSX only
   return (
-    <ProtectedRoute allowedRoles={['creator']}>
-      <Container>
-        {isLoading && <SkeletonLoader />}
+    <ProtectedRoute allowedRoles={['creator', 'admin']}>
+      <GlobalStyle />
+      <Page>
+        <TopBar>
+          <IconBtn onClick={() => router.push(`/campaigns/${id}`)}>
+            <ArrowLeft size={15} /> Back to Campaign
+          </IconBtn>
+          <TopBarActions>
+            {campaign?.status === 'draft' && (
+              <IconBtn $primary onClick={handlePublish} disabled={isPublishing}>
+                <Rocket size={15} /> {isPublishing ? 'Publishing...' : 'Activate Campaign'}
+              </IconBtn>
+            )}
+            <CsvExportButton
+              data={csvData}
+              filename={`${campaign?.title || 'campaign'}-analytics.csv`}
+              label="Export CSV"
+              variant="primary"
+            />
+          </TopBarActions>
+        </TopBar>
 
-        {campaignError && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <h2 style={{ color: '#EF4444', marginBottom: '1rem' }}>Unable to Load Campaign</h2>
-              <p style={{ color: '#6B7280', marginBottom: '1.5rem' }}>
-                {campaignError?.message || 'Failed to load campaign data'}
-              </p>
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                <Button as="link" href="/campaigns" variant="outline">
-                  ← Back to Campaigns
-                </Button>
-                <Button onClick={() => refetchCampaign()} variant="primary">
-                  Retry
-                </Button>
+        <PageBody>
+          {isLoading && <SkeletonLoader />}
+
+          {campaignError && (
+            <CenterMessage>
+              <div style={{ padding: '40px' }}>
+                <h2 style={{ color: tk.red, marginBottom: '1rem' }}>Unable to Load Campaign</h2>
+                <p style={{ color: tk.muted, marginBottom: '1.5rem' }}>
+                  {(campaignError as any)?.message || 'Failed to load campaign data'}
+                </p>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                  <IconBtn onClick={() => router.push('/campaigns')}>← Back to Campaigns</IconBtn>
+                  <IconBtn $primary onClick={() => refetchCampaign()}>Retry</IconBtn>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </CenterMessage>
+          )}
 
-        {!isLoading && !campaignError && !campaign && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <p style={{ marginBottom: '1rem', fontSize: '18px' }}>Campaign not found</p>
-              <Button as="link" href="/campaigns">← Back to Campaigns</Button>
-            </div>
-          </div>
-        )}
+          {!isLoading && !campaignError && !campaign && (
+            <CenterMessage>
+              <div style={{ padding: '40px' }}>
+                <p style={{ marginBottom: '1rem', fontSize: '18px' }}>Campaign not found</p>
+                <IconBtn onClick={() => router.push('/campaigns')}>← Back to Campaigns</IconBtn>
+              </div>
+            </CenterMessage>
+          )}
 
-        {!isLoading && !campaignError && campaign && (
-          <>
-            {/* Page Header */}
-            <PageHeader>
-              <HeaderContent>
+          {!isLoading && !campaignError && campaign && (
+            <>
+              <PageHeader>
                 <PageTitle>📊 {campaign.title} Analytics</PageTitle>
                 <PageSubtitle>
                   Track{' '}
@@ -614,240 +586,228 @@ export default function CampaignAnalyticsPage({
                     <Badge variant="warning">Draft - Not Published</Badge>
                   </DraftBadgeBox>
                 )}
-              </HeaderContent>
-              <Actions>
-                {campaign.status === 'draft' && (
-                  <Button
-                    onClick={handlePublish}
-                    disabled={isPublishing}
-                    variant="primary"
-                    style={{ whiteSpace: 'nowrap' }}
-                  >
-                    {isPublishing ? 'Publishing...' : '🚀 Activate Campaign'}
-                  </Button>
-                )}
-                <Button as="link" href={`/campaigns/${id}`} variant="outline">
-                  ← Back to Campaign
-                </Button>
-                <CsvExportButton
-                  data={csvData}
-                  filename={`${campaign.title}-analytics.csv`}
-                  label="Export CSV"
-                  variant="primary"
-                />
-              </Actions>
-            </PageHeader>
+              </PageHeader>
 
-            {/* Success Message */}
-            {publishSuccess && (
-              <SuccessBox>
-                <SuccessText>
-                  ✅ Campaign activated successfully! Your campaign is now live and visible to supporters.
-                </SuccessText>
-              </SuccessBox>
-            )}
+              {publishSuccess && (
+                <SuccessBox>
+                  <SuccessText>
+                    ✅ Campaign activated successfully! Your campaign is now live and visible to supporters.
+                  </SuccessText>
+                </SuccessBox>
+              )}
 
-            {/* Error Message */}
-            {publishError && (
-              <ErrorBox>
-                <ErrorText>
-                  ❌ Failed to activate campaign: {publishError}
-                </ErrorText>
-              </ErrorBox>
-            )}
+              {publishError && (
+                <ErrorBox>
+                  <ErrorText>❌ Failed to activate campaign: {publishError}</ErrorText>
+                </ErrorBox>
+              )}
 
-            {/* Info Box */}
-            <InfoBox>
-              <InfoText>
-                📈 Real-time analytics updated every 5 minutes. Last updated:{' '}
-                {analytics?.lastUpdated
-                  ? new Date(analytics.lastUpdated).toLocaleTimeString()
-                  : 'N/A'}
-              </InfoText>
-            </InfoBox>
+              <InfoBox>
+                <InfoText>
+                  📈 Real-time analytics updated every 5 minutes. Last updated:{' '}
+                  {analytics?.lastUpdated
+                    ? new Date(analytics.lastUpdated).toLocaleTimeString()
+                    : 'N/A'}
+                </InfoText>
+              </InfoBox>
 
-            {/* Key Metrics - Fundraising Only */}
-            {campaign.campaign_type === 'fundraising' && (
-              <Section>
-                <SectionGrid>
-                  <StatCard>
-                    <StatLabel>💰 Total Raised</StatLabel>
-                    <StatValue>{currencyUtils.formatCurrency(raisedAmountCents)}</StatValue>
-                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
-                      {parseFloat(goalProgressPercentage.toFixed(2))}% of{' '}
-                      {currencyUtils.formatCurrency(goalAmountCents)}
-                    </div>
-                  </StatCard>
-
-                  <StatCard>
-                    <StatLabel>❤️ Total Donations</StatLabel>
-                    <StatValue>{analytics?.totalDonations ?? 0}</StatValue>
-                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
-                      Avg:{' '}
-                      {(analytics?.totalDonations ?? 0) > 0
-                        ? currencyUtils.formatCurrency(analytics?.averageDonation ?? 0)
-                        : '$0.00'}
-                    </div>
-                  </StatCard>
-
-                  <StatCard>
-                    <StatLabel>👥 Unique Donors</StatLabel>
-                    <StatValue>{analytics?.uniqueDonors ?? 0}</StatValue>
-                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
-                      Supporting this campaign
-                    </div>
-                  </StatCard>
-
-                  <StatCard>
-                    <StatLabel>🎯 Goal Progress</StatLabel>
-                    <StatValue>{parseFloat(goalProgressPercentage.toFixed(2))}%</StatValue>
-                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
-                      Towards {currencyUtils.formatCurrency(goalAmountCents)}
-                    </div>
-                  </StatCard>
-                </SectionGrid>
-              </Section>
-            )}
-
-            {/* Campaign Metrics Cards - Fundraising Only */}
-
-            {campaign.campaign_type === 'fundraising' && (
-              <Section>
-                <SectionTitle>📊 Campaign Performance</SectionTitle>
-                <CampaignMetricsCards
-                  analytics={analytics}
-                  sweepstakesEntries={sweepstakesData?.entries?.total || 0}
-                />
-              </Section>
-            )}
-
-            {/* Share Analytics Dashboard - Moved to top for sharing campaigns */}
-            {campaign.campaign_type === 'sharing' && (
-              <Section>
-                <SectionTitle>💰 Share Analytics Dashboard</SectionTitle>
-                <Card style={{ padding: '24px' }}>
-                  <ShareAnalyticsDashboard analytics={analytics} campaign={campaign} />
-                </Card>
-              </Section>
-            )}
-
-            {/* QR Code & Flyer Generation */}
-            <Section>
-              <SectionTitle>📲 QR Code & Flyer</SectionTitle>
-              <QRFlyer>
-                <QRFlyerGrid>
-                  <QRFlyerContent>
-                    <h3>Generate Campaign QR Code</h3>
-                    <p>
-                      Create a QR code and downloadable flyer for physical distribution. Perfect for
-                      in-store displays, posters, and print materials.
-                    </p>
-                    <FlyerBuilder
-                      campaignId={id}
-                      campaignTitle={campaign.title}
-                      campaignDescription={campaign.description}
-                      creatorName={campaign.creator_name}
+              {campaign.campaign_type === 'sharing' && (
+                <Section>
+                  <SectionTitle>💰 Share Analytics Dashboard</SectionTitle>
+                  <Panel>
+                    <ShareAnalyticsDashboard
+                      analytics={analytics}
+                      campaign={campaign}
+                      conversionData={conversionData}
                     />
-                  </QRFlyerContent>
-                </QRFlyerGrid>
-              </QRFlyer>
-            </Section>
+                  </Panel>
+                </Section>
+              )}
 
-            {/* Referral Tracking Analytics */}
-            {campaign.campaign_type === 'sharing' && (
+              {/* Key Metrics - Fundraising Only */}
+              {campaign.campaign_type === 'fundraising' && (
+                <Section>
+                  <SectionGrid>
+                    <StatCard $delay={0}>
+                      <StatLabel>💰 Total Raised</StatLabel>
+                      <StatValue>{currencyUtils.formatCurrency(raisedAmountCents)}</StatValue>
+                      <StatSub>
+                        {parseFloat(goalProgressPercentage.toFixed(2))}% of{' '}
+                        {currencyUtils.formatCurrency(goalAmountCents)}
+                      </StatSub>
+                    </StatCard>
+
+                    <StatCard $delay={1}>
+                      <StatLabel>❤️ Total Donations</StatLabel>
+                      <StatValue>{analytics?.totalDonations ?? 0}</StatValue>
+                      <StatSub>
+                        Avg:{' '}
+                        {(analytics?.totalDonations ?? 0) > 0
+                          ? currencyUtils.formatCurrency(analytics?.averageDonation ?? 0)
+                          : '$0.00'}
+                      </StatSub>
+                    </StatCard>
+
+                    <StatCard $delay={2}>
+                      <StatLabel>👥 Unique Donors</StatLabel>
+                      <StatValue>{analytics?.uniqueDonors ?? 0}</StatValue>
+                      <StatSub>Supporting this campaign</StatSub>
+                    </StatCard>
+
+                    <StatCard $delay={3}>
+                      <StatLabel>🎯 Goal Progress</StatLabel>
+                      <StatValue>{parseFloat(goalProgressPercentage.toFixed(2))}%</StatValue>
+                      <StatSub>Towards {currencyUtils.formatCurrency(goalAmountCents)}</StatSub>
+                    </StatCard>
+                  </SectionGrid>
+                </Section>
+              )}
+
+              {campaign.campaign_type === 'fundraising' && (
+                <Section>
+                  <SectionTitle>📊 Campaign Performance</SectionTitle>
+                  <CampaignMetricsCards
+                    analytics={analytics}
+                    sweepstakesEntries={sweepstakesData?.entries?.total || 0}
+                  />
+                </Section>
+              )}
+
+              {/* QR Code & Flyer Generation */}
               <Section>
-                <SectionTitle>🔗 Referral Tracking & Conversions</SectionTitle>
-                <Card style={{ padding: '24px' }}>
-                  <ReferralAnalyticsDashboard campaignId={id} />
-                </Card>
+                <SectionTitle>📲 QR Code & Flyer</SectionTitle>
+                <QRFlyer>
+                  <QRFlyerGrid>
+                    <QRFlyerContent>
+                      <h3>Generate Campaign QR Code</h3>
+                      <p>
+                        Create a QR code and downloadable flyer for physical distribution. Perfect for
+                        in-store displays, posters, and print materials.
+                      </p>
+                      <FlyerBuilder
+                        campaignId={id}
+                        campaignTitle={campaign.title}
+                        campaignDescription={campaign.description}
+                        creatorName={campaign.creator_name}
+                      />
+                    </QRFlyerContent>
+                  </QRFlyerGrid>
+                </QRFlyer>
               </Section>
-            )}
 
-            {/* QR Code Analytics */}
-            <Section>
-              <SectionTitle>📊 QR Code Scan Analytics</SectionTitle>
-              <Card style={{ padding: '24px' }}>
-                <QRAnalyticsDashboard campaignId={id} />
-              </Card>
-            </Section>
+              {/* SA-3: conversion funnel — "is sharing working?" at a glance.
+                  Fed by the SAME conversion source as the reward estimate above
+                  (GET /campaigns/:id/analytics/conversions), so the funnel's
+                  "Donations" stage always agrees with "Est. Rewards Earned". */}
+              {campaign.campaign_type === 'sharing' && (
+                <Section>
+                  <SectionTitle>🔻 Conversion Funnel</SectionTitle>
+                  <Panel>
+                    <ConversionFunnel
+                      shares={conversionData?.total_shares ?? analytics?.totalShares ?? 0}
+                      clicks={conversionData?.total_clicks ?? 0}
+                      donations={conversionData?.total_conversions ?? 0}
+                      rewardsPaidCents={(campaign as any).share_config?.total_rewards_paid ?? 0}
+                    />
+                  </Panel>
+                </Section>
+              )}
 
-            {/* Prayer Support Analytics - Shows if prayer support is enabled */}
-            {campaign.prayer_config?.enabled && (
+              {campaign.campaign_type === 'sharing' && (
+                <Section>
+                  <SectionTitle>🔗 Referral Tracking & Conversions</SectionTitle>
+                  <Panel>
+                    <ReferralAnalyticsDashboard campaignId={id} />
+                  </Panel>
+                </Section>
+              )}
+
               <Section>
-                <SectionTitle>🙏 Prayer Support Analytics</SectionTitle>
-                <Card style={{ padding: '24px' }}>
-                  <PrayerAnalyticsDashboard campaignId={id} campaignTitle={campaign.title} />
-                </Card>
+                <SectionTitle>📊 QR Code Scan Analytics</SectionTitle>
+                <Panel>
+                  <QRAnalyticsDashboard campaignId={id} />
+                </Panel>
               </Section>
-            )}
 
-            {/* Activity Feed - Only for Fundraising Campaigns */}
-            {campaign.campaign_type === 'fundraising' && analytics?.donationsByDate && analytics.donationsByDate.length > 0 && (
+              {/* AN-09: AI Viral Score Predictor */}
               <Section>
-                <SectionTitle>📈 Recent Donations</SectionTitle>
-                <Card style={{ padding: '20px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                        <th
-                          style={{
-                            textAlign: 'left',
-                            padding: '12px',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                          }}
-                        >
-                          Date
-                        </th>
-                        <th
-                          style={{
-                            textAlign: 'center',
-                            padding: '12px',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                          }}
-                        >
-                          Count
-                        </th>
-                        <th
-                          style={{
-                            textAlign: 'right',
-                            padding: '12px',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            color: '#6b7280',
-                          }}
-                        >
-                          Amount
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(analytics as any)?.donationsByDate
-                        ?.slice(0, 10)
-                        .map((day: any, index: number) => (
-                          <tr key={index} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                            <td style={{ padding: '12px' }}>
-                              {new Date(day.date).toLocaleDateString()}
-                            </td>
-                            <td style={{ textAlign: 'center', padding: '12px' }}>
-                              {day.count}
-                            </td>
-                            <td style={{ textAlign: 'right', padding: '12px', fontWeight: 600 }}>
-                              {currencyUtils.formatCurrency(day.amount)}
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </Card>
+                <SectionTitle>🚀 AI Viral Score</SectionTitle>
+                <ViralScoreCard campaignId={id} />
               </Section>
-            )}
-          </>
-        )}
-      </Container>
+
+              {campaign.prayer_config?.enabled && (
+                <Section>
+                  <SectionTitle>🙏 Prayer Support Analytics</SectionTitle>
+                  <Panel>
+                    <PrayerAnalyticsDashboard campaignId={id} campaignTitle={campaign.title} />
+                  </Panel>
+                </Section>
+              )}
+
+              {/* SA-4: Manual-donation confirmation queue (CF-1) — shown for EVERY
+                  campaign, since sharing campaigns take donations too (SR-1/SU-1).
+                  Donations only count once the creator confirms receipt. */}
+              <Section>
+                <SectionTitle>📥 Donations Awaiting Your Confirmation</SectionTitle>
+                <Panel>
+                  <PendingDonationsQueue campaignId={id} />
+                </Panel>
+              </Section>
+
+              {/* SA-4 / CE-7: donor refund requests — also on sharing campaigns. */}
+              <Section>
+                <SectionTitle>↩️ Refund Requests</SectionTitle>
+                <Panel>
+                  <CampaignRefundRequestsQueue campaignId={id} />
+                </Panel>
+              </Section>
+
+              {/* SA-1: Share-to-Earn setup checklist — leads the sharing section so
+                  the funding requirement is obvious before anything else. */}
+              {campaign.campaign_type === 'sharing' && (
+                <Section>
+                  <ShareSetupChecklist
+                    shareConfig={campaign.share_config}
+                    campaignId={id}
+                    campaignTitle={campaign.title}
+                    creatorName={(campaign as any).creator_name}
+                  />
+                </Section>
+              )}
+
+              {campaign.campaign_type === 'fundraising' && analytics?.donationsByDate && analytics.donationsByDate.length > 0 && (
+                <Section>
+                  <SectionTitle>📈 Recent Donations</SectionTitle>
+                  <Panel>
+                    <Table>
+                      <thead>
+                        <tr>
+                          <Th>Date</Th>
+                          <Th $align="center">Count</Th>
+                          <Th $align="right">Amount</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(analytics as any)?.donationsByDate
+                          ?.slice(0, 10)
+                          .map((day: any, index: number) => (
+                            <Tr key={index}>
+                              <Td>{new Date(day.date).toLocaleDateString()}</Td>
+                              <Td $align="center">{day.count}</Td>
+                              <Td $align="right" $strong>
+                                {currencyUtils.formatCurrency(day.amount)}
+                              </Td>
+                            </Tr>
+                          ))}
+                      </tbody>
+                    </Table>
+                  </Panel>
+                </Section>
+              )}
+            </>
+          )}
+        </PageBody>
+      </Page>
     </ProtectedRoute>
   )
 }

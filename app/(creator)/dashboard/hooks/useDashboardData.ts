@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
+import { apiClient } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 
 /**
@@ -20,8 +20,15 @@ export interface Campaign {
   image_url?: string
   created_at: string
   updated_at: string
+  end_date?: string
   donor_count?: number
   share_count?: number
+  // SF-1: non-dollar reach meter for Share-to-Earn campaigns (unit = shares).
+  reach_goal?: {
+    target_shares: number
+    current_shares: number
+    unit: string
+  } | null
 }
 
 export interface DashboardStats {
@@ -75,11 +82,8 @@ export function useDashboardData(
         campaignParams.append('page', page.toString())
         campaignParams.append('limit', '12')
 
-        const campaignsRes = await axios.get('/api/campaigns/my-campaigns', {
+        const campaignsRes = await apiClient.get('/campaigns/my-campaigns', {
           params: Object.fromEntries(campaignParams),
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         })
 
         // DEBUG: Log what we're receiving from the backend
@@ -127,11 +131,7 @@ export function useDashboardData(
         const totalCount = campaignsRes.data.pagination?.total ?? (campaignsRes.data.total || 0)
 
         // Fetch dashboard stats
-        const statsRes = await axios.get('/api/campaigns/my-stats', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        const statsRes = await apiClient.get('/campaigns/my-stats')
 
         const statsData = statsRes.data.data || {}
 
@@ -186,11 +186,8 @@ export function useDashboardMetrics(startDate?: string, endDate?: string) {
       if (startDate) params.append('startDate', startDate)
       if (endDate) params.append('endDate', endDate)
 
-      const res = await axios.get('/api/metrics/creator/dashboard', {
+      const res = await apiClient.get('/metrics/creator/dashboard', {
         params: Object.fromEntries(params),
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       })
 
       return res.data.data

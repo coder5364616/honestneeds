@@ -1,287 +1,167 @@
 'use client'
 
-import React, { useState } from 'react'
-import styled from 'styled-components'
-import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { UserManagementList } from '@/components/admin/UserManagementList'
-import { Card } from '@/components/Card'
-import { useAdminUserProfile } from '@/api/hooks/useAdminOperations'
-import { Modal } from '@/components/Modal'
-import { Badge } from '@/components/Badge'
-import { Button } from '@/components/Button'
-import { X } from 'lucide-react'
+import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import {
+  useAdminUsers,
+  useUserAction,
+  useAdminReports,
+  useReportAction,
+} from '@/api/hooks/useAdmin'
+import type { AdminUser, UserReport } from '@/api/services/adminService'
+import { PageHeader, Loading, ErrorBlock, Empty, Badge, Pagination, ReasonModal, adminStyles as s } from '../_components/ui'
+import { fmtDate } from '../_lib/format'
 
-/**
- * Admin Users Management Page
- * View and manage platform users
- */
+export default function UsersPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <UsersInner />
+    </Suspense>
+  )
+}
 
-const Container = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px;
-  background: #f8fafc;
-  min-height: 100vh;
-`
-
-const PageHeader = styled.div`
-  margin-bottom: 32px;
-
-  h1 {
-    font-size: 32px;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0 0 8px 0;
-  }
-
-  p {
-    color: #64748b;
-    margin: 0;
-  }
-`
-
-const ContentGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
-`
-
-const InfoCard = styled(Card)`
-  padding: 16px;
-  background: #f0f9ff;
-  border-left: 4px solid #0ea5e9;
-
-  p {
-    margin: 0;
-    color: #0c4a6e;
-    font-size: 14px;
-    line-height: 1.6;
-  }
-`
-
-const ModalContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`
-
-const UserHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
-`
-
-const UserInfo = styled.div`
-  flex: 1;
-`
-
-const UserName = styled.h3`
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 4px 0;
-`
-
-const UserEmail = styled.p`
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0;
-`
-
-const UserStats = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
-`
-
-const StatBox = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`
-
-const StatLabel = styled.p`
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  margin: 0;
-`
-
-const StatValue = styled.p`
-  font-size: 20px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-`
-
-const BadgeContainer = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
-`
-
-const ReportsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`
-
-const ReportItem = styled.div`
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 6px;
-  border-left: 3px solid #f59e0b;
-`
-
-const ReportReason = styled.p`
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 4px 0;
-`
-
-const ReportDescription = styled.p`
-  font-size: 12px;
-  color: #6b7280;
-  margin: 0;
-`
-
-const ModalActions = styled.div`
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
-`
-
-export default function AdminUsersPage() {
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-  const { data: userProfile, isLoading: isLoadingProfile } = useAdminUserProfile(selectedUserId || '')
+function UsersInner() {
+  const initialTab = useSearchParams().get('tab') === 'reports' ? 'reports' : 'users'
+  const [tab, setTab] = useState<'users' | 'reports'>(initialTab)
 
   return (
-    <ProtectedRoute allowedRoles={['admin']}>
-      <Container>
-        <PageHeader>
-          <h1>👥 User Management</h1>
-          <p>View, verify, and manage platform users</p>
-        </PageHeader>
+    <div className={s.page}>
+      <PageHeader title="User Management" subtitle="Search, verify, block and manage user accounts" />
+      <div className={s.tabs}>
+        <button className={`${s.tab} ${tab === 'users' ? s.active : ''}`} onClick={() => setTab('users')}>Users</button>
+        <button className={`${s.tab} ${tab === 'reports' ? s.active : ''}`} onClick={() => setTab('reports')}>Abuse Reports</button>
+      </div>
+      {tab === 'users' ? <UsersTab /> : <ReportsTab />}
+    </div>
+  )
+}
 
-        <InfoCard>
-          <p>
-            💡 Use this panel to verify new users, view user activity, resolve reports, and block problematic accounts. All actions are logged for compliance.
-          </p>
-        </InfoCard>
+function UsersTab() {
+  const [search, setSearch] = useState('')
+  const [role, setRole] = useState('')
+  const [status, setStatus] = useState('')
+  const [page, setPage] = useState(1)
+  const [block, setBlock] = useState<string | null>(null)
 
-        <ContentGrid>
-          <div>
-            <UserManagementList onUserSelect={setSelectedUserId} />
+  const { data, isLoading, isError } = useAdminUsers({ search, role, status, page, limit: 20 })
+  const actions = useUserAction()
+
+  return (
+    <>
+      <div className={s.toolbar}>
+        <input className={s.input} placeholder="Search name, email or username…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
+        <select className={s.select} value={role} onChange={(e) => { setRole(e.target.value); setPage(1) }}>
+          <option value="">All roles</option><option value="user">User</option><option value="creator">Creator</option><option value="admin">Admin</option>
+        </select>
+        <select className={s.select} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}>
+          <option value="">All statuses</option><option value="active">Active</option><option value="blocked">Blocked</option><option value="deleted">Deleted</option>
+        </select>
+      </div>
+
+      {isLoading && <Loading />}
+      {isError && <ErrorBlock message="Failed to load users." />}
+
+      {data && (data.users.length === 0 ? <Empty text="No users found." /> : (
+        <>
+          <div className={s.tableWrap}>
+            <table className={s.table}>
+              <thead>
+                <tr><th>User</th><th>Role</th><th>Verified</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+              </thead>
+              <tbody>
+                {data.users.map((u: AdminUser) => (
+                  <tr key={u._id}>
+                    <td><strong>{u.display_name}</strong><div className={s.muted}>{u.email}</div></td>
+                    <td><Badge status={u.role} /></td>
+                    <td>{u.verified ? <Badge status="verified" /> : <Badge status="unverified" label="No" />}</td>
+                    <td>{u.blocked ? <Badge status="blocked" /> : <Badge status="active" />}</td>
+                    <td className={s.muted}>{fmtDate(u.created_at)}</td>
+                    <td>
+                      <div className={s.row}>
+                        {!u.verified && <button className={`${s.btn} ${s.btnSuccess} ${s.btnSm}`} onClick={() => actions.verify.mutate({ id: u._id })}>Verify</button>}
+                        {u.blocked
+                          ? <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => actions.unblock.mutate(u._id)}>Unblock</button>
+                          : u.role !== 'admin' && <button className={`${s.btn} ${s.btnDanger} ${s.btnSm}`} onClick={() => setBlock(u._id)}>Block</button>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </ContentGrid>
+          <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} onChange={setPage} />
+        </>
+      ))}
 
-        {/* User Detail Modal */}
-        <Modal
-          isOpen={!!selectedUserId}
-          onClose={() => setSelectedUserId(null)}
-          title="User Profile"
-        >
-          {isLoadingProfile ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>Loading user profile...</div>
-          ) : userProfile ? (
-            <ModalContent>
-              <UserHeader>
-                <UserInfo>
-                  <UserName>{userProfile.name}</UserName>
-                  <UserEmail>{userProfile.email}</UserEmail>
-                </UserInfo>
-              </UserHeader>
+      {block && (
+        <ReasonModal
+          title="Block user" label="Reason for blocking" danger confirmLabel="Block"
+          onConfirm={(reason) => { actions.block.mutate({ id: block, reason }); setBlock(null) }}
+          onClose={() => setBlock(null)}
+        />
+      )}
+    </>
+  )
+}
 
-              {/* Badges */}
-              <BadgeContainer>
-                <Badge>{userProfile.role}</Badge>
-                <Badge variant={userProfile.verificationStatus === 'verified' ? 'success' : 'info'}>
-                  {userProfile.verificationStatus}
-                </Badge>
-                {userProfile.isBlocked && (
-                  <Badge variant="error">
-                    🚫 Blocked • {userProfile.blockReason}
-                  </Badge>
-                )}
-              </BadgeContainer>
+function ReportsTab() {
+  const [status, setStatus] = useState('open')
+  const [page, setPage] = useState(1)
+  const [resolve, setResolve] = useState<string | null>(null)
 
-              {/* Stats */}
-              <UserStats>
-                <StatBox>
-                  <StatLabel>Campaigns</StatLabel>
-                  <StatValue>{userProfile.totalCampaigns}</StatValue>
-                </StatBox>
-                <StatBox>
-                  <StatLabel>Donations</StatLabel>
-                  <StatValue>{userProfile.totalDonations}</StatValue>
-                </StatBox>
-                <StatBox>
-                  <StatLabel>Donated</StatLabel>
-                  <StatValue>${(userProfile.totalDonated / 100).toFixed(2)}</StatValue>
-                </StatBox>
-                <StatBox>
-                  <StatLabel>Shares</StatLabel>
-                  <StatValue>{userProfile.totalShares}</StatValue>
-                </StatBox>
-              </UserStats>
+  const { data, isLoading, isError } = useAdminReports({ status, page, limit: 20 })
+  const actions = useReportAction()
 
-              {/* Reports */}
-              {userProfile.reportCount > 0 && (
-                <>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>
-                    📋 Reports ({userProfile.reportCount})
-                  </h4>
-                  <ReportsList>
-                    {userProfile.reports.map((report) => (
-                      <ReportItem key={report.id}>
-                        <ReportReason>{report.reason}</ReportReason>
-                        <ReportDescription>{report.description}</ReportDescription>
-                        <ReportDescription>Status: {report.status}</ReportDescription>
-                      </ReportItem>
-                    ))}
-                  </ReportsList>
-                </>
-              )}
+  return (
+    <>
+      <div className={s.toolbar}>
+        <select className={s.select} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}>
+          <option value="">All</option><option value="open">Open</option><option value="investigating">Investigating</option><option value="resolved">Resolved</option><option value="dismissed">Dismissed</option>
+        </select>
+      </div>
 
-              {/* Account Info */}
-              <div style={{ fontSize: '12px', color: '#6b7280', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
-                <p style={{ margin: '0 0 4px 0' }}>
-                  Created: {new Date(userProfile.createdAt).toLocaleString()}
-                </p>
-                {userProfile.lastLoginAt && (
-                  <p style={{ margin: '0' }}>
-                    Last login: {new Date(userProfile.lastLoginAt).toLocaleString()}
-                  </p>
-                )}
-              </div>
+      {isLoading && <Loading />}
+      {isError && <ErrorBlock message="Failed to load reports." />}
 
-              <ModalActions>
-                <Button variant="outline" onClick={() => setSelectedUserId(null)}>
-                  Close
-                </Button>
-              </ModalActions>
-            </ModalContent>
-          ) : null}
-        </Modal>
-      </Container>
-    </ProtectedRoute>
+      {data && (data.reports.length === 0 ? <Empty text="No reports found." /> : (
+        <>
+          <div className={s.tableWrap}>
+            <table className={s.table}>
+              <thead>
+                <tr><th>Reported User</th><th>Reason</th><th>Severity</th><th>Status</th><th>Filed</th><th>Actions</th></tr>
+              </thead>
+              <tbody>
+                {data.reports.map((r: UserReport) => (
+                  <tr key={r._id}>
+                    <td><strong>{r.reported_user_id?.display_name || '—'}</strong><div className={s.muted}>{r.reported_user_id?.email}</div></td>
+                    <td>{r.reason?.replace(/_/g, ' ')}<div className={s.muted}>{r.description?.slice(0, 60)}</div></td>
+                    <td><Badge status={r.severity} /></td>
+                    <td><Badge status={r.status} /></td>
+                    <td className={s.muted}>{fmtDate(r.created_at)}</td>
+                    <td>
+                      {['open', 'investigating'].includes(r.status) && (
+                        <div className={s.row}>
+                          <button className={`${s.btn} ${s.btnSuccess} ${s.btnSm}`} onClick={() => setResolve(r._id)}>Resolve</button>
+                          <button className={`${s.btn} ${s.btnGhost} ${s.btnSm}`} onClick={() => actions.dismiss.mutate({ id: r._id, reason: 'No action needed' })}>Dismiss</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} onChange={setPage} />
+        </>
+      ))}
+
+      {resolve && (
+        <ReasonModal
+          title="Resolve report" label="Resolution notes" confirmLabel="Resolve"
+          onConfirm={(resolution) => { actions.resolve.mutate({ id: resolve, resolution, actionTaken: 'other' }); setResolve(null) }}
+          onClose={() => setResolve(null)}
+        />
+      )}
+    </>
   )
 }

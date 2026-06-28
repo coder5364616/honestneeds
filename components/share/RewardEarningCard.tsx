@@ -9,10 +9,11 @@
 import styled from 'styled-components'
 import { Reward } from '@/api/hooks/useSharerRewards'
 import { Badge } from '@/components/Badge'
+import { tk } from '@/styles/dashboardTokens'
 
 const CardContainer = styled.div`
   background-color: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${tk.border};
   border-radius: 8px;
   padding: 1.5rem;
   display: flex;
@@ -23,7 +24,7 @@ const CardContainer = styled.div`
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border-color: #cbd5e1;
+    border-color: ${tk.border};
   }
 
   @media (max-width: 768px) {
@@ -42,14 +43,14 @@ const ContentSection = styled.div`
 const CampaignTitle = styled.h4`
   font-size: 1.1rem;
   font-weight: 600;
-  color: #0f172a;
+  color: ${tk.heading};
   margin: 0;
 `
 
 const PlatformBadge = styled.span`
   display: inline-block;
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: ${tk.canvasDeep};
+  color: ${tk.body};
   padding: 0.375rem 0.75rem;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -60,14 +61,14 @@ const PlatformBadge = styled.span`
 
 const ActionType = styled.span`
   font-size: 0.875rem;
-  color: #64748b;
+  color: ${tk.muted};
   text-transform: capitalize;
 `
 
 const Amount = styled.span`
   font-size: 1.75rem;
   font-weight: 700;
-  color: #0f172a;
+  color: ${tk.heading};
 `
 
 const StatusSection = styled.div`
@@ -104,7 +105,7 @@ const HoldCountdown = styled.div`
 const HoldLabel = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: ${tk.muted};
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `
@@ -112,7 +113,7 @@ const HoldLabel = styled.span`
 const HoldProgress = styled.div`
   width: 150px;
   height: 6px;
-  background-color: #e2e8f0;
+  background-color: ${tk.border};
   border-radius: 3px;
   overflow: hidden;
 
@@ -123,7 +124,7 @@ const HoldProgress = styled.div`
 
 const HoldProgressBar = styled.div<{ $progress: number }>`
   height: 100%;
-  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  background: ${tk.green};
   width: ${props => props.$progress}%;
   transition: width 0.3s ease;
 `
@@ -131,12 +132,12 @@ const HoldProgressBar = styled.div<{ $progress: number }>`
 const HoldDaysRemaining = styled.span`
   font-size: 0.875rem;
   font-weight: 600;
-  color: #f59e0b;
+  color: ${tk.amber};
 `
 
 const AchievedDate = styled.span`
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: ${tk.muted};
 `
 
 interface RewardEarningCardProps {
@@ -153,15 +154,15 @@ export const RewardEarningCard: React.FC<RewardEarningCardProps> = ({ reward }) 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'verified':
-        return '#10b981'
+        return tk.green
       case 'completed':
-        return '#6366f1'
+        return tk.blue
       case 'pending':
-        return '#f59e0b'
+        return tk.amber
       case 'rejected':
-        return '#ef4444'
+        return tk.red
       default:
-        return '#64748b'
+        return tk.muted
     }
   }
 
@@ -207,29 +208,33 @@ export const RewardEarningCard: React.FC<RewardEarningCardProps> = ({ reward }) 
 
         {reward.status === 'pending' && (
           <HoldCountdown>
-            <HoldLabel>30-Day Hold</HoldLabel>
-            <HoldProgress>
-              <HoldProgressBar $progress={progressPercent} />
-            </HoldProgress>
-            <HoldDaysRemaining>{reward.daysRemaining} days remaining</HoldDaysRemaining>
+            <HoldLabel>Owed — ready for payout</HoldLabel>
+            {reward.daysRemaining > 0 && (
+              <>
+                <HoldProgress>
+                  <HoldProgressBar $progress={progressPercent} />
+                </HoldProgress>
+                <HoldDaysRemaining>{reward.daysRemaining} days remaining</HoldDaysRemaining>
+              </>
+            )}
             <AchievedDate>Earned {formattedDate}</AchievedDate>
           </HoldCountdown>
         )}
 
         {reward.status === 'verified' && (
-          <div style={{ textAlign: 'right', fontSize: '0.875rem', color: '#10b981', fontWeight: 600 }}>
+          <div style={{ textAlign: 'right', fontSize: '0.875rem', color: tk.green, fontWeight: 600 }}>
             ✓ Ready to withdraw
           </div>
         )}
 
         {reward.status === 'completed' && (
-          <div style={{ textAlign: 'right', fontSize: '0.875rem', color: '#6366f1' }}>
+          <div style={{ textAlign: 'right', fontSize: '0.875rem', color: tk.blue }}>
             Paid on {new Date(reward.verifiedAt || '').toLocaleDateString()}
           </div>
         )}
 
         {reward.status === 'rejected' && (
-          <div style={{ textAlign: 'right', fontSize: '0.875rem', color: '#ef4444' }}>
+          <div style={{ textAlign: 'right', fontSize: '0.875rem', color: tk.red }}>
             Rejected on {new Date(reward.verifiedAt || '').toLocaleDateString()}
           </div>
         )}

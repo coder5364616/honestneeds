@@ -2,6 +2,8 @@
 
 import styled from 'styled-components'
 import { Info } from 'lucide-react'
+import { DONATION_FEE_PERCENT } from '@/utils/validationSchemas'
+import { tk } from '@/styles/dashboardTokens'
 
 interface FeeBreakdownProps {
   grossAmount: number
@@ -9,20 +11,22 @@ interface FeeBreakdownProps {
 }
 
 const Container = styled.div`
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
+  background-color: ${tk.canvas};
+  border: 1px solid ${tk.border};
+  border-radius: 12px;
   padding: 1.5rem;
   margin: 1.5rem 0;
+  font-family: 'DM Sans', sans-serif;
 `
 
 const Title = styled.h3`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #64748b;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: ${tk.muted};
   margin: 0 0 1rem 0;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
 `
 
 const Row = styled.div`
@@ -30,7 +34,7 @@ const Row = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid ${tk.border};
 
   &:last-of-type {
     border-bottom: none;
@@ -38,13 +42,14 @@ const Row = styled.div`
 `
 
 const Label = styled.span`
-  color: #475569;
+  color: ${tk.body};
   font-size: 0.925rem;
   font-weight: 500;
 `
 
 const Value = styled.span<{ bold?: boolean }>`
-  color: #0f172a;
+  font-family: 'DM Mono', monospace;
+  color: ${tk.heading};
   font-size: 0.925rem;
   font-weight: ${(props) => (props.bold ? 700 : 500)};
 `
@@ -52,16 +57,16 @@ const Value = styled.span<{ bold?: boolean }>`
 const TotalRow = styled(Row)`
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 2px solid #e2e8f0;
+  border-top: 2px solid ${tk.border};
 
   ${Label} {
     font-weight: 700;
-    color: #0f172a;
+    color: ${tk.heading};
   }
 
   ${Value} {
     font-weight: 700;
-    color: #6366f1;
+    color: ${tk.amberDark};
     font-size: 1rem;
   }
 `
@@ -71,25 +76,25 @@ const InfoBox = styled.div`
   gap: 0.75rem;
   margin-top: 1rem;
   padding: 0.75rem;
-  background-color: #ecf0ff;
-  border-radius: 0.375rem;
-  border-left: 3px solid #6366f1;
+  background-color: ${tk.blueLight};
+  border-radius: 10px;
+  border-left: 3px solid ${tk.blue};
 `
 
 const InfoIcon = styled(Info)`
-  color: #6366f1;
+  color: ${tk.blue};
   flex-shrink: 0;
   margin-top: 0.125rem;
 `
 
 const InfoText = styled.p`
   font-size: 0.8125rem;
-  color: #4f46e5;
+  color: ${tk.blue};
   margin: 0;
   line-height: 1.4;
 `
 
-export function FeeBreakdown({ grossAmount, platformFeePercentage = 20 }: FeeBreakdownProps) {
+export function FeeBreakdown({ grossAmount, platformFeePercentage = DONATION_FEE_PERCENT }: FeeBreakdownProps) {
   const feeAmount = Number((grossAmount * (platformFeePercentage / 100)).toFixed(2))
   const netAmount = Number((grossAmount - feeAmount).toFixed(2))
 

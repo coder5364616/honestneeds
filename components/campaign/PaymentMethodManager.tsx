@@ -6,24 +6,23 @@ import { Star, CreditCard, Building2, Smartphone, Copy, Check, Plus, Pencil, Tra
 import { PaymentMethod, PaymentMethodType } from './AddPaymentMethodForm'
 import Button from '@/components/ui/Button'
 
-// ─── Brand Tokens ────────────────────────────────────────────────────────────
-// Extracted from HonestNeed logo
+// ─── Design Tokens (shared with /dashboard) ──────────────────────────────────
 const BRAND = {
-  yellow:      '#F5C000',
-  yellowLight: '#FFF8D6',
-  yellowDark:  '#B88C00',
-  blue:        '#29ABE2',
-  blueLight:   '#E6F6FD',
-  blueDark:    '#1A7FB0',
-  green:       '#2E8B1A',
-  greenLight:  '#EAF7E6',
-  navy:        '#1A1464',
-  pink:        '#E8338A',
-  pinkLight:   '#FDE8F3',
-  surface:     '#FAFAFA',
-  border:      '#E8EDF2',
-  text:        '#1A1464',
-  textMuted:   '#6B7B8D',
+  yellow:      '#D4870A',
+  yellowLight: '#FBF3E0',
+  yellowDark:  '#A8680A',
+  blue:        '#1A5FA8',
+  blueLight:   '#E8F0FB',
+  blueDark:    '#0D4A8C',
+  green:       '#1A7A4A',
+  greenLight:  '#E8F5EE',
+  navy:        '#18171A',
+  pink:        '#C0392B',
+  pinkLight:   '#FBE9E7',
+  surface:     '#EEEBe5',
+  border:      '#E2DDD6',
+  text:        '#18171A',
+  textMuted:   '#8C8790',
   white:       '#FFFFFF',
 }
 
@@ -60,21 +59,21 @@ const SectionHeader = styled.div`
 `
 
 const SectionTitle = styled.h3`
-  font-size: 1rem;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: ${BRAND.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: ${BRAND.text};
   margin: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 
   span.count {
+    font-family: 'DM Mono', monospace;
     background: ${BRAND.blueLight};
     color: ${BRAND.blue};
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.7rem;
+    font-weight: 500;
     padding: 0.125rem 0.5rem;
     border-radius: 9999px;
   }
@@ -85,11 +84,12 @@ const AddBtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: ${BRAND.yellow};
-  color: ${BRAND.navy};
+  background: ${BRAND.navy};
+  color: ${BRAND.white};
   border: none;
-  padding: 0.625rem 1.25rem;
+  padding: 0.65rem 1.25rem;
   border-radius: 10px;
+  font-family: 'Syne', sans-serif;
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
@@ -99,7 +99,7 @@ const AddBtn = styled.button`
   svg { width: 16px; height: 16px; }
 
   &:hover:not(:disabled) {
-    background: ${BRAND.yellowDark};
+    background: #242228;
     transform: translateY(-1px);
   }
 
@@ -132,24 +132,11 @@ const Grid = styled.div`
 const Card = styled.article<{ $isPrimary: boolean }>`
   position: relative;
   background: ${BRAND.white};
-  border: 1.5px solid ${p => p.$isPrimary ? BRAND.yellow : BRAND.border};
-  border-radius: 16px;
+  border: 1px solid ${p => p.$isPrimary ? BRAND.yellow : BRAND.border};
+  border-radius: 14px;
   padding: 1.25rem;
   transition: border-color 0.2s, box-shadow 0.2s;
   overflow: visible;
-
-  /* Signature: left accent rail */
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 16px;
-    bottom: 16px;
-    width: 4px;
-    border-radius: 0 4px 4px 0;
-    background: ${p => p.$isPrimary ? BRAND.yellow : BRAND.blue};
-    transition: background 0.2s;
-  }
 
   ${p => p.$isPrimary && css`
     animation: ${pulse} 2.5s ease-in-out;
@@ -157,7 +144,7 @@ const Card = styled.article<{ $isPrimary: boolean }>`
 
   &:hover {
     border-color: ${p => p.$isPrimary ? BRAND.yellow : BRAND.blue};
-    box-shadow: 0 4px 20px rgba(41,171,226,0.10);
+    box-shadow: 0 4px 16px rgba(26, 95, 168, 0.10);
   }
 `
 
@@ -186,7 +173,6 @@ const CardTop = styled.div`
   align-items: flex-start;
   gap: 0.875rem;
   margin-bottom: 1rem;
-  padding-left: 0.5rem;
 `
 
 const IconWrap = styled.div<{ $type: PaymentMethodType }>`
@@ -219,6 +205,7 @@ const CardMeta = styled.div`
 `
 
 const CardTitle = styled.p`
+  font-family: 'Syne', sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
   color: ${BRAND.text};
@@ -240,7 +227,6 @@ const DetailChip = styled.div`
   border-radius: 10px;
   padding: 0.625rem 0.875rem;
   margin-bottom: 1rem;
-  margin-left: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -259,11 +245,11 @@ const DetailLabel = styled.p`
 `
 
 const DetailValue = styled.p`
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   color: ${BRAND.text};
   margin: 0;
-  font-family: 'Courier New', monospace;
-  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
 `
 
 const CopyBtn = styled.button`
@@ -286,7 +272,6 @@ const CopyBtn = styled.button`
 const CardActions = styled.div`
   display: flex;
   gap: 0.5rem;
-  margin-left: 0.5rem;
 `
 
 const ActionBtn = styled.button<{ $variant?: 'danger' | 'primary' | 'ghost' }>`
@@ -327,26 +312,27 @@ const ActionBtn = styled.button<{ $variant?: 'danger' | 'primary' | 'ghost' }>`
 const EmptyWrap = styled.div`
   text-align: center;
   padding: 3.5rem 1.5rem;
-  border: 2px dashed ${BRAND.border};
+  border: 1.5px dashed ${BRAND.border};
   border-radius: 16px;
-  background: ${BRAND.surface};
+  background: ${BRAND.white};
 `
 
 const EmptyIconRing = styled.div`
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: ${BRAND.blueLight};
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: ${BRAND.surface};
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1.25rem;
-  color: ${BRAND.blue};
+  margin: 0 auto 1rem;
+  color: ${BRAND.textMuted};
 
-  svg { width: 32px; height: 32px; }
+  svg { width: 26px; height: 26px; }
 `
 
 const EmptyTitle = styled.p`
+  font-family: 'Syne', sans-serif;
   font-size: 1rem;
   font-weight: 700;
   color: ${BRAND.text};
@@ -440,22 +426,15 @@ export const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({
   if (methodsList.length === 0) {
     return (
       <Container>
-        <SectionHeader>
-          <SectionTitle>Payment methods</SectionTitle>
-          <AddBtn onClick={onAdd} disabled={isLoading}>
-            <Plus /> Add method
-          </AddBtn>
-        </SectionHeader>
-
         <EmptyWrap>
           <EmptyIconRing><CreditCard /></EmptyIconRing>
-          <EmptyTitle>No payment methods yet</EmptyTitle>
+          <EmptyTitle>No payout methods yet</EmptyTitle>
           <EmptyText>
             Add a card, bank account, or mobile money number to<br />
             start receiving payouts from your campaigns.
           </EmptyText>
-          <AddBtn onClick={onAdd}>
-            <Plus /> Add your first method
+          <AddBtn onClick={onAdd} disabled={isLoading}>
+            <Plus /> Add payout method
           </AddBtn>
         </EmptyWrap>
 
@@ -473,11 +452,11 @@ export const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({
     <Container>
       <SectionHeader>
         <SectionTitle>
-          Payment methods
+          Payout methods
           <span className="count">{methodsList.length}</span>
         </SectionTitle>
         <AddBtn onClick={onAdd} disabled={isLoading}>
-          <Plus /> Add method
+          <Plus /> Add payout method
         </AddBtn>
       </SectionHeader>
 

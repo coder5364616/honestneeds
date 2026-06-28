@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button'
 import Card from '@/components/Card'
 import FormField from '@/components/FormField'
 import { Modal } from '@/components/Modal'
-import axios from 'axios'
+import { apiClient } from '@/lib/api'
 
 interface ShareAppealProps {
   shareId: string
@@ -192,8 +192,8 @@ export const ShareAppeal: React.FC<ShareAppealProps> = ({
 
     setLoading(true)
     try {
-      const response = await axios.post(
-        `/api/shares/${shareId}/appeal`,
+      const response = await apiClient.post(
+        `/shares/${shareId}/appeal`,
         { appealReason }
       )
 

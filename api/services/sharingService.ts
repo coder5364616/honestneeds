@@ -38,6 +38,25 @@ export interface CampaignShareMetrics {
   referralId: string
 }
 
+export interface ShareLeaderboardEntry {
+  rank: number
+  user_id: string
+  user_name: string
+  user_picture?: string | null
+  total_earnings: number // cents
+  total_shares: number
+  total_conversions: number
+  conversion_rate: number // percentage
+}
+
+export interface ShareLeaderboard {
+  filter: { type: 'global' } | { type: 'campaign'; campaign_id: string }
+  total_participants: number
+  page: number
+  limit: number
+  entries: ShareLeaderboardEntry[]
+}
+
 class SharingService {
   /**
    * Generate a referral link for a campaign
@@ -126,6 +145,30 @@ class SharingService {
       `/referrals/${referralId}/click`
     )
     return response.data
+  }
+
+  /**
+   * Get the Share-to-Earn leaderboard (top sharers by earnings).
+   * Public endpoint — pass campaignId to scope to a single campaign.
+   * GET /share/leaderboard
+   */
+  async getShareLeaderboard(params: {
+    campaignId?: string
+    limit?: number
+    page?: number
+  } = {}): Promise<ShareLeaderboard> {
+    const { campaignId, limit = 20, page = 1 } = params
+    const response = await apiClient.get<{ success: boolean; leaderboard: ShareLeaderboard }>(
+      `/share/leaderboard`,
+      {
+        params: {
+          ...(campaignId ? { campaign_id: campaignId } : {}),
+          limit,
+          page,
+        },
+      }
+    )
+    return response.data.leaderboard
   }
 
   /**

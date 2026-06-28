@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import styled, { keyframes, css } from 'styled-components'
-import { Zap, Leaf, Rocket, Star, Check, Info, ChevronRight } from 'lucide-react'
+import { Zap, Leaf, Rocket, Check, Info, ChevronRight } from 'lucide-react'
 import { BOOST_TIERS } from '@/utils/boostValidationSchemas'
 
 // ─── Animations ────────────────────────────────────────────────────────────────
@@ -272,7 +272,7 @@ const SelectBtn = styled.div<SelectBtnProps>`
 // ─── Selected summary ─────────────────────────────────────────────────────────
 
 const SelectedSummary = styled.div`
-  background: #fff;
+  background: #f8fafc;
   border: 0.5px solid #e2e8f0;
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
@@ -280,7 +280,7 @@ const SelectedSummary = styled.div`
   animation: ${summaryReveal} 0.3s ease both;
 
   @media (prefers-color-scheme: dark) {
-    background: #ffffff;
+    background: #f8fafc;
     border-color: #334155;
   }
 `
@@ -357,10 +357,8 @@ const SkipBtn = styled.button`
 // ─── Tier config ──────────────────────────────────────────────────────────────
 
 const TIER_META = {
-  free:  { icon: Leaf, iconBg: '#f1f5f9', iconColor: '#64748b', features: ['Standard placement', '1× visibility'] },
-  basic: { icon: Leaf,     iconBg: '#f0fdf4', iconColor: '#15803d', features: ['2× visibility', '7 days active', 'Priority feed'] },
-  pro:   { icon: Rocket,   iconBg: '#eff6ff', iconColor: '#1d4ed8', features: ['5× visibility', '30 days active', 'Featured placement', 'Supporter alerts'], popular: true },
-  elite: { icon: Star,     iconBg: '#fefce8', iconColor: '#a16207', features: ['10× visibility', '60 days active', 'Homepage feature', 'Email blast', 'Analytics report'] },
+  free:  { icon: Leaf,   iconBg: '#f1f5f9', iconColor: '#64748b', features: ['Standard placement', '1× visibility', '30 days active'] },
+  pro:   { icon: Rocket, iconBg: '#eff6ff', iconColor: '#1d4ed8', features: ['10× visibility', '30 days active', 'Featured placement', 'Priority support'], popular: true },
 } as const
 
 // ─── Component ────────────────────────────────────────────────────────────────

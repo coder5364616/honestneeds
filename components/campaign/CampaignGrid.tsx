@@ -4,6 +4,7 @@ import styled, { keyframes } from 'styled-components'
 import { CampaignCard } from './CampaignCard'
 import { Campaign } from '@/api/services/campaignService'
 import { SearchX } from 'lucide-react'
+import { tk } from '@/styles/dashboardTokens'
 
 interface CampaignGridProps {
   campaigns: Campaign[]
@@ -15,21 +16,31 @@ interface CampaignGridProps {
 // ─── Grid ──────────────────────────────────────────────────────────────────────
 const Grid = styled.div`
   display: grid;
-  /* 2 columns on mobile */
+  /* 2 columns on mobile (stacked/vertical cards) */
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 
-  /* 2 columns on tablet */
   @media (min-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
 
-  /* 3 columns on desktop */
+  /* 2 columns of wide horizontal cards on desktop */
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
   }
+
+  /* 3 columns on very large screens */
+  @media (min-width: 1600px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`
+
+// Grid items default to min-width:auto, which lets non-wrapping card content
+// (e.g. the monospace meter line) force a track wider than the viewport and
+// cause horizontal overflow on mobile. min-width:0 lets the track shrink.
+const GridItem = styled.div`
+  min-width: 0;
 `
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
@@ -44,24 +55,32 @@ const shimmer = keyframes`
 `
 
 const SkeletonCard = styled.div`
-  background: white;
-  border-radius: 16px;
+  background: ${tk.white};
+  border-radius: 14px;
   overflow: hidden;
-  border: 1px solid #f0f0f0;
+  border: 1px solid ${tk.border};
+  display: flex;
+  flex-direction: column;
+  height: 330px;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+    height: 230px;
+  }
 `
 
 const SkeletonImage = styled.div`
-  height: 140px;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  width: 100%;
+  height: 150px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, ${tk.canvasDeep} 25%, ${tk.border} 50%, ${tk.canvasDeep} 75%);
   background-size: 400px 100%;
   animation: ${shimmer} 1.4s ease infinite;
 
-  @media (min-width: 640px) {
-    height: 160px;
-  }
-
   @media (min-width: 1024px) {
-    height: 180px;
+    width: 42%;
+    max-width: 260px;
+    height: 100%;
   }
 `
 
@@ -70,13 +89,15 @@ const SkeletonBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-width: 0;
 `
 
 const SkeletonLine = styled.div<{ $w?: string; $h?: string }>`
   height: ${p => p.$h ?? '12px'};
   width: ${p => p.$w ?? '100%'};
   border-radius: 6px;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background: linear-gradient(90deg, ${tk.canvasDeep} 25%, ${tk.border} 50%, ${tk.canvasDeep} 75%);
   background-size: 400px 100%;
   animation: ${shimmer} 1.4s ease infinite;
 `
@@ -84,7 +105,7 @@ const SkeletonLine = styled.div<{ $w?: string; $h?: string }>`
 const SkeletonProgress = styled.div`
   height: 5px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background: linear-gradient(90deg, ${tk.canvasDeep} 25%, ${tk.border} 50%, ${tk.canvasDeep} 75%);
   background-size: 400px 100%;
   animation: ${shimmer} 1.4s ease infinite;
 `
@@ -99,7 +120,7 @@ const SkeletonBtn = styled.div`
   flex: 1;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background: linear-gradient(90deg, ${tk.canvasDeep} 25%, ${tk.border} 50%, ${tk.canvasDeep} 75%);
   background-size: 400px 100%;
   animation: ${shimmer} 1.4s ease infinite;
 `
@@ -125,24 +146,25 @@ const EmptyIcon = styled.div`
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: #f5f3ff;
+  background: ${tk.amberLight};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #a78bfa;
+  color: ${tk.amber};
   margin-bottom: 4px;
 `
 
 const EmptyTitle = styled.h3`
+  font-family: 'Syne', sans-serif;
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: ${tk.heading};
   margin: 0;
 `
 
 const EmptyDesc = styled.p`
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: ${tk.muted};
   margin: 0;
   max-width: 280px;
   line-height: 1.5;
@@ -152,15 +174,16 @@ const ResetBtn = styled.button`
   margin-top: 8px;
   padding: 8px 20px;
   border-radius: 10px;
-  border: 1.5px solid #e0e7ff;
-  background: #eef2ff;
-  color: #6366f1;
+  border: none;
+  background: ${tk.ink};
+  color: ${tk.white};
+  font-family: 'Syne', sans-serif;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 180ms, border-color 180ms;
+  transition: background 180ms;
 
-  &:hover { background: #e0e7ff; border-color: #c7d2fe; }
+  &:hover { background: ${tk.inkLight}; }
 `
 
 // ─── Skeleton rendering helper ─────────────────────────────────────────────────
@@ -213,13 +236,13 @@ export function CampaignGrid({ campaigns, isLoading, onDonate, onShare }: Campai
   return (
     <Grid>
       {campaigns.map((campaign, i) => (
-        <div key={campaign.id} style={{ animationDelay: `${i * 40}ms` }}>
+        <GridItem key={campaign.id} style={{ animationDelay: `${i * 40}ms` }}>
           <CampaignCard
             campaign={campaign}
             onDonate={onDonate}
             onShare={onShare}
           />
-        </div>
+        </GridItem>
       ))}
     </Grid>
   )

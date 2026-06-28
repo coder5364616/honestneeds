@@ -11,11 +11,26 @@ interface QRAnalyticsDashboardProps {
   campaignId: string
 }
 
+// ─── Design tokens (mirrors /dashboard & the analytics page shell) ───────────
+const tk = {
+  canvas: '#F7F5F1',
+  border: '#E2DDD6',
+  white: '#FFFFFF',
+  muted: '#8C8790',
+  heading: '#18171A',
+  amber: '#D4870A',
+  green: '#1A7A4A',
+  greenLight: '#E8F5EE',
+  blue: '#1A5FA8',
+  blueLight: '#E8F0FB',
+}
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
+  font-family: 'DM Sans', sans-serif;
 `
 
 const Header = styled.div`
@@ -26,14 +41,15 @@ const Header = styled.div`
   svg {
     width: 1.5rem;
     height: 1.5rem;
-    color: #7c3aed;
+    color: ${tk.blue};
   }
 `
 
 const Title = styled.h3`
+  font-family: 'Syne', sans-serif;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #0f172a;
+  color: ${tk.heading};
   margin: 0;
 `
 
@@ -44,15 +60,17 @@ const StatsGrid = styled.div`
 `
 
 const StatCard = styled(Card)`
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  background: ${tk.blue};
   color: white;
   padding: 1.5rem;
+  border-radius: 14px;
   text-align: center;
 `
 
 const StatValue = styled.div`
+  font-family: 'Syne', sans-serif;
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 0.5rem;
 `
 
@@ -62,9 +80,9 @@ const StatLabel = styled.div`
 `
 
 const LocationTable = styled.div`
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
   overflow: hidden;
 `
 
@@ -73,7 +91,7 @@ const LocationRow = styled.div`
   grid-template-columns: 1fr 100px 100px;
   gap: 1rem;
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid ${tk.border};
   align-items: center;
 
   &:last-child {
@@ -81,25 +99,25 @@ const LocationRow = styled.div`
   }
 
   &:hover {
-    background: #f9fafb;
+    background: ${tk.canvas};
   }
 `
 
 const LocationHeader = styled(LocationRow)`
-  background: #f3f4f6;
+  background: ${tk.canvas};
   padding: 0.75rem 1rem;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #4b5563;
+  color: ${tk.muted};
 
   &:hover {
-    background: #f3f4f6;
+    background: ${tk.canvas};
   }
 `
 
 const LocationName = styled.div`
   font-weight: 600;
-  color: #1f2937;
+  color: ${tk.heading};
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -107,15 +125,15 @@ const LocationName = styled.div`
   svg {
     width: 1rem;
     height: 1rem;
-    color: #7c3aed;
+    color: ${tk.blue};
   }
 `
 
 const ScanBadge = styled.div`
-  background: #ddd6fe;
-  color: #6d28d9;
+  background: ${tk.blueLight};
+  color: ${tk.blue};
   padding: 0.5rem;
-  border-radius: 4px;
+  border-radius: 6px;
   text-align: center;
   font-weight: 600;
   font-size: 0.875rem;
@@ -124,7 +142,7 @@ const ScanBadge = styled.div`
 const EmptyState = styled.div`
   text-align: center;
   padding: 2rem;
-  color: #64748b;
+  color: ${tk.muted};
 
   svg {
     width: 2rem;
@@ -162,16 +180,16 @@ export const QRAnalyticsDashboard: React.FC<QRAnalyticsDashboardProps> = ({ camp
             <StatValue>{analytics.totalScans}</StatValue>
             <StatLabel>Total Scans</StatLabel>
           </StatCard>
-          <StatCard style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)' }}>
+          <StatCard style={{ background: tk.green }}>
             <StatValue>{analytics.scansThisWeek}</StatValue>
             <StatLabel>Scans This Week</StatLabel>
           </StatCard>
-          <StatCard style={{ background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' }}>
+          <StatCard style={{ background: tk.heading }}>
             <StatValue>{analytics.scansThisMonth}</StatValue>
             <StatLabel>Scans This Month</StatLabel>
           </StatCard>
           {analytics.topLocation && (
-            <StatCard style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)' }}>
+            <StatCard style={{ background: tk.amber }}>
               <StatValue>{analytics.topLocation.scans}</StatValue>
               <StatLabel>Top Location: {analytics.topLocation.name}</StatLabel>
             </StatCard>
@@ -183,7 +201,7 @@ export const QRAnalyticsDashboard: React.FC<QRAnalyticsDashboardProps> = ({ camp
       {storeImpressions && storeImpressions.length > 0 ? (
         <>
           <div>
-            <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#1f2937', margin: '1rem 0 0.75rem 0' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: '600', color: tk.heading, margin: '1rem 0 0.75rem 0' }}>
               📍 By Location
             </h4>
             <LocationTable>
@@ -199,7 +217,7 @@ export const QRAnalyticsDashboard: React.FC<QRAnalyticsDashboardProps> = ({ camp
                     Store Location {impression.storeLocationId}
                   </LocationName>
                   <ScanBadge>{impression.scans}</ScanBadge>
-                  <div style={{ textAlign: 'center', fontSize: '0.875rem', color: '#4b5563' }}>
+                  <div style={{ textAlign: 'center', fontSize: '0.875rem', color: tk.muted }}>
                     {(impression.conversionRate * 100).toFixed(1)}%
                   </div>
                 </LocationRow>
@@ -218,8 +236,8 @@ export const QRAnalyticsDashboard: React.FC<QRAnalyticsDashboardProps> = ({ camp
 
       {/* Last Scanned */}
       {analytics?.lastScannedAt && (
-        <Card style={{ padding: '1rem', background: '#f0fdf4', borderColor: '#86efac' }}>
-          <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
+        <Card style={{ padding: '1rem', background: tk.greenLight, borderColor: tk.green }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', color: tk.green }}>
             <strong>Last Scan:</strong> {new Date(analytics.lastScannedAt).toLocaleString()}
           </p>
         </Card>

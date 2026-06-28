@@ -5,13 +5,25 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import styled from 'styled-components'
 import { Modal } from '@/components/Modal'
-import Button from '@/components/ui/Button'
 import { useCreateVolunteerOffer } from '@/api/hooks/useVolunteer'
 import { volunteerOfferSchema, type VolunteerOfferFormData } from '@/utils/validationSchemas'
-import { Plus, Trash2 } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  HandHeart,
+  Sparkles,
+  Calendar,
+  Wrench,
+  Heart,
+} from 'lucide-react'
 
 /**
- * Volunteer Offer Modal Form
+ * OfferHelpModal — volunteer "Offer to Help" form.
+ *
+ * Restyled onto the dashboard design system (warm amber / ink / canvas,
+ * Syne + DM Sans + DM Mono) so it matches the campaign detail page and
+ * /dashboard. The react-hook-form field names, zod schema and submission
+ * payload are unchanged — only the presentation + UX copy were reworked.
  */
 
 interface OfferHelpModalProps {
@@ -21,57 +33,140 @@ interface OfferHelpModalProps {
   campaignTitle: string
 }
 
-const StyledContent = styled.div`
-  padding: 0;
-  min-width: 500px;
-  max-width: 100%;
-  box-sizing: border-box;
+// ─── Tokens (mirror dashboard `tk`) ─────────────────────────────────────────────
+const tk = {
+  ink: '#18171A',
+  canvas: '#F7F5F1',
+  canvasDeep: '#EEEBe5',
+  border: '#E2DDD6',
+  white: '#FFFFFF',
+  muted: '#8C8790',
+  body: '#4A4750',
+  heading: '#18171A',
+  amber: '#D4870A',
+  amberLight: '#FBF3E0',
+  amberDark: '#A8680A',
+  green: '#1A7A4A',
+  red: '#C0392B',
+  blue: '#1A5FA8',
+  blueLight: '#E8F0FB',
+}
 
-  @media (max-width: 768px) {
+const Shell = styled.div`
+  font-family: 'DM Sans', sans-serif;
+  color: ${tk.body};
+  min-width: min(520px, 86vw);
+  max-width: 100%;
+
+  @media (max-width: 640px) {
     min-width: auto;
     width: 100%;
   }
+`
 
-  form {
-    padding: 1.5rem;
-    box-sizing: border-box;
-    width: 100%;
-    overflow-x: hidden;
+// ─── Intro banner ───────────────────────────────────────────────────────────────
+const Intro = styled.div`
+  display: flex;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem;
+  background: linear-gradient(135deg, ${tk.amberLight}, ${tk.white});
+  border: 1px solid ${tk.border};
+  border-left: 3px solid ${tk.amber};
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+`
 
-    @media (max-width: 640px) {
-      padding: 0.75rem;
-    }
+const IntroIcon = styled.div`
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: ${tk.amber};
+  color: ${tk.white};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`
 
-    @media (max-width: 480px) {
-      padding: 0.5rem;
-    }
+const IntroText = styled.div`
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: ${tk.body};
+
+  strong {
+    display: block;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: ${tk.heading};
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+    word-break: break-word;
   }
 `
 
-const FormGroup = styled.div`
+// ─── Section ────────────────────────────────────────────────────────────────────
+const Section = styled.section`
   margin-bottom: 1.5rem;
-  width: 100%;
-  box-sizing: border-box;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+`
+
+const SectionHead = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+
+  span {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: ${tk.muted};
+    white-space: nowrap;
+  }
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: ${tk.border};
+  }
+
+  svg {
+    color: ${tk.amber};
+    flex-shrink: 0;
+  }
+`
+
+const Field = styled.div`
+  margin-bottom: 1rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 
   label {
-    display: block;
-    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.82rem;
     font-weight: 500;
-    color: #1f2937;
-    font-size: 0.95rem;
-    word-break: break-word;
+    color: ${tk.heading};
 
-    .required {
-      color: #dc2626;
+    .req {
+      color: ${tk.red};
     }
-
-    @media (max-width: 640px) {
-      margin-bottom: 0.25rem;
-    }
-
-    @media (max-width: 480px) {
-      font-size: 0.8rem;
-      margin-bottom: 0.15rem;
+    .count {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: ${tk.muted};
+      font-weight: 400;
     }
   }
 
@@ -79,244 +174,101 @@ const FormGroup = styled.div`
   textarea,
   select {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.95rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid ${tk.border};
+    border-radius: 10px;
+    font-size: 0.9rem;
     font-family: inherit;
-    transition: all 0.2s ease;
+    color: ${tk.ink};
+    background: ${tk.white};
+    transition: border-color 0.15s, box-shadow 0.15s;
     box-sizing: border-box;
 
-    @media (max-width: 640px) {
-      padding: 0.5rem;
-      font-size: 0.85rem;
-    }
-
-    @media (max-width: 480px) {
-      font-size: 1rem;
-      padding: 0.4rem;
+    &::placeholder {
+      color: ${tk.muted};
     }
 
     &:focus {
       outline: none;
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      border-color: ${tk.amber};
+      box-shadow: 0 0 0 3px ${tk.amberLight};
     }
 
     &:disabled {
-      background-color: #f3f4f6;
-      color: #9ca3af;
+      background: ${tk.canvasDeep};
+      color: ${tk.muted};
       cursor: not-allowed;
     }
 
     &.error {
-      border-color: #dc2626;
-
+      border-color: ${tk.red};
       &:focus {
-        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12);
       }
     }
   }
 
   textarea {
     resize: vertical;
-    min-height: 100px;
-
-    @media (max-width: 640px) {
-      min-height: 70px;
-    }
-
-    @media (max-width: 480px) {
-      min-height: 60px;
-    }
+    min-height: 96px;
+    line-height: 1.55;
   }
 `
 
+const Hint = styled.p`
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: ${tk.muted};
+  line-height: 1.4;
+`
+
+const ErrorMessage = styled.span`
+  display: block;
+  margin-top: 0.3rem;
+  color: ${tk.red};
+  font-size: 0.78rem;
+  word-break: break-word;
+`
+
+// ─── Skills ─────────────────────────────────────────────────────────────────────
 const SkillsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-  box-sizing: border-box;
-
-  @media (max-width: 640px) {
-    gap: 0.3rem;
-  }
-
-  @media (max-width: 480px) {
-    gap: 0.25rem;
-  }
+  gap: 0.625rem;
 `
 
 const SkillItem = styled.div`
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 0.75rem;
-  align-items: flex-start;
-  padding: 0.75rem;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  box-sizing: border-box;
-  width: 100%;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr auto;
-  }
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr auto;
-    gap: 0.25rem;
-    padding: 0.35rem;
-
-    button {
-      width: auto;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-  }
+  grid-template-columns: 1fr 92px 40px;
+  gap: 0.5rem;
+  align-items: start;
 
   @media (max-width: 480px) {
-    gap: 0.2rem;
-    padding: 0.25rem;
-  }
-
-  input {
-    box-sizing: border-box;
-
-    @media (max-width: 640px) {
-      width: 100% !important;
-    }
-  }
-`
-
-const AvailabilityGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1rem;
-  width: 100%;
-  box-sizing: border-box;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    gap: 0.3rem;
-  }
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
-  }
-
-  > div {
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    width: 100%;
-
-    label {
-      margin-bottom: 0.15rem;
-      font-size: 0.7rem;
-      font-weight: 500;
-    }
-
-    input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-  }
-`
-
-
-
-const ErrorMessage = styled.span`
-  display: block;
-  margin-top: 0.25rem;
-  color: #dc2626;
-  font-size: 0.875rem;
-  word-break: break-word;
-  overflow-wrap: break-word;
-
-  @media (max-width: 480px) {
-    font-size: 0.8125rem;
-    margin-top: 0.125rem;
-  }
-`
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-  width: 100%;
-  box-sizing: border-box;
-
-  @media (max-width: 768px) {
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-
-  @media (max-width: 640px) {
-    flex-direction: column-reverse;
+    grid-template-columns: 1fr 72px 38px;
     gap: 0.375rem;
-    margin-top: 0.75rem;
-
-    button {
-      width: 100%;
-    }
   }
 `
 
-const InfoBox = styled.div`
+const IconBtn = styled.button`
+  width: 40px;
+  height: 42px;
   display: flex;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 0.375rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-  color: #1e40af;
-  line-height: 1.5;
-  box-sizing: border-box;
-  width: 100%;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${tk.border};
+  background: ${tk.white};
+  color: ${tk.red};
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 
-  @media (max-width: 640px) {
-    padding: 0.4rem;
-    gap: 0.25rem;
-    font-size: 0.7rem;
-    margin-bottom: 0.75rem;
-    line-height: 1.3;
+  &:hover {
+    background: #FBE9E7;
+    border-color: ${tk.red};
   }
-
-  @media (max-width: 480px) {
-    padding: 0.3rem;
-    gap: 0.2rem;
-    font-size: 0.65rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.2;
-  }
-
-  p {
-    margin: 0;
-    word-break: break-word;
-
-    strong {
-      display: inline;
-    }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 `
 
@@ -324,47 +276,107 @@ const AddSkillButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background-color: #f0f9ff;
-  border: 2px dashed #0ea5e9;
-  border-radius: 0.375rem;
-  color: #0369a1;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  background: ${tk.amberLight};
+  border: 1.5px dashed ${tk.amber};
+  border-radius: 10px;
+  color: ${tk.amberDark};
   cursor: pointer;
-  font-weight: 500;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-  width: 100%;
-  box-sizing: border-box;
-
-  @media (max-width: 640px) {
-    padding: 0.5rem 0.625rem;
-    font-size: 0.75rem;
-    gap: 0.25rem;
-  }
-
-  @media (max-width: 480px) {
-    padding: 0.35rem;
-    font-size: 0.7rem;
-  }
+  font-weight: 600;
+  font-size: 0.82rem;
+  font-family: 'Syne', sans-serif;
+  transition: background 0.15s;
 
   &:hover {
-    background-color: #e0f2fe;
-    border-color: #0284c7;
-    color: #0c4a6e;
+    background: #f6e6c8;
   }
-
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
+`
 
-  svg {
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
+// ─── Availability grid ──────────────────────────────────────────────────────────
+const Grid3 = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.625rem;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
   }
 `
+
+// ─── Footer ─────────────────────────────────────────────────────────────────────
+const Footer = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid ${tk.border};
+
+  @media (max-width: 480px) {
+    flex-direction: column-reverse;
+  }
+`
+
+const GhostBtn = styled.button`
+  padding: 0.7rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid ${tk.border};
+  background: ${tk.white};
+  color: ${tk.body};
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: ${tk.canvas};
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`
+
+const PrimaryBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  background: ${tk.amber};
+  color: ${tk.white};
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+
+  &:hover {
+    background: ${tk.amberDark};
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+  &:disabled {
+    background: ${tk.muted};
+    cursor: not-allowed;
+  }
+`
+
+const OFFER_TYPES = [
+  { value: 'community_support', label: 'Community Support' },
+  { value: 'direct_assistance', label: 'Direct Assistance' },
+  { value: 'fundraising', label: 'Fundraising Help' },
+  { value: 'other', label: 'Other' },
+]
 
 export function OfferHelpModal({
   isOpen,
@@ -379,6 +391,7 @@ export function OfferHelpModal({
     register,
     control,
     handleSubmit,
+    watch,
     formState: { errors, isValid },
     reset,
   } = useForm<VolunteerOfferFormData>({
@@ -389,36 +402,24 @@ export function OfferHelpModal({
       description: '',
       offerType: 'community_support',
       skillsOffered: [{ name: '', yearsOfExperience: 0 }],
-      availability: {
-        startDate: '',
-        endDate: '',
-        hoursPerWeek: 5,
-      },
+      availability: { startDate: '', endDate: '', hoursPerWeek: 5 },
       estimatedHours: 20,
       experienceLevel: 'beginner',
-      contactDetails: {
-        email: '',
-        phone: '',
-      },
+      contactDetails: { email: '', phone: '' },
     },
   })
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'skillsOffered',
-  })
+  const { fields, append, remove } = useFieldArray({ control, name: 'skillsOffered' })
+  const descLen = (watch('description') || '').length
 
   const onSubmit = useCallback(
     async (data: VolunteerOfferFormData) => {
       setIsSubmitting(true)
       try {
-        // Transform frontend data structure to match backend schema
         const typedData = data as Required<typeof data>
-        
-        // Convert datetime strings for backend
         const startDateISO = new Date(typedData.availability.startDate).toISOString()
         const endDateISO = new Date(typedData.availability.endDate).toISOString()
-        
+
         createOffer(
           {
             campaignId,
@@ -439,9 +440,7 @@ export function OfferHelpModal({
               reset()
               onClose()
             },
-            onError: () => {
-              // Error handled by hook
-            },
+            onError: () => {},
           }
         )
       } finally {
@@ -458,280 +457,310 @@ export function OfferHelpModal({
     }
   }, [isSubmitting, onClose, reset])
 
+  const disabled = isSubmitting || isPending
+
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Offer to Help">
-      <StyledContent>
+      <Shell>
+        <Intro>
+          <IntroIcon>
+            <HandHeart size={20} />
+          </IntroIcon>
+          <IntroText>
+            <strong>{campaignTitle}</strong>
+            Share your skills and availability. The campaign creator reviews every
+            offer and reaches out if it&rsquo;s a fit.
+          </IntroText>
+        </Intro>
 
-      <InfoBox>
-        <p>
-          <strong>Campaign:</strong> {campaignTitle}
-        </p>
-        <p>
-          Share your skills and availability. Campaign creators will review your offer and
-          contact you if interested.
-        </p>
-      </InfoBox>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* ── What you're offering ── */}
+          <Section>
+            <SectionHead>
+              <Sparkles size={14} />
+              <span>What You&rsquo;re Offering</span>
+            </SectionHead>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Title */}
-        <FormGroup>
-          <label>
-            What are you offering to help with?{' '}
-            <span className="required">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="E.g., Construction work, meal preparation, tutoring..."
-            {...register('title')}
-            className={errors.title ? 'error' : ''}
-            disabled={isSubmitting}
-          />
-          {errors.title && <ErrorMessage>{String(errors.title.message)}</ErrorMessage>}
-        </FormGroup>
+            <Field>
+              <label>
+                <span>
+                  Headline <span className="req">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Carpentry & construction, meal prep, tutoring…"
+                {...register('title')}
+                className={errors.title ? 'error' : ''}
+                disabled={disabled}
+              />
+              {errors.title && <ErrorMessage>{String(errors.title.message)}</ErrorMessage>}
+            </Field>
 
-        {/* Description */}
-        <FormGroup>
-          <label>
-            Tell us more about what you can do <span className="required">*</span>
-          </label>
-          <textarea
-            placeholder="Describe your experience, what tasks you can take on, any special knowledge..."
-            {...register('description')}
-            className={errors.description ? 'error' : ''}
-            disabled={isSubmitting}
-          />
-          {errors.description && <ErrorMessage>{String(errors.description.message)}</ErrorMessage>}
-        </FormGroup>
+            <Field>
+              <label>
+                <span>
+                  Details <span className="req">*</span>
+                </span>
+                <span className="count">{descLen}/1000</span>
+              </label>
+              <textarea
+                placeholder="Describe your experience, the tasks you can take on, and any special knowledge…"
+                {...register('description')}
+                className={errors.description ? 'error' : ''}
+                disabled={disabled}
+                maxLength={1000}
+              />
+              {errors.description && (
+                <ErrorMessage>{String(errors.description.message)}</ErrorMessage>
+              )}
+            </Field>
 
-        {/* Offer Type */}
-        <FormGroup>
-          <label>
-            What type of help are you offering? <span className="required">*</span>
-          </label>
-          <select
-            {...register('offerType')}
-            className={errors.offerType ? 'error' : ''}
-            disabled={isSubmitting}
-          >
-            <option value="">Select offer type</option>
-            <option value="fundraising">Fundraising Help</option>
-            <option value="community_support">Community Support</option>
-            <option value="direct_assistance">Direct Assistance</option>
-            <option value="other">Other</option>
-          </select>
-          {errors.offerType && <ErrorMessage>{String(errors.offerType.message)}</ErrorMessage>}
-        </FormGroup>
+            <Grid3 style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <Field>
+                <label>
+                  <span>
+                    Type of help <span className="req">*</span>
+                  </span>
+                </label>
+                <select
+                  {...register('offerType')}
+                  className={errors.offerType ? 'error' : ''}
+                  disabled={disabled}
+                >
+                  {OFFER_TYPES.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.offerType && (
+                  <ErrorMessage>{String(errors.offerType.message)}</ErrorMessage>
+                )}
+              </Field>
 
-        {/* Experience Level */}
-        <FormGroup>
-          <label>
-            What&rsquo;s your experience level? <span className="required">*</span>
-          </label>
-          <select
-            {...register('experienceLevel')}
-            className={errors.experienceLevel ? 'error' : ''}
-            disabled={isSubmitting}
-          >
-            <option value="">Select experience level</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="expert">Expert</option>
-          </select>
-          {errors.experienceLevel && (
-            <ErrorMessage>{String(errors.experienceLevel.message)}</ErrorMessage>
-          )}
-        </FormGroup>
+              <Field>
+                <label>
+                  <span>
+                    Experience level <span className="req">*</span>
+                  </span>
+                </label>
+                <select
+                  {...register('experienceLevel')}
+                  className={errors.experienceLevel ? 'error' : ''}
+                  disabled={disabled}
+                >
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="expert">Expert</option>
+                </select>
+                {errors.experienceLevel && (
+                  <ErrorMessage>{String(errors.experienceLevel.message)}</ErrorMessage>
+                )}
+              </Field>
+            </Grid3>
+          </Section>
 
-        {/* Skills */}
-        <FormGroup>
-          <label>
-            Skills & Experience <span className="required">*</span>
-          </label>
-          <SkillsContainer>
-            {fields.map((field, index) => (
-              <SkillItem key={field.id}>
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Skill name (e.g., carpentry, cooking)"
-                    {...register(`skillsOffered.${index}.name`)}
-                    className={
-                      errors.skillsOffered?.[index]?.name ? 'error' : ''
-                    }
-                    disabled={isSubmitting}
-                  />
-                  {errors.skillsOffered?.[index]?.name && (
-                    <ErrorMessage>
-                      {String(errors.skillsOffered[index]?.name?.message)}
-                    </ErrorMessage>
-                  )}
-                </div>
+          {/* ── Skills ── */}
+          <Section>
+            <SectionHead>
+              <Wrench size={14} />
+              <span>Skills &amp; Experience</span>
+            </SectionHead>
 
-                <div>
+            <SkillsContainer>
+              {fields.map((field, index) => (
+                <SkillItem key={field.id}>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Skill (e.g. carpentry, cooking)"
+                      {...register(`skillsOffered.${index}.name`)}
+                      className={errors.skillsOffered?.[index]?.name ? 'error' : ''}
+                      disabled={disabled}
+                    />
+                    {errors.skillsOffered?.[index]?.name && (
+                      <ErrorMessage>
+                        {String(errors.skillsOffered[index]?.name?.message)}
+                      </ErrorMessage>
+                    )}
+                  </div>
                   <input
                     type="number"
-                    placeholder="Years"
+                    placeholder="Yrs"
                     min="0"
                     max="70"
                     {...register(`skillsOffered.${index}.yearsOfExperience`)}
-                    disabled={isSubmitting}
-                    style={{ width: '80px' }}
+                    disabled={disabled}
                   />
-                </div>
-
-                {fields.length > 1 && (
-                  <Button
+                  <IconBtn
                     type="button"
                     onClick={() => remove(index)}
-                    variant="ghost"
-                    size="sm"
-                    disabled={isSubmitting}
+                    disabled={disabled || fields.length <= 1}
+                    aria-label="Remove skill"
                   >
-                    <Trash2 size={18} />
-                  </Button>
+                    <Trash2 size={16} />
+                  </IconBtn>
+                </SkillItem>
+              ))}
+
+              <AddSkillButton
+                type="button"
+                onClick={() => append({ name: '', yearsOfExperience: 0 })}
+                disabled={disabled || fields.length >= 10}
+              >
+                <Plus size={16} />
+                Add another skill
+              </AddSkillButton>
+            </SkillsContainer>
+            {errors.skillsOffered && !Array.isArray(errors.skillsOffered) && (
+              <ErrorMessage>{String(errors.skillsOffered.message)}</ErrorMessage>
+            )}
+          </Section>
+
+          {/* ── Availability ── */}
+          <Section>
+            <SectionHead>
+              <Calendar size={14} />
+              <span>Availability</span>
+            </SectionHead>
+
+            <Grid3>
+              <Field>
+                <label>
+                  <span>
+                    Start <span className="req">*</span>
+                  </span>
+                </label>
+                <input
+                  type="date"
+                  {...register('availability.startDate')}
+                  className={errors.availability?.startDate ? 'error' : ''}
+                  disabled={disabled}
+                />
+                {errors.availability?.startDate && (
+                  <ErrorMessage>{String(errors.availability.startDate.message)}</ErrorMessage>
                 )}
-              </SkillItem>
-            ))}
+              </Field>
+              <Field>
+                <label>
+                  <span>
+                    End <span className="req">*</span>
+                  </span>
+                </label>
+                <input
+                  type="date"
+                  {...register('availability.endDate')}
+                  className={errors.availability?.endDate ? 'error' : ''}
+                  disabled={disabled}
+                />
+                {errors.availability?.endDate && (
+                  <ErrorMessage>{String(errors.availability.endDate.message)}</ErrorMessage>
+                )}
+              </Field>
+              <Field>
+                <label>
+                  <span>
+                    Hours/week <span className="req">*</span>
+                  </span>
+                </label>
+                <input
+                  type="number"
+                  placeholder="5"
+                  min="1"
+                  max="168"
+                  {...register('availability.hoursPerWeek')}
+                  className={errors.availability?.hoursPerWeek ? 'error' : ''}
+                  disabled={disabled}
+                />
+                {errors.availability?.hoursPerWeek?.message && (
+                  <ErrorMessage>{String(errors.availability.hoursPerWeek.message)}</ErrorMessage>
+                )}
+              </Field>
+            </Grid3>
 
-            <AddSkillButton
-              type="button"
-              onClick={() => append({ name: '', yearsOfExperience: 0 })}
-              disabled={isSubmitting || fields.length >= 10}
-            >
-              <Plus size={18} />
-              Add Skill
-            </AddSkillButton>
-          </SkillsContainer>
-
-          {errors.skillsOffered && (
-            <ErrorMessage>{String(errors.skillsOffered.message)}</ErrorMessage>
-          )}
-        </FormGroup>
-
-        {/* Availability */}
-        <FormGroup>
-          <label>Availability <span className="required">*</span></label>
-          <AvailabilityGrid>
-            <div>
-              <label style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>Start Date</label>
-              <input
-                type="date"
-                {...register('availability.startDate')}
-                className={errors.availability?.startDate ? 'error' : ''}
-                disabled={isSubmitting}
-              />
-              {errors.availability?.startDate && (
-                <ErrorMessage>{String(errors.availability.startDate.message)}</ErrorMessage>
-              )}
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>End Date</label>
-              <input
-                type="date"
-                {...register('availability.endDate')}
-                className={errors.availability?.endDate ? 'error' : ''}
-                disabled={isSubmitting}
-              />
-              {errors.availability?.endDate && (
-                <ErrorMessage>{String(errors.availability.endDate.message)}</ErrorMessage>
-              )}
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>
-                Hours/Week
+            <Field style={{ marginTop: '1rem' }}>
+              <label>
+                <span>
+                  Total hours you can contribute <span className="req">*</span>
+                </span>
               </label>
               <input
                 type="number"
-                placeholder="5"
-                min="1"
-                max="168"
-                {...register('availability.hoursPerWeek')}
-                className={errors.availability?.hoursPerWeek ? 'error' : ''}
-                disabled={isSubmitting}
+                placeholder="20"
+                min="0.5"
+                max="500"
+                step="0.5"
+                {...register('estimatedHours')}
+                className={errors.estimatedHours ? 'error' : ''}
+                disabled={disabled}
               />
-              {errors.availability?.hoursPerWeek?.message && (
-                <ErrorMessage>{String(errors.availability.hoursPerWeek.message)}</ErrorMessage>
+              <Hint>A rough estimate across the whole campaign — you can adjust later.</Hint>
+              {errors.estimatedHours && (
+                <ErrorMessage>{String(errors.estimatedHours.message)}</ErrorMessage>
               )}
-            </div>
-          </AvailabilityGrid>
-        </FormGroup>
+            </Field>
+          </Section>
 
-        {/* Estimated Hours */}
-        <FormGroup>
-          <label>
-            Estimated total hours you can contribute <span className="required">*</span>
-          </label>
-          <input
-            type="number"
-            placeholder="20"
-            min="0.5"
-            max="500"
-            step="0.5"
-            {...register('estimatedHours')}
-            className={errors.estimatedHours ? 'error' : ''}
-            disabled={isSubmitting}
-          />
-          {errors.estimatedHours && (
-            <ErrorMessage>{String(errors.estimatedHours.message)}</ErrorMessage>
-          )}
-        </FormGroup>
+          {/* ── Contact ── */}
+          <Section>
+            <SectionHead>
+              <Heart size={14} />
+              <span>How To Reach You</span>
+            </SectionHead>
 
-        {/* Contact Details */}
-        <FormGroup>
-          <label>
-            Email <span className="required">*</span>
-          </label>
-          <input
-            type="email"
-            placeholder="your.email@example.com"
-            {...register('contactDetails.email')}
-            className={errors.contactDetails?.email ? 'error' : ''}
-            disabled={isSubmitting}
-          />
-          {errors.contactDetails?.email && (
-            <ErrorMessage>{String(errors.contactDetails.email.message)}</ErrorMessage>
-          )}
-        </FormGroup>
+            <Grid3 style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <Field>
+                <label>
+                  <span>
+                    Email <span className="req">*</span>
+                  </span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  {...register('contactDetails.email')}
+                  className={errors.contactDetails?.email ? 'error' : ''}
+                  disabled={disabled}
+                />
+                {errors.contactDetails?.email && (
+                  <ErrorMessage>{String(errors.contactDetails.email.message)}</ErrorMessage>
+                )}
+              </Field>
+              <Field>
+                <label>
+                  <span>
+                    Phone <span className="req">*</span>
+                  </span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="+1 (555) 123-4567"
+                  {...register('contactDetails.phone')}
+                  className={errors.contactDetails?.phone ? 'error' : ''}
+                  disabled={disabled}
+                />
+                {errors.contactDetails?.phone && (
+                  <ErrorMessage>{String(errors.contactDetails.phone.message)}</ErrorMessage>
+                )}
+              </Field>
+            </Grid3>
+            <Hint style={{ marginTop: '0.5rem' }}>
+              Your contact details are only shared with the creator if they accept your offer.
+            </Hint>
+          </Section>
 
-        <FormGroup>
-          <label>
-            Phone Number <span className="required">*</span>
-          </label>
-          <input
-            type="tel"
-            placeholder="+1 (555) 123-4567"
-            {...register('contactDetails.phone')}
-            className={errors.contactDetails?.phone ? 'error' : ''}
-            disabled={isSubmitting}
-          />
-          {errors.contactDetails?.phone && (
-            <ErrorMessage>{String(errors.contactDetails.phone.message)}</ErrorMessage>
-          )}
-        </FormGroup>
-
-        {/* Submit Buttons */}
-        <ButtonGroup>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={!isValid || isSubmitting || isPending}
-          >
-            {isSubmitting || isPending ? 'Submitting...' : 'Submit Offer'}
-          </Button>
-        </ButtonGroup>
-      </form>
-      </StyledContent>
+          <Footer>
+            <GhostBtn type="button" onClick={handleClose} disabled={disabled}>
+              Cancel
+            </GhostBtn>
+            <PrimaryBtn type="submit" disabled={!isValid || disabled}>
+              <HandHeart size={16} />
+              {disabled ? 'Submitting…' : 'Submit Offer'}
+            </PrimaryBtn>
+          </Footer>
+        </form>
+      </Shell>
     </Modal>
   )
 }

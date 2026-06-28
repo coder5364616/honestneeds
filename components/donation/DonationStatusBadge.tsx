@@ -2,7 +2,7 @@
 
 import styled from 'styled-components'
 
-export type DonationStatus = 'pending' | 'verified' | 'rejected'
+export type DonationStatus = 'pending' | 'verified' | 'rejected' | 'refunded'
 
 interface DonationStatusBadgeProps {
   status: DonationStatus
@@ -38,6 +38,12 @@ const BadgeContainer = styled.span<{ $status: DonationStatus }>`
           color: #7f1d1d;
           border: 1px solid #fca5a5;
         `
+      case 'refunded':
+        return `
+          background-color: #f1f5f9;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+        `
       default:
         return `
           background-color: #f0f9ff;
@@ -65,6 +71,8 @@ export function DonationStatusBadge({ status }: DonationStatusBadgeProps) {
         return 'Verified'
       case 'rejected':
         return 'Rejected'
+      case 'refunded':
+        return 'Refunded'
       default:
         return status
     }

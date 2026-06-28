@@ -10,13 +10,16 @@ import styled from 'styled-components'
 import { useRewardsAvailableBalance, useSharerRewards } from '@/api/hooks/useSharerRewards'
 import { usePendingPayouts } from '@/api/hooks/useSharerPayoutRequest'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
+import { tk } from '@/styles/dashboardTokens'
 
 const OverviewContainer = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  background: ${tk.ink};
+  border: 1px solid ${tk.inkBorder};
+  border-radius: 14px;
   padding: 2rem;
   margin-bottom: 2rem;
-  color: white;
+  color: ${tk.white};
+  font-family: 'DM Sans', sans-serif;
 
   @media (max-width: 640px) {
     padding: 1.5rem;
@@ -24,10 +27,12 @@ const OverviewContainer = styled.div`
 `
 
 const OverviewTitle = styled.h2`
+  font-family: 'Syne', sans-serif;
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 800;
   margin: 0 0 1.5rem 0;
-  color: white;
+  color: ${tk.white};
+  letter-spacing: -0.3px;
 
   @media (max-width: 640px) {
     font-size: 1.25rem;
@@ -49,41 +54,41 @@ const StatsGrid = styled.div`
 `
 
 const StatCard = styled.div`
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 8px;
+  background-color: ${tk.inkLight};
+  border: 1px solid ${tk.inkBorder};
+  border-radius: 12px;
   padding: 1.25rem;
-  backdrop-filter: blur(10px);
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: ${tk.amber};
   }
 `
 
 const StatLabel = styled.span`
   display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: ${tk.muted};
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   margin-bottom: 0.5rem;
 `
 
 const StatValue = styled.span`
   display: block;
+  font-family: 'Syne', sans-serif;
   font-size: 2rem;
-  font-weight: 700;
-  color: white;
+  font-weight: 800;
+  color: ${tk.amberMid};
   margin-bottom: 0.25rem;
 `
 
 const StatSubtext = styled.span`
   display: block;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: ${tk.muted};
 `
 
 const ActionArea = styled.div`
@@ -98,23 +103,24 @@ const ActionArea = styled.div`
 `
 
 const PrimaryButton = styled.button`
-  background-color: white;
-  color: #667eea;
+  background-color: ${tk.amber};
+  color: ${tk.ink};
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
+    background-color: ${tk.amberMid};
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
@@ -125,17 +131,19 @@ const PrimaryButton = styled.button`
 
 const SecondaryButton = styled.button`
   background-color: transparent;
-  color: white;
+  color: ${tk.white};
   padding: 0.75rem 1.5rem;
-  border: 2px solid white;
-  border-radius: 6px;
-  font-weight: 600;
+  border: 1.5px solid ${tk.inkBorder};
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: ${tk.inkLight};
+    border-color: ${tk.muted};
   }
 
   &:disabled {
@@ -204,9 +212,9 @@ export const SharerRewardsOverview: React.FC<SharerRewardsOverviewProps> = ({
         </StatCard>
 
         <StatCard>
-          <StatLabel>⏳ Pending (30-Day Hold)</StatLabel>
+          <StatLabel>⏳ Owed</StatLabel>
           <StatValue>${formatCurrency(pending)}</StatValue>
-          <StatSubtext>{summary?.countPending || 0} rewards on hold</StatSubtext>
+          <StatSubtext>{summary?.countPending || 0} rewards awaiting payout</StatSubtext>
         </StatCard>
 
         <StatCard>

@@ -1,13 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-  FiShare2, FiHeart, FiMapPin, FiClock,
-  FiArrowRight, FiZap, FiStar, FiGift
+  FiHeart, FiMapPin, FiClock,
+  FiArrowRight, FiZap, FiStar, FiGift, FiLoader
 } from 'react-icons/fi';
+import { useCampaigns } from '@/api/hooks/useCampaigns';
 
 // ─── Brand Tokens (from HonestNeed logo) ────────────────────────────────────
 // Gold:       #F5C518   Orange:   #FF8C00
@@ -495,71 +496,120 @@ const CARD_TOP_COLORS = [
   '#FFF9E6', '#EBF8FF', '#FFF0F7', '#F0FFF0', '#F5F3FF', '#FFF4EB',
 ];
 
-// ─── Data ────────────────────────────────────────────────────────────────────
-const campaigns = [
-  {
-    id: 1,
-    title: 'Fix my car to get to work',
-    location: 'Modesto, CA',
-    time: '2 days old',
-    reward: '$5 reward per share',
-    image: '/campaign-car.jpg',
-    creator: 'Maria S.',
-    boosted: true,
-  },
-  {
-    id: 2,
-    title: 'Medical bills for surgery recovery',
-    location: 'Sacramento, CA',
-    time: '5 hours ago',
-    reward: '$10 reward per share',
-    image: '/campaign-medical.jpg',
-    creator: 'James T.',
-    boosted: true,
-  },
-  {
-    id: 3,
-    title: 'School supplies for my classroom',
-    location: 'Fresno, CA',
-    time: '1 day ago',
-    reward: 'Thank you card',
-    image: '/campaign-school.jpg',
-    creator: 'Sarah L.',
-    boosted: false,
-  },
-  {
-    id: 4,
-    title: 'Rent help after job loss',
-    location: 'Stockton, CA',
-    time: '3 days ago',
-    reward: '$8 reward per share',
-    image: '/campaign-rent.jpg',
-    creator: 'David M.',
-    boosted: true,
-  },
-  {
-    id: 5,
-    title: 'New wheelchair for my mom',
-    location: 'San Jose, CA',
-    time: '12 hours ago',
-    reward: '$15 reward per share',
-    image: '/campaign-park.jpg',
-    creator: 'Lisa K.',
-    boosted: true,
-  },
-  {
-    id: 6,
-    title: 'Pet surgery for my dog',
-    location: 'Oakland, CA',
-    time: '4 days ago',
-    reward: 'Pet photo update',
-    image: '/campaign-moving.jpg',
-    creator: 'Tom R.',
-    boosted: false,
-  },
-];
+// ─── Data helpers ────────────────────────────────────────────────────────────
+// Real campaigns come from the public GET /campaigns endpoint via useCampaigns.
+// These helpers shape the raw API record into what the card UI expects.
 
 const FILTERS = ['All', 'Boosted 🔥', 'New Today', 'With Rewards', 'Near Me'];
+
+// Format a backend location (string OR { city, state, address } object) → label
+function formatLocation(loc) {
+  if (!loc) return 'Community';
+  if (typeof loc === 'string') return loc;
+  const parts = [loc.city, loc.state].filter(Boolean);
+  if (parts.length) return parts.join(', ');
+  return loc.address || loc.country || 'Community';
+}
+
+// Relative "time ago" from an ISO date string
+function timeAgo(dateStr) {
+  if (!dateStr) return 'Just now';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  if (Number.isNaN(diffMs)) return 'Just now';
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+// Reward label for share-to-earn campaigns (otherwise null = no reward badge)
+function deriveReward(c) {
+  const isSharing = c.campaign_type === 'sharing';
+  const perShare = c.share_config?.amount_per_share;
+  if (isSharing && perShare > 0) return `$${(perShare / 100).toFixed(0)} reward per share`;
+  if (isSharing) return 'Share to earn';
+  return null;
+}
+
+// Normalize a raw API campaign into the card view-model
+function toCardModel(c) {
+  return {
+    id: c.id || c._id,
+    title: c.title,
+    location: formatLocation(c.location),
+    time: timeAgo(c.created_at),
+    reward: deriveReward(c),
+    image: c.image_url || c.image?.url || null,
+    creator: c.creator_name || 'Campaign Creator',
+    boosted: !!c.is_boosted,
+    createdAt: c.created_at,
+    scope: c.geographic_scope,
+  };
+}
+
+function matchesFilter(c, filter) {
+  switch (filter) {
+    case 'Boosted 🔥':
+      return c.boosted;
+    case 'New Today':
+      return c.createdAt && Date.now() - new Date(c.createdAt).getTime() < 24 * 60 * 60 * 1000;
+    case 'With Rewards':
+      return !!c.reward;
+    case 'Near Me':
+      return c.scope === 'local';
+    default:
+      return true;
+  }
+}
+
+// ─── Loading / Empty states ───────────────────────────────────────────────────
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+`;
+
+const StateWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 16px;
+  text-align: center;
+  color: #64748B;
+
+  svg.spin { animation: ${spin} 0.9s linear infinite; color: #1A2A5E; }
+`;
+
+const StateTitle = styled.p`
+  font-size: 16px;
+  font-weight: 800;
+  color: #1A2A5E;
+  margin: 0;
+`;
+
+const StateText = styled.p`
+  font-size: 14px;
+  color: #64748B;
+  margin: 0;
+  max-width: 360px;
+`;
+
+const ImagePlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #F5C518 0%, #FF8C00 100%);
+  color: #fff;
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+`;
 
 // ─── Animation Variants ───────────────────────────────────────────────────────
 const gridVariants = {
@@ -577,12 +627,37 @@ export default function CampaignFeed() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('All');
 
-  const handleSupportCampaign  = (e) => { e.stopPropagation(); router.push('/login'); };
-  const handleShareCampaign    = (e) => { e.stopPropagation(); router.push('/login'); };
-  const handleViewAllCampaigns = () => router.push('/login');
-  const handleCardClick        = () => router.push('/login');
+  // Public endpoint — resolves for logged-out visitors too (see lib/api.ts).
+  const { data, isLoading, isError } = useCampaigns(1, 12, {
+    status: 'active',
+    sortBy: 'trending',
+  });
 
-  const isMoneyReward = (reward) => reward.startsWith('$');
+  const allCampaigns = useMemo(
+    () => (data?.campaigns ?? []).map(toCardModel),
+    [data]
+  );
+
+  const visible = useMemo(
+    () => allCampaigns.filter((c) => matchesFilter(c, activeFilter)).slice(0, 6),
+    [allCampaigns, activeFilter]
+  );
+
+  const liveCount = data?.total ?? allCampaigns.length;
+
+  // Viewing a campaign is public — the card and its button both open the detail page.
+  const goToCampaign = (id) => router.push(`/campaigns/${id}`);
+
+  const handleCardClick = (id) => goToCampaign(id);
+
+  const handleViewDetails = (e, id) => {
+    e.stopPropagation();
+    goToCampaign(id);
+  };
+
+  const handleViewAllCampaigns = () => router.push('/campaigns');
+
+  const isMoneyReward = (reward) => !!reward && reward.startsWith('$');
 
   return (
     <Section id="campaigns">
@@ -623,7 +698,7 @@ export default function CampaignFeed() {
 
           <LiveIndicator>
             <span className="dot" />
-            {campaigns.length} live campaigns
+            {liveCount} live campaign{liveCount === 1 ? '' : 's'}
           </LiveIndicator>
         </HeaderRow>
 
@@ -645,92 +720,113 @@ export default function CampaignFeed() {
           ))}
         </FilterRow>
 
-        {/* ── Grid — always 2-col on mobile ── */}
-        <CampaignGrid
-          variants={gridVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-40px' }}
-        >
-          {campaigns.map((campaign, i) => {
-            const palette   = AVATAR_PALETTES[i % AVATAR_PALETTES.length];
-            const topColor  = CARD_TOP_COLORS[i % CARD_TOP_COLORS.length];
-            const isMoney   = isMoneyReward(campaign.reward);
+        {/* ── Grid / states ── */}
+        {isLoading ? (
+          <StateWrap>
+            <FiLoader size={28} className="spin" />
+            <StateText>Loading live campaigns…</StateText>
+          </StateWrap>
+        ) : isError ? (
+          <StateWrap>
+            <StateTitle>Couldn&apos;t load campaigns</StateTitle>
+            <StateText>Please refresh the page or try again in a moment.</StateText>
+          </StateWrap>
+        ) : visible.length === 0 ? (
+          <StateWrap>
+            <StateTitle>No campaigns to show yet</StateTitle>
+            <StateText>
+              {activeFilter === 'All'
+                ? 'Be the first to start a campaign and rally your community.'
+                : `No campaigns match “${activeFilter}” right now. Try another filter.`}
+            </StateText>
+          </StateWrap>
+        ) : (
+          <CampaignGrid
+            variants={gridVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+          >
+            {visible.map((campaign, i) => {
+              const topColor  = CARD_TOP_COLORS[i % CARD_TOP_COLORS.length];
+              const isMoney   = isMoneyReward(campaign.reward);
+              const initial   = (campaign.creator || '?').trim().charAt(0).toUpperCase();
 
-            return (
-              <Card
-                key={campaign.id}
-                boosted={campaign.boosted}
-                variants={cardVariants}
-                whileHover={{ y: -5, boxShadow: '0 20px 48px rgba(26,42,94,0.14)', transition: { duration: 0.22 } }}
-                onClick={handleCardClick}
-                aria-label={`Campaign: ${campaign.title}`}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
-              >
-                <ScanShimmer aria-hidden="true" />
+              return (
+                <Card
+                  key={campaign.id}
+                  boosted={campaign.boosted}
+                  variants={cardVariants}
+                  whileHover={{ y: -5, boxShadow: '0 20px 48px rgba(26,42,94,0.14)', transition: { duration: 0.22 } }}
+                  onClick={() => handleCardClick(campaign.id)}
+                  aria-label={`Campaign: ${campaign.title}`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCardClick(campaign.id)}
+                >
+                  <ScanShimmer aria-hidden="true" />
 
-                <CardImageContainer>
-                  <img src={campaign.image} alt={campaign.title} />
-                </CardImageContainer>
+                  <CardImageContainer>
+                    {campaign.image ? (
+                      <img src={campaign.image} alt={campaign.title} />
+                    ) : (
+                      <ImagePlaceholder aria-hidden="true">{initial}</ImagePlaceholder>
+                    )}
+                  </CardImageContainer>
 
-                <CardTop color={topColor}>
-                  <TopRow>
-                    <CreatorInfo>
-                      <CreatorName>{campaign.creator}</CreatorName>
-                      <CreatorLabel>Campaign Creator</CreatorLabel>
-                    </CreatorInfo>
+                  <CardTop color={topColor}>
+                    <TopRow>
+                      <CreatorInfo>
+                        <CreatorName>{campaign.creator}</CreatorName>
+                        <CreatorLabel>Campaign Creator</CreatorLabel>
+                      </CreatorInfo>
 
-                    <BadgesCol>
-                      {campaign.boosted && (
-                        <BoostedBadge aria-label="Boosted campaign">
-                          <FiZap /> Boosted
-                        </BoostedBadge>
-                      )}
-                      <RewardBadge isMoney={isMoney} aria-label={`Reward: ${campaign.reward}`}>
-                        {isMoney ? <FiGift /> : <FiHeart />}
-                        {campaign.reward}
-                      </RewardBadge>
-                    </BadgesCol>
-                  </TopRow>
-                </CardTop>
+                      <BadgesCol>
+                        {campaign.boosted && (
+                          <BoostedBadge aria-label="Boosted campaign">
+                            <FiZap /> Boosted
+                          </BoostedBadge>
+                        )}
+                        {campaign.reward && (
+                          <RewardBadge isMoney={isMoney} aria-label={`Reward: ${campaign.reward}`}>
+                            {isMoney ? <FiGift /> : <FiHeart />}
+                            {campaign.reward}
+                          </RewardBadge>
+                        )}
+                      </BadgesCol>
+                    </TopRow>
+                  </CardTop>
 
-                <CardBody>
-                  <CardTitle>{campaign.title}</CardTitle>
+                  <CardBody>
+                    <CardTitle>{campaign.title}</CardTitle>
 
-                  <MetaRow>
-                    <MetaChip aria-label={`Location: ${campaign.location}`}>
-                      <FiMapPin />
-                      {campaign.location}
-                    </MetaChip>
-                    <Divider />
-                    <MetaChip aria-label={`Posted: ${campaign.time}`}>
-                      <FiClock />
-                      {campaign.time}
-                    </MetaChip>
-                  </MetaRow>
+                    <MetaRow>
+                      <MetaChip aria-label={`Location: ${campaign.location}`}>
+                        <FiMapPin />
+                        {campaign.location}
+                      </MetaChip>
+                      <Divider />
+                      <MetaChip aria-label={`Posted: ${campaign.time}`}>
+                        <FiClock />
+                        {campaign.time}
+                      </MetaChip>
+                    </MetaRow>
 
-                  <CardActions>
-                    <ActionBtn
-                      primary
-                      onClick={handleSupportCampaign}
-                      aria-label={`Support campaign: ${campaign.title}`}
-                    >
-                      <FiHeart /> Support
-                    </ActionBtn>
-                    <ActionBtn
-                      onClick={handleShareCampaign}
-                      aria-label={`Share campaign: ${campaign.title}`}
-                    >
-                      <FiShare2 /> Share
-                    </ActionBtn>
-                  </CardActions>
-                </CardBody>
-              </Card>
-            );
-          })}
-        </CampaignGrid>
+                    <CardActions>
+                      <ActionBtn
+                        primary
+                        onClick={(e) => handleViewDetails(e, campaign.id)}
+                        aria-label={`View details: ${campaign.title}`}
+                      >
+                        View Details <FiArrowRight />
+                      </ActionBtn>
+                    </CardActions>
+                  </CardBody>
+                </Card>
+              );
+            })}
+          </CampaignGrid>
+        )}
 
         {/* ── View All ── */}
         <ViewAllWrap>

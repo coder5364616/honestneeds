@@ -14,7 +14,8 @@ import {
   revokeAudioUrl,
   revokeVideoUrl,
 } from '@/lib/mediaRecorder'
-import { COLORS, SPACING, TYPOGRAPHY } from '@/styles/tokens'
+import { SPACING, TYPOGRAPHY } from '@/styles/tokens'
+import { tk } from '@/styles/dashboardTokens'
 
 // Styled Components
 const Container = styled.div`
@@ -34,14 +35,14 @@ const TypeButton = styled.button<{ active: boolean }>`
   border-radius: 0.5rem;
   font-weight: 500;
   transition: all 0.2s;
-  background: ${(props) => (props.active ? '#9333ea' : '#f3f4f6')};
-  color: ${(props) => (props.active ? 'white' : COLORS.TEXT)};
-  border: none;
+  background: ${(props) => (props.active ? tk.amber : tk.canvasDeep)};
+  color: ${(props) => (props.active ? '#fff' : tk.ink)};
+  border: 1px solid ${(props) => (props.active ? tk.amber : tk.border)};
   cursor: pointer;
   font-size: ${TYPOGRAPHY.SIZE_SM};
 
   &:hover {
-    background: ${(props) => (props.active ? '#7e22ce' : '#e5e7eb')};
+    background: ${(props) => (props.active ? tk.amberDark : tk.border)};
   }
 
   span {
@@ -66,7 +67,7 @@ const TapSection = styled.div`
 `
 
 const TapDescription = styled.p`
-  color: ${COLORS.MUTED_TEXT};
+  color: ${tk.muted};
   font-size: ${TYPOGRAPHY.SIZE_SM};
   margin: 0;
 `
@@ -75,7 +76,7 @@ const TapButton = styled.button`
   width: 96px;
   height: 96px;
   border-radius: 9999px;
-  background: #9333ea;
+  background: ${tk.amber};
   color: white;
   border: none;
   cursor: pointer;
@@ -87,7 +88,7 @@ const TapButton = styled.button`
   transform: scale(1);
 
   &:hover:not(:disabled) {
-    background: #7e22ce;
+    background: ${tk.amberDark};
     transform: scale(1.1);
   }
 
@@ -102,7 +103,7 @@ const TapButton = styled.button`
 `
 
 const TapMessage = styled.p`
-  color: ${COLORS.MUTED_TEXT};
+  color: ${tk.muted};
   font-size: 0.875rem;
   margin: 0;
 `
@@ -113,22 +114,22 @@ const TextArea = styled.textarea`
   width: 100%;
   height: 8rem;
   padding: ${SPACING[3]};
-  border: 1px solid ${COLORS.BORDER};
+  border: 1px solid ${tk.border};
   border-radius: 0.5rem;
-  background: ${COLORS.SURFACE};
-  color: ${COLORS.TEXT};
+  background: ${tk.white};
+  color: ${tk.ink};
   font-family: inherit;
   font-size: ${TYPOGRAPHY.SIZE_SM};
   resize: none;
 
   &::placeholder {
-    color: ${COLORS.MUTED_TEXT};
+    color: ${tk.muted};
   }
 
   &:focus {
     outline: none;
-    border-color: #9333ea;
-    box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.1);
+    border-color: ${tk.amber};
+    box-shadow: 0 0 0 2px rgba(212, 135, 10, 0.14);
   }
 
   &:disabled {
@@ -139,7 +140,7 @@ const TextArea = styled.textarea`
 
 const CharCounter = styled.div`
   font-size: ${TYPOGRAPHY.SIZE_SM};
-  color: ${COLORS.MUTED_TEXT};
+  color: ${tk.muted};
 `
 
 const RecordingSection = styled.div`
@@ -171,7 +172,7 @@ const RecordingIcon = styled.div`
 const RecordingDuration = styled.div`
   font-size: 1.125rem;
   font-weight: 700;
-  color: #9333ea;
+  color: ${tk.amber};
 `
 
 const ButtonGroup = styled.div`
@@ -180,7 +181,7 @@ const ButtonGroup = styled.div`
 `
 
 const PlaybackBox = styled.div`
-  background: ${COLORS.BG};
+  background: ${tk.canvas};
   border-radius: 0.5rem;
   padding: ${SPACING[4]};
   display: flex;
@@ -190,7 +191,7 @@ const PlaybackBox = styled.div`
 
 const PlaybackLabel = styled.p`
   font-size: ${TYPOGRAPHY.SIZE_SM};
-  color: ${COLORS.MUTED_TEXT};
+  color: ${tk.muted};
   margin: 0;
 `
 
@@ -209,7 +210,7 @@ const VideoElement = styled.video`
 
 const VideoPlaceholder = styled.div`
   width: 100%;
-  background: ${COLORS.BG};
+  background: ${tk.canvas};
   border-radius: 0.5rem;
   aspect-ratio: 16 / 9;
   display: flex;
@@ -245,7 +246,7 @@ const PrivacySection = styled.div`
   flex-direction: column;
   gap: ${SPACING[3]};
   padding: ${SPACING[4]} 0;
-  border-top: 1px solid ${COLORS.BORDER};
+  border-top: 1px solid ${tk.border};
 `
 
 const CheckboxLabel = styled.label`
@@ -260,7 +261,7 @@ const Checkbox = styled.input`
   height: 1rem;
   border-radius: 0.25rem;
   cursor: pointer;
-  accent-color: #9333ea;
+  accent-color: ${tk.amber};
 
   &:disabled {
     cursor: not-allowed;
@@ -271,26 +272,26 @@ const Checkbox = styled.input`
 const CheckboxText = styled.span`
   font-size: ${TYPOGRAPHY.SIZE_SM};
   font-weight: 500;
-  color: ${COLORS.TEXT};
+  color: ${tk.ink};
 `
 
 const NameInput = styled.input`
   width: 100%;
   padding: ${SPACING[2]} ${SPACING[3]};
-  border: 1px solid ${COLORS.BORDER};
+  border: 1px solid ${tk.border};
   border-radius: 0.5rem;
-  background: ${COLORS.SURFACE};
-  color: ${COLORS.TEXT};
+  background: ${tk.white};
+  color: ${tk.ink};
   font-size: ${TYPOGRAPHY.SIZE_SM};
 
   &::placeholder {
-    color: ${COLORS.MUTED_TEXT};
+    color: ${tk.muted};
   }
 
   &:focus {
     outline: none;
-    border-color: #9333ea;
-    box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.1);
+    border-color: ${tk.amber};
+    box-shadow: 0 0 0 2px rgba(212, 135, 10, 0.14);
   }
 
   &:disabled {

@@ -8,13 +8,14 @@
 
 import React, { useState } from 'react'
 import styled from 'styled-components'
+import { tk } from '@/styles/dashboardTokens'
 import { useCreatePayoutRequest } from '@/api/hooks/useSharerPayoutRequest'
 import { useRewardsAvailableBalance } from '@/api/hooks/useSharerRewards'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
 const FormContainer = styled.div`
   background-color: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${tk.border};
   border-radius: 12px;
   padding: 1.5rem;
   max-width: 600px;
@@ -27,7 +28,7 @@ const FormContainer = styled.div`
 const FormTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
+  color: ${tk.heading};
   margin: 0 0 1.5rem 0;
 `
 
@@ -43,18 +44,18 @@ const Label = styled.label`
   display: block;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #0f172a;
+  color: ${tk.heading};
   margin-bottom: 0.5rem;
 `
 
 const Required = styled.span`
-  color: #ef4444;
+  color: ${tk.red};
 `
 
 const Input = styled.input`
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid ${tk.border};
   border-radius: 6px;
   font-size: 1rem;
   font-family: inherit;
@@ -62,12 +63,12 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: ${tk.blue};
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 
   &:disabled {
-    background-color: #f8fafc;
+    background-color: ${tk.canvas};
     cursor: not-allowed;
   }
 `
@@ -75,7 +76,7 @@ const Input = styled.input`
 const Select = styled.select`
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid ${tk.border};
   border-radius: 6px;
   font-size: 1rem;
   font-family: inherit;
@@ -83,12 +84,12 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: ${tk.blue};
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 
   &:disabled {
-    background-color: #f8fafc;
+    background-color: ${tk.canvas};
     cursor: not-allowed;
   }
 `
@@ -96,30 +97,30 @@ const Select = styled.select`
 const HelperText = styled.span`
   display: block;
   font-size: 0.8rem;
-  color: #64748b;
+  color: ${tk.muted};
   margin-top: 0.375rem;
 `
 
 const ErrorText = styled.span`
   display: block;
   font-size: 0.8rem;
-  color: #ef4444;
+  color: ${tk.red};
   margin-top: 0.375rem;
 `
 
 const AvailableBalance = styled.div`
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background-color: ${tk.greenLight};
+  border: 1px solid ${tk.greenLight};
   border-radius: 6px;
   padding: 0.75rem;
   margin-bottom: 1rem;
   font-size: 0.9rem;
-  color: #15803d;
+  color: ${tk.green};
 `
 
 const BankDetailsSection = styled.div`
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: ${tk.canvas};
+  border: 1px solid ${tk.border};
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -128,7 +129,7 @@ const BankDetailsSection = styled.div`
 const BankDetailsTitle = styled.h4`
   font-size: 0.95rem;
   font-weight: 600;
-  color: #0f172a;
+  color: ${tk.heading};
   margin: 0 0 0.75rem 0;
 `
 
@@ -155,7 +156,7 @@ const ButtonContainer = styled.div`
 const SubmitButton = styled.button`
   flex: 1;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: ${tk.ink};
   color: white;
   border: none;
   border-radius: 6px;
@@ -170,11 +171,11 @@ const SubmitButton = styled.button`
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
 
   &:disabled {
-    background: #cbd5e1;
+    background: ${tk.border};
     cursor: not-allowed;
   }
 
@@ -187,8 +188,8 @@ const CancelButton = styled.button`
   flex: 1;
   padding: 0.75rem 1.5rem;
   background-color: white;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
+  color: ${tk.muted};
+  border: 1px solid ${tk.border};
   border-radius: 6px;
   font-weight: 600;
   font-size: 1rem;
@@ -196,8 +197,8 @@ const CancelButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background-color: #f8fafc;
-    border-color: #94a3b8;
+    background-color: ${tk.canvas};
+    border-color: ${tk.muted};
   }
 
   &:disabled {
@@ -211,9 +212,9 @@ const CancelButton = styled.button`
 `
 
 const SuccessMessage = styled.div`
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #15803d;
+  background-color: ${tk.greenLight};
+  border: 1px solid ${tk.greenLight};
+  color: ${tk.green};
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 1rem;

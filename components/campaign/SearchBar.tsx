@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Search, X, SlidersHorizontal } from 'lucide-react'
-import styled, { css, keyframes } from 'styled-components'
+import styled, { keyframes } from 'styled-components'
+import { tk } from '@/styles/dashboardTokens'
 
 interface SearchBarProps {
   onSearch: (query: string) => void
@@ -32,11 +33,11 @@ const Shell = styled.div<{ $focused: boolean }>`
   position: relative;
   display: flex;
   align-items: center;
-  background: #ffffff;
+  background: ${tk.white};
   border-radius: 14px;
-  border: 1.5px solid ${p => p.$focused ? '#6366f1' : '#e5e7eb'};
+  border: 1.5px solid ${p => p.$focused ? tk.amber : tk.border};
   box-shadow: ${p => p.$focused
-    ? '0 0 0 3px rgba(99,102,241,0.12), 0 1px 4px rgba(0,0,0,0.06)'
+    ? `0 0 0 3px rgba(212,135,10,0.12), 0 1px 4px rgba(0,0,0,0.06)`
     : '0 1px 3px rgba(0,0,0,0.04)'};
   transition: border-color 200ms, box-shadow 200ms;
   overflow: hidden;
@@ -49,7 +50,7 @@ const SearchIconWrap = styled.div<{ $focused: boolean }>`
   display: flex;
   align-items: center;
   pointer-events: none;
-  color: ${p => p.$focused ? '#6366f1' : '#d1d5db'};
+  color: ${p => p.$focused ? tk.amber : tk.muted};
   transition: color 200ms;
 `
 
@@ -60,13 +61,13 @@ const Input = styled.input`
   padding: 0 44px 0 44px;
   border: none;
   background: transparent;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.9rem;
-  color: #111827;
+  color: ${tk.heading};
   outline: none;
-  font-family: inherit;
 
   &::placeholder {
-    color: #c4c9d4;
+    color: ${tk.muted};
     font-weight: 400;
   }
 
@@ -84,8 +85,8 @@ const ClearBtn = styled.button`
   height: 24px;
   border-radius: 50%;
   border: none;
-  background: #e5e7eb;
-  color: #6b7280;
+  background: ${tk.canvasDeep};
+  color: ${tk.muted};
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -94,7 +95,7 @@ const ClearBtn = styled.button`
   animation: ${fadeIn} 150ms ease;
   flex-shrink: 0;
 
-  &:hover { background: #d1d5db; color: #111827; }
+  &:hover { background: ${tk.border}; color: ${tk.heading}; }
 `
 
 // ─── Filter button ────────────────────────────────────────────────────────────
@@ -106,19 +107,20 @@ const FilterBtn = styled.button<{ $active: boolean }>`
   height: 48px;
   padding: 0 16px;
   border-radius: 14px;
-  border: 1.5px solid ${p => p.$active ? '#6366f1' : '#e5e7eb'};
-  background: ${p => p.$active ? '#eef2ff' : '#ffffff'};
-  color: ${p => p.$active ? '#6366f1' : '#6b7280'};
+  border: 1.5px solid ${p => p.$active ? tk.blue : tk.border};
+  background: ${p => p.$active ? tk.blueLight : tk.white};
+  color: ${p => p.$active ? tk.blue : tk.body};
+  font-family: 'Syne', sans-serif;
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 180ms;
   white-space: nowrap;
 
   &:hover {
-    border-color: #6366f1;
-    background: #eef2ff;
-    color: #6366f1;
+    border-color: ${tk.blue};
+    background: ${tk.blueLight};
+    color: ${tk.blue};
   }
 
   @media (min-width: 640px) {
@@ -134,10 +136,11 @@ const FilterCount = styled.span`
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #6366f1;
-  color: white;
+  background: ${tk.blue};
+  color: ${tk.white};
+  font-family: 'DM Mono', monospace;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 500;
 `
 
 // ─── Component ─────────────────────────────────────────────────────────────────

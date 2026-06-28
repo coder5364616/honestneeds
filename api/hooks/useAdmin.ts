@@ -1,325 +1,241 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  adminService,
-  type AdminOverviewStats,
-  type ActivityFeedItem,
-  type AdminAlert,
-  type CampaignModerationList,
-  type TransactionList,
-  type AdminSettings,
-} from '@/api/services/adminService'
-
 /**
- * Admin Hooks
- * - useAdminOverview: Admin dashboard stats
- * - useActivityFeed: Recent activity feed
- * - useAdminAlerts: Admin alerts
- * - useCampaignsForModeration: Campaign moderation queue
- * - useTransactionsForVerification: Transaction verification table
- * - useAdminSettings: Admin settings
- * - And mutations for flag, suspend, verify, reject, etc.
+ * Admin React Query hooks (AD-01..AD-10)
+ * Thin wrappers over adminService with consistent cache keys + invalidation.
  */
 
-// Query key factory
-const adminKeys = {
-  all: ['admin'],
-  overview: () => [...adminKeys.all, 'overview'],
-  activityFeed: () => [...adminKeys.all, 'activity-feed'],
-  alerts: () => [...adminKeys.all, 'alerts'],
-  campaigns: () => [...adminKeys.all, 'campaigns'],
-  campaignsModeration: (page: number, limit: number, status?: string, sortBy?: string) => [
-    ...adminKeys.campaigns(),
-    'moderation',
-    { page, limit, status, sortBy },
-  ],
-  transactions: () => [...adminKeys.all, 'transactions'],
-  transactionsVerification: (page: number, limit: number, status?: string, sortBy?: string) => [
-    ...adminKeys.transactions(),
-    'verification',
-    { page, limit, status, sortBy },
-  ],
-  transactionDetail: (id: string) => [...adminKeys.transactions(), 'detail', id],
-  settings: () => [...adminKeys.all, 'settings'],
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { toast } from 'react-toastify'
+import { adminService } from '@/api/services/adminService'
+
+type Query = Record<string, string | number | boolean | undefined>
+
+const keys = {
+  me: ['admin', 'me'] as const,
+  roles: ['admin', 'roles'] as const,
+  dashboard: (w?: number) => ['admin', 'dashboard', w] as const,
+  timeseries: (d?: number) => ['admin', 'timeseries', d] as const,
+  analytics: (p?: string) => ['admin', 'analytics', p] as const,
+  analyticsRegions: (p: Query) => ['admin', 'analyticsRegions', p] as const,
+  campaignQueue: (p: Query) => ['admin', 'campaignQueue', p] as const,
+  campaign: (id: string) => ['admin', 'campaign', id] as const,
+  comments: (p: Query) => ['admin', 'comments', p] as const,
+  users: (p: Query) => ['admin', 'users', p] as const,
+  user: (id: string) => ['admin', 'user', id] as const,
+  reports: (p: Query) => ['admin', 'reports', p] as const,
+  financeOverview: (p: Query) => ['admin', 'financeOverview', p] as const,
+  transactions: (p: Query) => ['admin', 'transactions', p] as const,
+  periodReport: (p: Query) => ['admin', 'periodReport', p] as const,
+  reconcile: (p: Query) => ['admin', 'reconcile', p] as const,
+  verifications: (p: Query) => ['admin', 'verifications', p] as const,
+  verification: (id: string) => ['admin', 'verification', id] as const,
+  fraud: ['admin', 'fraud'] as const,
+  fraudAlerts: (p: Query) => ['admin', 'fraudAlerts', p] as const,
+  config: ['admin', 'config'] as const,
+  audit: (p: Query) => ['admin', 'audit', p] as const,
+  aiOverview: (d?: number) => ['admin', 'aiOverview', d] as const,
+  aiTimeseries: (d?: number) => ['admin', 'aiTimeseries', d] as const,
+  aiLogs: (p: Query) => ['admin', 'aiLogs', p] as const,
+  aiFeatures: ['admin', 'aiFeatures'] as const,
 }
 
-// ============================================
-// USE ADMIN OVERVIEW
-// ============================================
-export function useAdminOverview() {
-  return useQuery({
-    queryKey: adminKeys.overview(),
-    queryFn: () => adminService.getAdminOverview(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
-    refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
-  })
+const onErr = (e: unknown) => {
+  const err = e as { response?: { data?: { error?: { message?: string } } } }
+  toast.error(err?.response?.data?.error?.message || 'Action failed')
 }
 
-// ============================================
-// USE ACTIVITY FEED
-// ============================================
-export function useActivityFeed(limit: number = 10) {
-  return useQuery({
-    queryKey: adminKeys.activityFeed(),
-    queryFn: () => adminService.getActivityFeed(limit),
-    staleTime: 3 * 60 * 1000, // 3 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  })
-}
+// ── Identity / RBAC ──────────────────────────────────────────────────────
+export const useAdminMe = () =>
+  useQuery({ queryKey: keys.me, queryFn: adminService.me, staleTime: 10 * 60 * 1000, retry: false })
 
-// ============================================
-// USE ADMIN ALERTS
-// ============================================
-export function useAdminAlerts() {
-  return useQuery({
-    queryKey: adminKeys.alerts(),
-    queryFn: () => adminService.getAlerts(),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
-  })
-}
+export const useAdminRoles = () =>
+  useQuery({ queryKey: keys.roles, queryFn: adminService.roles, staleTime: 30 * 60 * 1000 })
 
-// ============================================
-// USE CAMPAIGNS FOR MODERATION
-// ============================================
-export function useCampaignsForModeration(
-  page: number = 1,
-  limit: number = 25,
-  status?: string,
-  sortBy?: string
-) {
-  return useQuery({
-    queryKey: adminKeys.campaignsModeration(page, limit, status, sortBy),
-    queryFn: () => adminService.getCampaignsForModeration(page, limit, { status, sortBy }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
-  })
-}
+// ── AD-01 Dashboard ────────────────────────────────────────────────────
+export const useAdminDashboard = (windowDays?: number) =>
+  useQuery({ queryKey: keys.dashboard(windowDays), queryFn: () => adminService.dashboard(windowDays) })
 
-// ============================================
-// USE FLAG CAMPAIGN
-// ============================================
-export function useFlagCampaign() {
-  const queryClient = useQueryClient()
+export const useAdminTimeseries = (days?: number) =>
+  useQuery({ queryKey: keys.timeseries(days), queryFn: () => adminService.timeseries(days) })
 
+// ── AN-02 Platform analytics ─────────────────────────────────────────────
+export const useAdminAnalytics = (period?: string) =>
+  useQuery({ queryKey: keys.analytics(period), queryFn: () => adminService.analytics(period) })
+
+export const useAnalyticsRegions = (params: Query) =>
+  useQuery({ queryKey: keys.analyticsRegions(params), queryFn: () => adminService.analyticsRegions(params), placeholderData: keepPreviousData })
+
+// ── AD-02 Campaign moderation ──────────────────────────────────────────
+export const useCampaignQueue = (params: Query) =>
+  useQuery({ queryKey: keys.campaignQueue(params), queryFn: () => adminService.campaignQueue(params), placeholderData: keepPreviousData })
+
+export const useCampaignReview = (id: string) =>
+  useQuery({ queryKey: keys.campaign(id), queryFn: () => adminService.campaignForReview(id), enabled: !!id })
+
+export const useModerateCampaign = () => {
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({
-      campaignId,
-      reason,
-      notes,
-    }: {
-      campaignId: string
-      reason: string
-      notes?: string
-    }) => adminService.flagCampaign(campaignId, reason, notes),
+    mutationFn: ({ id, ...body }: { id: string; decision: string; notes?: string; reason?: string }) =>
+      adminService.moderateCampaign(id, body),
     onSuccess: () => {
-      // Invalidate moderation queue
-      queryClient.invalidateQueries({ queryKey: adminKeys.campaigns() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.alerts() })
+      toast.success('Decision applied')
+      qc.invalidateQueries({ queryKey: ['admin', 'campaignQueue'] })
     },
+    onError: onErr,
   })
 }
 
-// ============================================
-// USE UNFLAG CAMPAIGN
-// ============================================
-export function useUnflagCampaign() {
-  const queryClient = useQueryClient()
-
+export const useCampaignPauseResume = () => {
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: (campaignId: string) => adminService.unflagCampaign(campaignId),
+    mutationFn: ({ id, pause, reason }: { id: string; pause: boolean; reason?: string }) =>
+      pause ? adminService.pauseCampaign(id, reason) : adminService.resumeCampaign(id, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.campaigns() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.alerts() })
+      toast.success('Updated')
+      qc.invalidateQueries({ queryKey: ['admin', 'campaignQueue'] })
     },
+    onError: onErr,
   })
 }
 
-// ============================================
-// USE SUSPEND CAMPAIGN
-// ============================================
-export function useSuspendCampaign() {
-  const queryClient = useQueryClient()
+// ── AD-08 Content moderation ───────────────────────────────────────────
+export const useFlaggedComments = (params: Query) =>
+  useQuery({ queryKey: keys.comments(params), queryFn: () => adminService.flaggedComments(params), placeholderData: keepPreviousData })
 
+export const useModerateComment = () => {
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({
-      campaignId,
-      reason,
-      duration,
-      notifyCreator,
-    }: {
-      campaignId: string
-      reason: string
-      duration: '7days' | '30days' | 'permanent'
-      notifyCreator?: boolean
-    }) => adminService.suspendCampaign(campaignId, reason, duration, notifyCreator),
+    mutationFn: ({ id, ...body }: { id: string; action: string; reason?: string }) =>
+      adminService.moderateComment(id, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.campaigns() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.overview() })
+      toast.success('Comment updated')
+      qc.invalidateQueries({ queryKey: ['admin', 'comments'] })
     },
+    onError: onErr,
   })
 }
 
-// ============================================
-// USE UNSUSPEND CAMPAIGN
-// ============================================
-export function useUnsuspendCampaign() {
-  const queryClient = useQueryClient()
+// ── AD-03 Users ─────────────────────────────────────────────────────────
+export const useAdminUsers = (params: Query) =>
+  useQuery({ queryKey: keys.users(params), queryFn: () => adminService.users(params), placeholderData: keepPreviousData })
 
+export const useAdminUserDetail = (id: string) =>
+  useQuery({ queryKey: keys.user(id), queryFn: () => adminService.userDetail(id), enabled: !!id })
+
+export const useUserAction = () => {
+  const qc = useQueryClient()
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['admin', 'users'] })
+    qc.invalidateQueries({ queryKey: ['admin', 'user'] })
+  }
+  return {
+    verify: useMutation({ mutationFn: ({ id, notes }: { id: string; notes?: string }) => adminService.verifyUser(id, notes), onSuccess: () => { toast.success('User verified'); invalidate() }, onError: onErr }),
+    rejectVerification: useMutation({ mutationFn: ({ id, notes }: { id: string; notes?: string }) => adminService.rejectVerification(id, notes), onSuccess: () => { toast.success('Verification rejected'); invalidate() }, onError: onErr }),
+    block: useMutation({ mutationFn: ({ id, reason }: { id: string; reason?: string }) => adminService.blockUser(id, reason), onSuccess: () => { toast.success('User blocked'); invalidate() }, onError: onErr }),
+    unblock: useMutation({ mutationFn: (id: string) => adminService.unblockUser(id), onSuccess: () => { toast.success('User unblocked'); invalidate() }, onError: onErr }),
+    remove: useMutation({ mutationFn: ({ id, reason }: { id: string; reason?: string }) => adminService.deleteUser(id, reason), onSuccess: () => { toast.success('User deleted'); invalidate() }, onError: onErr }),
+    updateRole: useMutation({ mutationFn: ({ id, role, adminRoles }: { id: string; role?: string; adminRoles?: string[] }) => adminService.updateUserRole(id, { role, adminRoles }), onSuccess: () => { toast.success('Role updated'); invalidate() }, onError: onErr }),
+  }
+}
+
+export const useAdminReports = (params: Query) =>
+  useQuery({ queryKey: keys.reports(params), queryFn: () => adminService.reports(params), placeholderData: keepPreviousData })
+
+export const useReportAction = () => {
+  const qc = useQueryClient()
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['admin', 'reports'] })
+  return {
+    resolve: useMutation({ mutationFn: ({ id, ...body }: { id: string; resolution?: string; actionTaken?: string }) => adminService.resolveReport(id, body), onSuccess: () => { toast.success('Report resolved'); invalidate() }, onError: onErr }),
+    dismiss: useMutation({ mutationFn: ({ id, reason }: { id: string; reason?: string }) => adminService.dismissReport(id, reason), onSuccess: () => { toast.success('Report dismissed'); invalidate() }, onError: onErr }),
+  }
+}
+
+// ── AD-04 Finance ─────────────────────────────────────────────────────────
+export const useFinanceOverview = (params: Query) =>
+  useQuery({ queryKey: keys.financeOverview(params), queryFn: () => adminService.financeOverview(params) })
+
+export const useAdminTransactions = (params: Query) =>
+  useQuery({ queryKey: keys.transactions(params), queryFn: () => adminService.transactions(params), placeholderData: keepPreviousData })
+
+export const useRefundTransaction = () => {
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: (campaignId: string) => adminService.unsuspendCampaign(campaignId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.campaigns() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.overview() })
-    },
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => adminService.refundTransaction(id, reason),
+    onSuccess: () => { toast.success('Refund processed'); qc.invalidateQueries({ queryKey: ['admin', 'transactions'] }) },
+    onError: onErr,
   })
 }
 
-// ============================================
-// USE APPROVE CAMPAIGN
-// ============================================
-export function useApproveCampaign() {
-  const queryClient = useQueryClient()
+// ── AD-10 Reports & reconciliation ──────────────────────────────────────
+export const usePeriodReport = (params: Query) =>
+  useQuery({ queryKey: keys.periodReport(params), queryFn: () => adminService.periodReport(params) })
 
+export const useReconciliation = (params: Query) =>
+  useQuery({ queryKey: keys.reconcile(params), queryFn: () => adminService.reconcile(params) })
+
+// ── AD-05 Verification ────────────────────────────────────────────────────
+export const useVerifications = (params: Query) =>
+  useQuery({ queryKey: keys.verifications(params), queryFn: () => adminService.verifications(params), placeholderData: keepPreviousData })
+
+export const useVerificationDetail = (id: string) =>
+  useQuery({ queryKey: keys.verification(id), queryFn: () => adminService.verificationDetail(id), enabled: !!id })
+
+export const useVerificationAction = () => {
+  const qc = useQueryClient()
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['admin', 'verifications'] })
+  return {
+    approve: useMutation({ mutationFn: ({ id, notes, tier }: { id: string; notes?: string; tier?: string }) => adminService.approveVerification(id, { notes, tier }), onSuccess: () => { toast.success('Verification approved'); invalidate() }, onError: onErr }),
+    reject: useMutation({ mutationFn: ({ id, reason }: { id: string; reason: string }) => adminService.rejectVerificationSubmission(id, reason), onSuccess: () => { toast.success('Verification rejected'); invalidate() }, onError: onErr }),
+    requestInfo: useMutation({ mutationFn: ({ id, notes }: { id: string; notes?: string }) => adminService.requestVerificationInfo(id, notes), onSuccess: () => { toast.success('Requested more info'); invalidate() }, onError: onErr }),
+  }
+}
+
+// ── AD-06 Fraud ─────────────────────────────────────────────────────────
+export const useFraudDashboard = () =>
+  useQuery({ queryKey: keys.fraud, queryFn: adminService.fraudDashboard })
+
+export const useFraudAlerts = (params: Query) =>
+  useQuery({ queryKey: keys.fraudAlerts(params), queryFn: () => adminService.fraudAlerts(params), placeholderData: keepPreviousData })
+
+export const useFraudAction = () => {
+  const qc = useQueryClient()
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['admin', 'fraud'] })
+    qc.invalidateQueries({ queryKey: ['admin', 'fraudAlerts'] })
+  }
+  return {
+    actOnAlert: useMutation({ mutationFn: ({ id, ...body }: { id: string; action: string; notes?: string }) => adminService.actOnAlert(id, body), onSuccess: () => { toast.success('Alert updated'); invalidate() }, onError: onErr }),
+    reviewAssessment: useMutation({ mutationFn: ({ id, ...body }: { id: string; decision: string; notes?: string }) => adminService.reviewAssessment(id, body), onSuccess: () => { toast.success('Assessment reviewed'); invalidate() }, onError: onErr }),
+  }
+}
+
+// ── AD-07 Config ─────────────────────────────────────────────────────────
+export const useAdminConfig = () =>
+  useQuery({ queryKey: keys.config, queryFn: adminService.config })
+
+export const useUpdateConfig = () => {
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: (campaignId: string) => adminService.approveCampaign(campaignId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.campaigns() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.overview() })
-    },
+    mutationFn: ({ key, value }: { key: string; value: Record<string, unknown> }) => adminService.updateConfig(key, value),
+    onSuccess: () => { toast.success('Settings saved'); qc.invalidateQueries({ queryKey: keys.config }) },
+    onError: onErr,
   })
 }
 
-// ============================================
-// USE TRANSACTIONS FOR VERIFICATION
-// ============================================
-export function useTransactionsForVerification(
-  page: number = 1,
-  limit: number = 25,
-  status?: string,
-  sortBy?: string
-) {
-  return useQuery({
-    queryKey: adminKeys.transactionsVerification(page, limit, status, sortBy),
-    queryFn: () =>
-      adminService.getTransactionsForVerification(page, limit, { status, sortBy }),
-    staleTime: 3 * 60 * 1000, // 3 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
-  })
-}
+// ── AD-09 Audit ─────────────────────────────────────────────────────────
+export const useAuditLog = (params: Query) =>
+  useQuery({ queryKey: keys.audit(params), queryFn: () => adminService.audit(params), placeholderData: keepPreviousData })
 
-// ============================================
-// USE TRANSACTION DETAIL
-// ============================================
-export function useTransactionDetail(transactionId: string | undefined) {
-  return useQuery({
-    queryKey: adminKeys.transactionDetail(transactionId || ''),
-    queryFn: () => adminService.getTransactionDetail(transactionId!),
-    enabled: !!transactionId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
-  })
-}
+// ── AI subsystem oversight ───────────────────────────────────────────────
+export const useAIOverview = (days?: number) =>
+  useQuery({ queryKey: keys.aiOverview(days), queryFn: () => adminService.aiOverview(days) })
 
-// ============================================
-// USE VERIFY TRANSACTION
-// ============================================
-export function useVerifyTransaction() {
-  const queryClient = useQueryClient()
+export const useAITimeseries = (days?: number) =>
+  useQuery({ queryKey: keys.aiTimeseries(days), queryFn: () => adminService.aiTimeseries(days) })
 
-  return useMutation({
-    mutationFn: (transactionId: string) => adminService.verifyTransaction(transactionId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.transactions() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.overview() })
-    },
-  })
-}
+export const useAILogs = (params: Query) =>
+  useQuery({ queryKey: keys.aiLogs(params), queryFn: () => adminService.aiLogs(params), placeholderData: keepPreviousData })
 
-// ============================================
-// USE BULK VERIFY TRANSACTIONS
-// ============================================
-export function useBulkVerifyTransactions() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (transactionIds: string[]) =>
-      adminService.bulkVerifyTransactions(transactionIds),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.transactions() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.overview() })
-    },
-  })
-}
-
-// ============================================
-// USE REJECT TRANSACTION
-// ============================================
-export function useRejectTransaction() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({
-      transactionId,
-      reason,
-    }: {
-      transactionId: string
-      reason: string
-    }) => adminService.rejectTransaction(transactionId, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.transactions() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.overview() })
-    },
-  })
-}
-
-// ============================================
-// USE BULK REJECT TRANSACTIONS
-// ============================================
-export function useBulkRejectTransactions() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({
-      transactionIds,
-      reason,
-    }: {
-      transactionIds: string[]
-      reason: string
-    }) => adminService.bulkRejectTransactions(transactionIds, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.transactions() })
-      queryClient.invalidateQueries({ queryKey: adminKeys.overview() })
-    },
-  })
-}
-
-// ============================================
-// USE ADMIN SETTINGS
-// ============================================
-export function useAdminSettings() {
-  return useQuery({
-    queryKey: adminKeys.settings(),
-    queryFn: () => adminService.getAdminSettings(),
-    staleTime: 60 * 60 * 1000, // 1 hour
-    gcTime: 24 * 60 * 60 * 1000, // 24 hours
-  })
-}
-
-// ============================================
-// USE UPDATE ADMIN SETTINGS
-// ============================================
-export function useUpdateAdminSettings() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (settings: Parameters<typeof adminService.updateAdminSettings>[0]) =>
-      adminService.updateAdminSettings(settings),
-    onSuccess: (result) => {
-      queryClient.setQueryData(adminKeys.settings(), result)
-    },
-  })
-}
+export const useAIFeatures = () =>
+  useQuery({ queryKey: keys.aiFeatures, queryFn: adminService.aiFeatures, staleTime: 10 * 60 * 1000 })

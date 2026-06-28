@@ -1,14 +1,30 @@
 import axios, { AxiosInstance, AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'react-toastify'
+import { useConnectivityStore } from '@/store/connectivityStore'
 
 interface ApiErrorResponse {
   message?: string
   error?: string
 }
 
+// Augment axios config so per-request options below are recognised at call
+// sites (apiClient.get(url, { silentStatuses: [...] })), not just internally.
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /**
+     * Status codes that are an EXPECTED outcome for this request (e.g. a 404
+     * when probing /business/profile/me before the user has created a profile).
+     * When the response status is in this list, handleApiError stays silent —
+     * no console.error and no toast — and lets the caller handle it.
+     */
+    silentStatuses?: number[]
+  }
+}
+
 interface RetryConfig extends InternalAxiosRequestConfig {
   retryCount?: number
   skipRetry?: boolean
+  _authRetried?: boolean
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
@@ -36,6 +52,64 @@ const isRetryableError = (error: AxiosError): boolean => {
   }
   // Retry on 5xx server errors
   return error.response.status >= 500
+}
+
+/**
+ * Classify an error as a connectivity issue and push it to the global banner
+ * store (lib/components/ConnectivityBanner). Safe to call repeatedly — the
+ * store no-ops if nothing changed.
+ */
+const reportConnectivityFromError = (error: AxiosError): void => {
+  if (typeof window === 'undefined') return
+
+  if (error.code === 'ECONNABORTED') {
+    useConnectivityStore.getState().reportIssue('timeout')
+  } else if (!error.response) {
+    useConnectivityStore.getState().reportIssue(
+      navigator.onLine === false ? 'browser-offline' : 'network-error'
+    )
+  } else if (error.response.status >= 500) {
+    useConnectivityStore.getState().reportIssue('server-error')
+  }
+}
+
+/**
+ * Single in-flight refresh promise, shared across all concurrent 401s so we
+ * only hit /auth/refresh once even if several requests expire at the same time.
+ */
+let refreshPromise: Promise<string | null> | null = null
+
+/**
+ * Exchange the stored refresh token for a new access token.
+ * Uses a bare axios call (not apiClient) to avoid interceptor recursion.
+ * Returns the new access token, or null if refresh is impossible.
+ */
+export async function refreshAccessToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null
+
+  const refreshToken = localStorage.getItem('refresh_token')
+  if (!refreshToken) return null
+
+  try {
+    const { data } = await axios.post(
+      `${API_URL}/auth/refresh`,
+      { refreshToken },
+      { withCredentials: true, timeout: 30000 }
+    )
+
+    // Backend responds with { success, message, data: { accessToken } }
+    const newToken: string | undefined = data?.data?.accessToken || data?.accessToken
+    if (!newToken) return null
+
+    // Persist the renewed access token everywhere the app reads it from.
+    localStorage.setItem('auth_token', newToken)
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString()
+    document.cookie = `auth_token=${newToken}; expires=${expires}; path=/; SameSite=Lax`
+
+    return newToken
+  } catch {
+    return null
+  }
 }
 
 export const apiClient: AxiosInstance = axios.create({
@@ -111,12 +185,46 @@ apiClient.interceptors.response.use(
     if (isDev) {
       console.log('[API Response]', response.status, response.config.url, response.data)
     }
+    // Any successful response means we're connected — clear a stale banner.
+    useConnectivityStore.getState().reportSuccess()
     return response
   },
   async (error: AxiosError<ApiErrorResponse>) => {
     const config = error.config as RetryConfig | undefined
 
-    if (!config || config.skipRetry) {
+    if (!config) {
+      handleApiError(error)
+      return Promise.reject(error)
+    }
+
+    // --- 401 handling: try to silently refresh the access token, then replay ---
+    const isAuthEndpoint = (config.url || '').includes('/auth/')
+    if (
+      error.response?.status === 401 &&
+      !config._authRetried &&
+      !isAuthEndpoint &&
+      typeof window !== 'undefined' &&
+      localStorage.getItem('refresh_token')
+    ) {
+      config._authRetried = true
+
+      // Share one refresh across all concurrent 401s.
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().finally(() => {
+          refreshPromise = null
+        })
+      }
+
+      const newToken = await refreshPromise
+
+      if (newToken) {
+        config.headers.Authorization = `Bearer ${newToken}`
+        return apiClient.request(config)
+      }
+      // Refresh failed → fall through to handleApiError which clears auth.
+    }
+
+    if (config.skipRetry) {
       handleApiError(error)
       return Promise.reject(error)
     }
@@ -128,6 +236,10 @@ apiClient.interceptors.response.use(
 
     // Check if we should retry
     if (isRetryableError(error) && config.retryCount < MAX_RETRIES) {
+      // Surface the connectivity banner immediately — don't make the user
+      // wait through 3 silent retries before learning something's wrong.
+      reportConnectivityFromError(error)
+
       config.retryCount++
       const delay = getExponentialBackoffDelay(config.retryCount - 1)
 
@@ -155,6 +267,13 @@ apiClient.interceptors.response.use(
  * Handle API errors with appropriate user feedback
  */
 function handleApiError(error: AxiosError<ApiErrorResponse>): void {
+  // Caller-declared expected statuses (e.g. 404 on /business/profile/me before
+  // a profile exists) are handled by the caller — stay silent here.
+  const status = error.response?.status
+  if (status && error.config?.silentStatuses?.includes(status)) {
+    return
+  }
+
   if (isDev) {
     console.error('[API Error] Full details:', {
       status: error.response?.status,
@@ -185,6 +304,7 @@ function handleApiError(error: AxiosError<ApiErrorResponse>): void {
       if (currentToken && currentUser) {
         console.warn('[API] Clearing auth due to session expiration')
         localStorage.removeItem('auth_token')
+        localStorage.removeItem('refresh_token')
         localStorage.removeItem('user')
         
         // Store the redirect URL to return after login
@@ -195,9 +315,12 @@ function handleApiError(error: AxiosError<ApiErrorResponse>): void {
         window.location.href = '/login'
         toast.error('Session expired. Please login again.')
       } else {
-        // No token in localStorage - avoid redirect loop, just show error
-        console.error('[API] 401 Error but no token in localStorage. Endpoint:', error.config?.url)
-        toast.error('Authentication failed. Please ensure you are logged in.')
+        // No token in localStorage — anonymous/public browsing. A 401 on a
+        // background request (e.g. a public campaign page that also probes an
+        // authed-only endpoint like analytics) is EXPECTED and must NOT nag the
+        // visitor with a login toast. Explicit auth-required actions surface
+        // their own messaging where the user took the action.
+        console.warn('[API] 401 with no auth token (anonymous browsing). Endpoint:', error.config?.url)
       }
     }
   } else if (error.response?.status === 403) {
@@ -212,18 +335,51 @@ function handleApiError(error: AxiosError<ApiErrorResponse>): void {
     const message = error.response?.data?.message || error.response?.data?.error || 'Invalid request'
     toast.error(message)
   } else if (error.response?.status && error.response.status >= 500) {
-    // Server error
-    toast.error('Server error. Please try again later.')
+    // Server error — the global ConnectivityBanner already explains this and
+    // offers a Retry action; a toast on top would just be noise.
+    reportConnectivityFromError(error)
   } else if (error.code === 'ECONNABORTED') {
-    // Timeout
-    toast.error('Request timeout. Please try again.')
+    // Timeout — same as above, surfaced via the connectivity banner.
+    reportConnectivityFromError(error)
   } else if (!error.response) {
-    // Network error
-    toast.error('Network error. Please check your connection.')
+    // Network/offline error — same as above.
+    reportConnectivityFromError(error)
   } else {
     // Generic error
     toast.error('An error occurred. Please try again.')
   }
+}
+
+/**
+ * Backend error envelope: `{ success:false, error:{ code, message, statusCode } }`.
+ * Older endpoints use a flat `{ message }` or `{ error: '…' }`. These helpers
+ * read the machine-readable code and a human-readable message from either shape.
+ */
+type BackendError = {
+  message?: string
+  error?: string | { code?: string; message?: string }
+}
+
+/** Machine-readable error code (e.g. 'NO_VOLUNTEER_PROFILE'), or undefined. */
+export function getApiErrorCode(err: unknown): string | undefined {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as BackendError | undefined
+    if (data && typeof data.error === 'object') return data.error.code
+  }
+  return undefined
+}
+
+/** Human-readable message from the backend, falling back to a sensible default. */
+export function getApiErrorMessage(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as BackendError | undefined
+    if (data) {
+      if (typeof data.error === 'object' && data.error.message) return data.error.message
+      if (typeof data.error === 'string' && data.error) return data.error
+      if (data.message) return data.message
+    }
+  }
+  return err instanceof Error ? err.message || fallback : fallback
 }
 
 export default apiClient

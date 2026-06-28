@@ -70,6 +70,13 @@ class AuthService {
         }
       }
 
+      // Persist the refresh token so the API client can silently renew the
+      // access token when it expires (see lib/api.ts interceptor).
+      const refreshToken = responsePayload.data?.refreshToken || responsePayload.refreshToken
+      if (refreshToken && typeof window !== 'undefined') {
+        localStorage.setItem('refresh_token', refreshToken)
+      }
+
       console.log('[Auth Service] Login successful:', { userId: responseData.user.id })
       return {
         success: true,
@@ -134,6 +141,11 @@ class AuthService {
           success: false,
           error: 'Invalid response from server',
         }
+      }
+
+      const refreshToken = responsePayload.data?.refreshToken || responsePayload.refreshToken
+      if (refreshToken && typeof window !== 'undefined') {
+        localStorage.setItem('refresh_token', refreshToken)
       }
 
       console.log('[Auth Service] Registration successful:', { userId: responseData.user.id })

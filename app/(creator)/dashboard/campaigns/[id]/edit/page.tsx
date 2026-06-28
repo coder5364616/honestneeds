@@ -4,6 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import styled from 'styled-components'
 import { useState } from 'react'
 import { PrayerSettingsTab } from '@/components/campaign/PrayerSettingsTab'
+import { CampaignLiveEditor } from '@/components/campaign/CampaignLiveEditor'
+import { TransformationJourneyEditor } from '@/components/campaign/TransformationJourneyEditor'
 
 const Container = styled.div`
   max-width: 1200px;
@@ -89,14 +91,20 @@ export default function EditCampaignPage() {
           >
             📋 General
           </TabButton>
-          <TabButton 
-            $active={activeTab === 'prayer'} 
+          <TabButton
+            $active={activeTab === 'prayer'}
             onClick={() => setActiveTab('prayer')}
           >
             🙏 Prayer Support
           </TabButton>
-          <TabButton 
-            $active={activeTab === 'advanced'} 
+          <TabButton
+            $active={activeTab === 'journey'}
+            onClick={() => setActiveTab('journey')}
+          >
+            ✨ Journey
+          </TabButton>
+          <TabButton
+            $active={activeTab === 'advanced'}
             onClick={() => setActiveTab('advanced')}
           >
             ⚙️ Advanced
@@ -104,13 +112,10 @@ export default function EditCampaignPage() {
         </TabNavigation>
 
         <TabContent>
-          {/* General Settings Tab */}
+          {/* General Settings Tab — CE-1 controlled live editing + history */}
           {activeTab === 'general' && (
             <div>
-              <Message>General campaign settings coming soon...</Message>
-              <p style={{ fontSize: '14px', color: '#999', marginTop: '1rem' }}>
-                This section will include campaign title, description, image, and basic details.
-              </p>
+              <CampaignLiveEditor campaignId={campaignId} />
             </div>
           )}
 
@@ -118,6 +123,13 @@ export default function EditCampaignPage() {
           {activeTab === 'prayer' && (
             <div>
               <PrayerSettingsTab campaignId={campaignId} />
+            </div>
+          )}
+
+          {/* CA-20 / G-7 Transformation Journey editor */}
+          {activeTab === 'journey' && (
+            <div>
+              <TransformationJourneyEditor campaignId={campaignId} />
             </div>
           )}
 

@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
-import axios from 'axios'
+import { apiClient } from '@/lib/api'
 
 interface CampaignStatusChangedEvent {
   campaignId: string
@@ -45,7 +45,7 @@ export const useCampaignStatusNotifications = (
     if (!campaignId) return
 
     try {
-      const response = await axios.get(`/api/campaigns/${campaignId}`)
+      const response = await apiClient.get(`/campaigns/${campaignId}`)
       const currentStatus = response.data?.data?.status
 
       if (previousStatusRef.current && previousStatusRef.current !== currentStatus) {

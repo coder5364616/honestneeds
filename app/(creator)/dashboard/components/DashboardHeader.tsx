@@ -2,9 +2,10 @@
 
 import React from 'react'
 import styled from 'styled-components'
-import { Plus } from 'lucide-react'
+import { Plus, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { useDashboardContext } from '../context/DashboardContext'
+import { NotificationBell } from '@/features/notifications'
 
 /**
  * Dashboard Header Component
@@ -234,6 +235,12 @@ export function DashboardHeader({
         </TitleSection>
 
         <ButtonGroup>
+          <Link href="/messages" style={{ textDecoration: 'none' }} aria-label="Messages">
+            <Button $variant="secondary">
+              <MessageSquare size={16} />
+            </Button>
+          </Link>
+          <NotificationBell />
           <Link href="/campaigns/new" style={{ textDecoration: 'none' }}>
             <Button $variant="primary">
               <Plus size={16} />

@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react'
 import styled from 'styled-components'
+import { tk } from '@/styles/dashboardTokens'
 import { useVerifiedRewards } from '@/api/hooks/useSharerRewards'
 import { RewardEarningCard } from './RewardEarningCard'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
@@ -15,13 +16,13 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 const ContainerWrapper = styled.div`
   background-color: white;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${tk.border};
   overflow: hidden;
   margin-bottom: 2rem;
 `
 
 const SectionHeader = styled.div`
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: ${tk.green};
   color: white;
   padding: 1.5rem;
   display: flex;
@@ -67,7 +68,7 @@ const RewardsList = styled.div`
 const EmptyState = styled.div`
   text-align: center;
   padding: 2rem;
-  color: #64748b;
+  color: ${tk.muted};
 `
 
 const EmptyStateIcon = styled.div`
@@ -93,17 +94,17 @@ const PaginationContainer = styled.div`
   align-items: center;
   gap: 0.5rem;
   padding: 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  background-color: #f8fafc;
+  border-top: 1px solid ${tk.border};
+  background-color: ${tk.canvas};
 `
 
 const PaginationButton = styled.button<{ $active?: boolean; $disabled?: boolean }>`
   min-width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid ${props => props.$active ? '#10b981' : '#e2e8f0'};
-  background-color: ${props => props.$active ? '#10b981' : 'white'};
-  color: ${props => props.$active ? 'white' : '#0f172a'};
+  border: 1px solid ${props => props.$active ? tk.green : tk.border};
+  background-color: ${props => props.$active ? tk.green : 'white'};
+  color: ${props => props.$active ? 'white' : tk.heading};
   border-radius: 6px;
   font-weight: 600;
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
@@ -111,12 +112,12 @@ const PaginationButton = styled.button<{ $active?: boolean; $disabled?: boolean 
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    border-color: #10b981;
+    border-color: ${tk.green};
   }
 `
 
 const PageInfo = styled.span`
-  color: #64748b;
+  color: ${tk.muted};
   font-size: 0.9rem;
 `
 
@@ -163,7 +164,7 @@ export const VerifiedRewardsList: React.FC<VerifiedRewardsListProps> = ({
         <EmptyState>
           <EmptyStateIcon>🎯</EmptyStateIcon>
           <EmptyStateText>
-            Share campaigns to earn rewards. Rewards are available for payout after a 30-day verification period.
+            Share campaigns to earn rewards. When a share converts, the reward is owed to you right away — request a payout and the creator pays you directly.
           </EmptyStateText>
         </EmptyState>
       ) : (

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import styled from 'styled-components'
-import { Share2, Instagram, Facebook, Twitter, Linkedin, ArrowRight, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { Share2, Camera, ThumbsUp, AtSign, Briefcase, ArrowRight, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import { useCreateShareReward } from '@/api/hooks/useSharerRewards'
 import { toast } from 'react-toastify'
 import Button from '@/components/ui/Button'
@@ -31,11 +31,11 @@ interface ShareActionButtonProps {
 }
 
 const PlatformOption = {
-  instagram: { label: 'Instagram', icon: Instagram, color: '#E4405F' },
+  instagram: { label: 'Instagram', icon: Camera, color: '#E4405F' },
   tiktok: { label: 'TikTok', icon: () => <span>🎵</span>, color: '#000000' },
-  facebook: { label: 'Facebook', icon: Facebook, color: '#1877F2' },
-  twitter: { label: 'Twitter (X)', icon: Twitter, color: '#000000' },
-  linkedin: { label: 'LinkedIn', icon: Linkedin, color: '#0A66C2' },
+  facebook: { label: 'Facebook', icon: ThumbsUp, color: '#1877F2' },
+  twitter: { label: 'Twitter (X)', icon: AtSign, color: '#000000' },
+  linkedin: { label: 'LinkedIn', icon: Briefcase, color: '#0A66C2' },
   email: { label: 'Email', icon: null, color: '#666666' },
 }
 

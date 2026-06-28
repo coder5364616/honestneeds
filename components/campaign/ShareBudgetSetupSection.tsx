@@ -295,8 +295,9 @@ export const ShareBudgetSetupSection: React.FC<ShareBudgetSetupProps> = ({
   )
 
   const maxShares = budget > 0 && rewardPerShare > 0 ? Math.floor(budget / rewardPerShare) : 0
-  const platformFee = budget > 0 ? budget * 0.2 : 0
-  const creatorReceives = budget > 0 ? budget * 0.8 : 0
+  // Trust-based model: no platform fee — the full budget is the reward pool.
+  const platformFee = 0
+  const creatorReceives = budget > 0 ? budget : 0
 
   return (
     <Container>
@@ -430,14 +431,14 @@ export const ShareBudgetSetupSection: React.FC<ShareBudgetSetupProps> = ({
               </CalculationRow>
 
               <CalculationRow>
-                <CalculationLabel>HonestNeed Platform Fee (20%)</CalculationLabel>
-                <CalculationValue style={{ color: '#ef4444' }}>
-                  -${platformFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <CalculationLabel>HonestNeed Platform Fee</CalculationLabel>
+                <CalculationValue style={{ color: '#10b981' }}>
+                  $0.00 (no fee)
                 </CalculationValue>
               </CalculationRow>
 
               <CalculationRow>
-                <CalculationLabel>Your Share Budget</CalculationLabel>
+                <CalculationLabel>Your Reward Pool</CalculationLabel>
                 <CalculationValue style={{ color: '#10b981' }}>
                   ${creatorReceives.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </CalculationValue>
@@ -457,7 +458,7 @@ export const ShareBudgetSetupSection: React.FC<ShareBudgetSetupProps> = ({
       <InfoBox style={{ marginTop: '1.5rem', backgroundColor: '#f0fdf4', borderLeftColor: '#10b981', color: '#166534' }}>
         <Info size={18} />
         <span>
-          <strong>Tip:</strong> Start with a smaller budget (e.g., $50) to test the feature. You can always reload your share budget during the campaign if it&apos;s performing well!
+          <strong>Tip:</strong> Start with a smaller budget (e.g., $50) to test the feature, then top it up anytime — instant and fee-free. You pay sharers directly when they request a payout.
         </span>
       </InfoBox>
     </Container>

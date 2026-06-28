@@ -3,7 +3,7 @@
 import styled from 'styled-components'
 import { QRCodeCanvas } from 'qrcode.react'
 import { AlertCircle } from 'lucide-react'
-import { type DonationPaymentMethod } from '@/utils/validationSchemas'
+import { type DonationPaymentMethod, DONATION_FEE_PERCENT } from '@/utils/validationSchemas'
 
 interface SplitPaymentDisplayProps {
   creatorPaymentMethod: DonationPaymentMethod
@@ -372,11 +372,11 @@ export function SplitPaymentDisplay({
             </InfoValue>
           </InfoRow>
           <InfoRow>
-            <InfoLabel>To Creator (80%):</InfoLabel>
+            <InfoLabel>To Creator ({100 - DONATION_FEE_PERCENT}%):</InfoLabel>
             <InfoValue style={{ color: '#10b981' }}>{creatorFormatted}</InfoValue>
           </InfoRow>
           <InfoRow>
-            <InfoLabel>Platform Fee (20%):</InfoLabel>
+            <InfoLabel>Platform Fee ({DONATION_FEE_PERCENT}%):</InfoLabel>
             <InfoValue style={{ color: '#6366f1' }}>{platformFormatted}</InfoValue>
           </InfoRow>
         </MethodInfo>

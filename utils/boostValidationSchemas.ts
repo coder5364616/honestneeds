@@ -13,42 +13,24 @@ export const BOOST_TIERS = {
     visibility_weight: 1,
     price: 0,
     duration_days: 30,
-    features: ['Basic visibility', '30-day duration', 'Limited support'],
-    recommended: false,
-  },
-  basic: {
-    id: 'basic',
-    name: 'Basic Boost',
-    visibility_weight: 5,
-    price: 9.99,
-    duration_days: 30,
-    features: ['5x visibility multiplier', '30-day duration', 'Email support', 'Basic analytics'],
+    features: ['Standard placement', '30-day duration', '1x visibility'],
     recommended: false,
   },
   pro: {
     id: 'pro',
-    name: 'Pro Boost',
-    visibility_weight: 15,
-    price: 24.99,
+    name: 'Campaign Boost',
+    visibility_weight: 10,
+    price: 20,
     duration_days: 30,
-    features: ['15x visibility multiplier', '30-day duration', 'Priority support', 'Advanced analytics', 'Trending badge'],
+    features: ['10x visibility multiplier', '30-day duration', 'Featured placement', 'Priority support', 'Boost analytics'],
     recommended: true,
-  },
-  premium: {
-    id: 'premium',
-    name: 'Premium Boost',
-    visibility_weight: 50,
-    price: 99.99,
-    duration_days: 30,
-    features: ['50x visibility multiplier', '30-day duration', '24/7 priority support', 'Full analytics suite', 'Priority badge', 'Featured placement'],
-    recommended: false,
   },
 };
 
 // Create a boost session
 export const createBoostSessionSchema = z.object({
   campaign_id: z.string().min(1, 'Campaign ID required'),
-  tier: z.enum(['free', 'basic', 'pro', 'premium']).describe('Boost tier'),
+  tier: z.enum(['free', 'pro']).describe('Boost tier'),
 });
 
 export type CreateBoostSessionInput = z.infer<typeof createBoostSessionSchema>;
@@ -89,7 +71,7 @@ export type UpdateBoostStatsInput = z.infer<typeof updateBoostStatsSchema>;
 export const boostResponseSchema = z.object({
   _id: z.string(),
   campaign_id: z.string(),
-  tier: z.enum(['free', 'basic', 'pro', 'premium']),
+  tier: z.enum(['free', 'pro']),
   visibility_weight: z.number(),
   is_active: z.boolean(),
   days_remaining: z.number(),
@@ -110,7 +92,7 @@ export const boostSessionResponseSchema = z.object({
   checkout_session_id: z.string().optional(),
   checkout_url: z.string().url().optional(),
   boost_id: z.string().optional(),
-  tier: z.enum(['free', 'basic', 'pro', 'premium']),
+  tier: z.enum(['free', 'pro']),
   visibility_weight: z.number(),
   message: z.string(),
 });
@@ -126,9 +108,7 @@ export const getBoostTierDetails = (tierId: string) => {
 export const canUpgradeBoost = (currentTier: string, newTier: string): boolean => {
   const tierWeights = {
     free: 1,
-    basic: 5,
-    pro: 15,
-    premium: 50,
+    pro: 10,
   };
 
   const currentWeight = tierWeights[currentTier as keyof typeof tierWeights];

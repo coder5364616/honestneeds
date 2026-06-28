@@ -70,6 +70,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     if (typeof window !== 'undefined') {
       // Clear from localStorage
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('refresh_token')
       localStorage.removeItem('user')
       
       // Clear cookies by setting expiration to the past

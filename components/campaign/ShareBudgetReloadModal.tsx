@@ -225,8 +225,9 @@ const formatCurrency = (cents: number): string => {
 
 /**
  * ShareBudgetReloadModal Component
- * Production-ready modal for reloading share budget
- * Shows: amount input, fee calculation (20%), and confirmation
+ * Production-ready modal for topping up the share reward budget.
+ * Trust-based model (2026-06-22): top-ups are INSTANT and FEE-FREE — the full
+ * amount is added to the reward pool and paid sharing re-activates immediately.
  */
 export const ShareBudgetReloadModal: React.FC<ShareBudgetReloadModalProps> = ({
   isOpen,
@@ -248,8 +249,8 @@ export const ShareBudgetReloadModal: React.FC<ShareBudgetReloadModalProps> = ({
     }
   }, [amount])
 
-  const platformFee = useMemo(() => Math.round(amountInCents * 0.2), [amountInCents])
-  const creatorReceives = useMemo(() => amountInCents - platformFee, [amountInCents, platformFee])
+  // Trust-based: no platform fee — the full amount funds the reward pool.
+  const creatorReceives = amountInCents
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -330,34 +331,33 @@ export const ShareBudgetReloadModal: React.FC<ShareBudgetReloadModalProps> = ({
             </span>
           </FormGroup>
 
-          {/* Fee Calculation */}
+          {/* Top-up Summary (no fee) */}
           {amountInCents > 0 && (
             <FeeCalculationBox>
               <FeeRow>
-                <FeeLabel>
-                  Reload Amount:
-                </FeeLabel>
+                <FeeLabel>Top-up Amount:</FeeLabel>
                 <FeeAmount>{formatCurrency(amountInCents)}</FeeAmount>
               </FeeRow>
               <FeeRow>
-                <FeeLabel>📊 Platform Fee (20%):</FeeLabel>
-                <FeeAmount style={{ color: '#dc2626' }}>-{formatCurrency(platformFee)}</FeeAmount>
+                <FeeLabel>📊 Platform Fee:</FeeLabel>
+                <FeeAmount style={{ color: '#059669' }}>$0.00</FeeAmount>
               </FeeRow>
               <FeeRow>
-                <FeeLabel>Available to Share:</FeeLabel>
+                <FeeLabel>Added to Reward Pool:</FeeLabel>
                 <FeeAmount>{formatCurrency(creatorReceives)}</FeeAmount>
               </FeeRow>
             </FeeCalculationBox>
           )}
 
-          {/* Warning */}
+          {/* Note */}
           <WarningBox>
             <WarningIcon>
               <AlertCircle />
             </WarningIcon>
             <div>
-              <strong>Note:</strong> HonestNeed charges a 20% platform fee on all share budget
-              reloads. This fee helps us cover payment processing and platform maintenance costs.
+              <strong>Note:</strong> Top-ups are <strong>instant and fee-free</strong> — the full
+              amount is added to your reward pool and paid sharing re-activates right away. You pay
+              sharers directly when they request a payout.
             </div>
           </WarningBox>
 

@@ -1,8 +1,14 @@
 /**
  * NotificationPreferences Context
- * Manages user notification preferences and settings
- * Persists to localStorage and backend API
- * 
+ * Manages CLIENT-ONLY notification UX settings (master toggle, sound on/off,
+ * browser-notification toggle, sound type/volume, quiet hours display).
+ *
+ * These are device/UX concerns and persist to localStorage only. DELIVERY
+ * preferences (which channels/types actually send, server-side quiet hours)
+ * live in the backend NotificationPreferences model and are managed through
+ * `api/services/notificationService.ts` (snake_case shape) — NOT here. Keeping
+ * them separate avoids the camelCase UX shape clobbering the backend document.
+ *
  * Preferences include:
  * - Master toggles (enabled, sound, browser notifications, email)
  * - Event type filters (which events to show)
@@ -97,7 +103,6 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 };
 
 const STORAGE_KEY = 'honestneed_notification_prefs';
-const API_ENDPOINT = '/api/notifications/preferences';
 
 // Context creation
 const NotificationPreferencesContext = createContext<
@@ -140,68 +145,28 @@ export const NotificationPreferencesProvider: React.FC<{
     }
   }, []);
 
-  // Fetch preferences from API
+  // Load client UX preferences from localStorage. (Delivery preferences are
+  // server-side and handled elsewhere; these settings are device-local.)
   const fetchPreferences = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-
     try {
-      const response = await fetch(API_ENDPOINT, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch preferences');
-      }
-
-      const data = await response.json();
-      if (data.success && data.data) {
-        const loadedPrefs = { ...DEFAULT_PREFERENCES, ...data.data };
-        setPreferences(loadedPrefs);
-        saveToStorage(loadedPrefs);
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        setPreferences({ ...DEFAULT_PREFERENCES, ...JSON.parse(stored) });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
-      console.error('Error fetching preferences:', errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [saveToStorage]);
+  }, []);
 
-  // Update preference on server
+  // No-op server sync: these UX settings persist to localStorage only. Kept as a
+  // stable async fn so callers retain their optimistic-update flow.
   const updatePreferenceOnServer = useCallback(
-    async (updatedPrefs: NotificationPreferences) => {
-      try {
-        const response = await fetch(API_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ preferences: updatedPrefs }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to update preferences');
-        }
-
-        const data = await response.json();
-        if (!data.success) {
-          throw new Error(data.message || 'Failed to update preferences');
-        }
-
-        return true;
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        console.error('Error updating preferences:', errorMessage);
-        throw err;
-      }
-    },
+    async (_updatedPrefs: NotificationPreferences) => true,
     []
   );
 

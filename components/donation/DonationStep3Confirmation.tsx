@@ -9,8 +9,10 @@ import {
   donationConfirmationSchema,
   type DonationConfirmationFormData,
   currencyUtils,
+  DONATION_FEE_PERCENT,
   type DonationPaymentMethod,
 } from '@/utils/validationSchemas'
+import { tk } from '@/styles/dashboardTokens'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,17 +53,17 @@ const Container = styled.div`
 const StepEyebrow = styled.p`
   font-size: 11.5px;
   font-weight: 800;
-  color: #F59E0B;
+  color: ${tk.amber};
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin: 0 0 10px;
 `
 
 const Title = styled.h2`
-  font-family: 'Nunito', 'Poppins', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: clamp(20px, 4vw, 26px);
   font-weight: 800;
-  color: #0F172A;
+  color: ${tk.heading};
   margin: 0 0 8px;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -69,7 +71,7 @@ const Title = styled.h2`
 
 const Subtitle = styled.p`
   font-size: 14px;
-  color: #64748B;
+  color: ${tk.muted};
   margin: 0 0 24px;
   line-height: 1.65;
   font-weight: 500;
@@ -80,7 +82,7 @@ const Subtitle = styled.p`
 const SummaryCard = styled.div`
   border-radius: 18px;
   overflow: hidden;
-  border: 1.5px solid #E2E8F0;
+  border: 1.5px solid ${tk.border};
   background: #FFFFFF;
   box-shadow: 0 2px 12px rgba(15,23,42,0.06);
   margin-bottom: 20px;
@@ -88,7 +90,7 @@ const SummaryCard = styled.div`
 
 const SummaryHeader = styled.div`
   padding: 12px 18px;
-  background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  background: ${tk.amber};
   display: flex;
   align-items: center;
   gap: 8px;
@@ -112,7 +114,7 @@ const SummaryRow = styled.div<{ $highlight?: boolean }>`
   justify-content: space-between;
   align-items: center;
   padding: 12px 18px;
-  border-bottom: 1px solid #F8FAFC;
+  border-bottom: 1px solid ${tk.canvas};
 
   &:last-child { border-bottom: none; }
 
@@ -123,7 +125,7 @@ const SummaryRow = styled.div<{ $highlight?: boolean }>`
 
 const SummaryLabel = styled.span`
   font-size: 13.5px;
-  color: #64748B;
+  color: ${tk.muted};
   font-weight: 500;
 `
 
@@ -131,9 +133,9 @@ const SummaryValue = styled.span<{ $bold?: boolean; $green?: boolean; $accent?: 
   font-size: 13.5px;
   font-weight: ${({ $bold }) => $bold ? 800 : 600};
   color: ${({ $green, $accent }) =>
-    $green ? '#16A34A' :
-    $accent ? '#0F172A' :
-    '#334155'};
+    $green ? tk.green :
+    $accent ? tk.heading :
+    tk.body};
   text-align: right;
   max-width: 60%;
   word-break: break-word;
@@ -141,7 +143,7 @@ const SummaryValue = styled.span<{ $bold?: boolean; $green?: boolean; $accent?: 
 
 const SummaryDivider = styled.div`
   height: 1px;
-  background: #E2E8F0;
+  background: ${tk.border};
   margin: 0 18px;
 `
 
@@ -160,14 +162,14 @@ const CreatorLabel = styled.span`
   gap: 6px;
   font-size: 13.5px;
   font-weight: 700;
-  color: #15803D;
+  color: ${tk.green};
 `
 
 const CreatorValue = styled.span`
   font-size: 18px;
   font-weight: 900;
-  font-family: 'Nunito', sans-serif;
-  color: #15803D;
+  font-family: 'Syne', sans-serif;
+  color: ${tk.green};
 `
 
 // ─── Instructions ─────────────────────────────────────────────────────────────
@@ -177,12 +179,12 @@ const InstructionsBox = styled.div`
   gap: 12px;
   align-items: flex-start;
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(245,158,11,0.07) 0%, rgba(239,68,68,0.05) 100%);
+  background: ${tk.amberLight};
   border: 1.5px solid rgba(245,158,11,0.22);
   border-radius: 14px;
   margin-bottom: 20px;
   font-size: 13.5px;
-  color: #92400E;
+  color: ${tk.amberDark};
   line-height: 1.6;
   font-weight: 500;
 `
@@ -190,7 +192,7 @@ const InstructionsBox = styled.div`
 const InstructionsDot = styled.div`
   width: 22px; height: 22px; min-width: 22px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #F59E0B, #EF4444);
+  background: ${tk.amber};
   color: white;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 800;
@@ -208,14 +210,14 @@ const FieldLabel = styled.label`
   display: block;
   font-size: 13px;
   font-weight: 700;
-  color: #334155;
+  color: ${tk.body};
   margin-bottom: 8px;
   letter-spacing: 0.01em;
 
   .optional {
     font-size: 11.5px;
     font-weight: 500;
-    color: #94A3B8;
+    color: ${tk.muted};
     margin-left: 6px;
   }
 `
@@ -226,46 +228,46 @@ const HiddenInput = styled.input`
 
 const UploadZone = styled.div<{ $dragging: boolean; $hasFile: boolean }>`
   border: 2px dashed ${({ $dragging, $hasFile }) =>
-    $dragging ? '#F59E0B' : $hasFile ? '#22C55E' : '#CBD5E1'};
-  border-radius: 16px;
+    $dragging ? tk.amber : $hasFile ? tk.green : tk.border};
+  border-radius: 14px;
   padding: 28px 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
   background: ${({ $dragging, $hasFile }) =>
-    $dragging ? 'rgba(245,158,11,0.05)' :
-    $hasFile ? 'rgba(34,197,94,0.04)' :
-    '#FAFAFA'};
+    $dragging ? 'rgba(212,135,10,0.05)' :
+    $hasFile ? 'rgba(26,122,74,0.06)' :
+    tk.canvas};
 
   &:hover {
-    border-color: #F59E0B;
+    border-color: ${tk.amber};
     background: rgba(245,158,11,0.04);
   }
 
-  &:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid ${tk.amber}; outline-offset: 2px; }
 `
 
 const UploadIconWrap = styled.div`
   width: 44px; height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.08));
+  background: ${tk.amberLight};
   border: 1.5px solid rgba(245,158,11,0.2);
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 12px;
 
-  svg { color: #F59E0B; width: 20px; height: 20px; }
+  svg { color: ${tk.amber}; width: 20px; height: 20px; }
 `
 
 const UploadTitle = styled.p`
   font-size: 14px;
   font-weight: 700;
-  color: #334155;
+  color: ${tk.body};
   margin: 0 0 4px;
 `
 
 const UploadHint = styled.p`
   font-size: 12px;
-  color: #94A3B8;
+  color: ${tk.muted};
   font-weight: 500;
   margin: 0;
 `
@@ -288,21 +290,21 @@ const FileIconWrap = styled.div`
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 
-  svg { color: #22C55E; width: 16px; height: 16px; }
+  svg { color: ${tk.green}; width: 16px; height: 16px; }
 `
 
 const FileName = styled.span`
   flex: 1;
   font-size: 13px;
   font-weight: 600;
-  color: #0F172A;
+  color: ${tk.heading};
   word-break: break-all;
   line-height: 1.3;
 `
 
 const RemoveBtn = styled.button`
   background: none; border: none;
-  color: #EF4444; cursor: pointer;
+  color: ${tk.red}; cursor: pointer;
   width: 28px; height: 28px;
   border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
@@ -320,12 +322,12 @@ const WarningBox = styled.div`
   gap: 10px;
   align-items: flex-start;
   padding: 12px 14px;
-  background: rgba(251,191,36,0.08);
-  border: 1.5px solid rgba(251,191,36,0.28);
+  background: ${tk.amberLight};
+  border: 1px solid rgba(212,135,10,0.2);
   border-radius: 12px;
   margin-bottom: 20px;
   font-size: 13px;
-  color: #78350F;
+  color: ${tk.amberDark};
   line-height: 1.55;
   font-weight: 500;
 
@@ -339,9 +341,9 @@ const CheckboxWrap = styled.div<{ $checked: boolean }>`
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
-  border-radius: 16px;
-  border: 2px solid ${({ $checked }) => $checked ? 'rgba(34,197,94,0.35)' : '#E2E8F0'};
-  background: ${({ $checked }) => $checked ? 'rgba(34,197,94,0.04)' : '#FAFAFA'};
+  border-radius: 14px;
+  border: 2px solid ${({ $checked }) => $checked ? 'rgba(26,122,74,0.35)' : tk.border};
+  background: ${({ $checked }) => $checked ? 'rgba(26,122,74,0.06)' : tk.canvas};
   margin-bottom: 16px;
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease;
@@ -351,9 +353,9 @@ const CheckboxWrap = styled.div<{ $checked: boolean }>`
 const CustomCheckbox = styled.div<{ $checked: boolean }>`
   width: 22px; height: 22px; min-width: 22px;
   border-radius: 7px;
-  border: 2px solid ${({ $checked }) => $checked ? '#22C55E' : '#CBD5E1'};
+  border: 2px solid ${({ $checked }) => $checked ? tk.green : tk.border};
   background: ${({ $checked }) => $checked
-    ? 'linear-gradient(135deg, #22C55E, #16A34A)'
+    ? tk.green
     : '#FFFFFF'};
   display: flex; align-items: center; justify-content: center;
   transition: all 0.18s ease;
@@ -380,14 +382,14 @@ const CheckboxText = styled.div`
   .check-title {
     font-size: 14px;
     font-weight: 700;
-    color: #0F172A;
+    color: ${tk.heading};
     margin-bottom: 3px;
     display: block;
   }
 
   .check-sub {
     font-size: 12.5px;
-    color: #64748B;
+    color: ${tk.muted};
     font-weight: 500;
     line-height: 1.5;
   }
@@ -399,7 +401,7 @@ const ErrorMsg = styled.span`
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #EF4444;
+  color: ${tk.red};
   font-size: 12.5px;
   font-weight: 600;
   margin-top: 6px;
@@ -416,7 +418,7 @@ const SubmitBtn = styled.button<{ $active: boolean }>`
   justify-content: center;
   gap: 8px;
   padding: 16px 20px;
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 16px;
   font-weight: 800;
   border: none;
@@ -426,20 +428,19 @@ const SubmitBtn = styled.button<{ $active: boolean }>`
   transition: box-shadow 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
 
   background: ${({ $active }) =>
-    $active ? 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)' : '#F1F5F9'};
-  color: ${({ $active }) => $active ? '#FFFFFF' : '#94A3B8'};
-  box-shadow: ${({ $active }) =>
-    $active ? '0 4px 20px rgba(239,68,68,0.30)' : 'none'};
+    $active ? tk.ink : tk.canvasDeep};
+  color: ${({ $active }) => $active ? '#FFFFFF' : tk.muted};
+  box-shadow: none;
 
   &:hover:not(:disabled) {
-    box-shadow: 0 6px 28px rgba(239,68,68,0.40);
+    background: ${tk.inkLight};
     transform: translateY(-1px);
   }
 
   &:active:not(:disabled) { transform: translateY(0); }
   &:disabled { cursor: not-allowed; }
 
-  &:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid ${tk.amber}; outline-offset: 2px; }
 
   .spinner {
     width: 16px; height: 16px;
@@ -526,7 +527,7 @@ export function DonationStep3Confirmation({
             <SummaryValue $bold>{fmt(feeInfo.gross)}</SummaryValue>
           </SummaryRow>
           <SummaryRow>
-            <SummaryLabel>Platform fee (20%)</SummaryLabel>
+            <SummaryLabel>Platform fee ({DONATION_FEE_PERCENT}%)</SummaryLabel>
             <SummaryValue>−{fmt(feeInfo.fee)}</SummaryValue>
           </SummaryRow>
           <SummaryRow>

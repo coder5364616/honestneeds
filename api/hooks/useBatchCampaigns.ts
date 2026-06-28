@@ -1,10 +1,7 @@
 'use client'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
-import { useAuthStore } from '@/store/authStore'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+import { apiClient } from '@/lib/api'
 
 interface BatchResponse {
   success: boolean
@@ -21,19 +18,12 @@ interface BatchResponse {
  */
 export function useBatchPauseCampaigns() {
   const queryClient = useQueryClient()
-  const { token } = useAuthStore()
 
   return useMutation({
     mutationFn: async (campaignIds: string[]) => {
-      const response = await axios.post<BatchResponse>(
-        `${API_BASE_URL}/campaigns/batch/pause`,
-        { campaignIds },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await apiClient.post<BatchResponse>(
+        `/campaigns/batch/pause`,
+        { campaignIds }
       )
       return response.data
     },
@@ -49,19 +39,12 @@ export function useBatchPauseCampaigns() {
  */
 export function useBatchCompleteCampaigns() {
   const queryClient = useQueryClient()
-  const { token } = useAuthStore()
 
   return useMutation({
     mutationFn: async (campaignIds: string[]) => {
-      const response = await axios.post<BatchResponse>(
-        `${API_BASE_URL}/campaigns/batch/complete`,
-        { campaignIds },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await apiClient.post<BatchResponse>(
+        `/campaigns/batch/complete`,
+        { campaignIds }
       )
       return response.data
     },
@@ -77,19 +60,12 @@ export function useBatchCompleteCampaigns() {
  */
 export function useBatchDeleteCampaigns() {
   const queryClient = useQueryClient()
-  const { token } = useAuthStore()
 
   return useMutation({
     mutationFn: async (campaignIds: string[]) => {
-      const response = await axios.post<BatchResponse>(
-        `${API_BASE_URL}/campaigns/batch/delete`,
-        { campaignIds },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await apiClient.post<BatchResponse>(
+        `/campaigns/batch/delete`,
+        { campaignIds }
       )
       return response.data
     },
@@ -105,19 +81,12 @@ export function useBatchDeleteCampaigns() {
  */
 export function useBatchResumeCampaigns() {
   const queryClient = useQueryClient()
-  const { token } = useAuthStore()
 
   return useMutation({
     mutationFn: async (campaignIds: string[]) => {
-      const response = await axios.post<BatchResponse>(
-        `${API_BASE_URL}/campaigns/batch/resume`,
-        { campaignIds },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await apiClient.post<BatchResponse>(
+        `/campaigns/batch/resume`,
+        { campaignIds }
       )
       return response.data
     },
@@ -133,19 +102,12 @@ export function useBatchResumeCampaigns() {
  */
 export function useBatchActivateCampaigns() {
   const queryClient = useQueryClient()
-  const { token } = useAuthStore()
 
   return useMutation({
     mutationFn: async (campaignIds: string[]) => {
-      const response = await axios.post<BatchResponse>(
-        `${API_BASE_URL}/campaigns/batch/activate`,
-        { campaignIds },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await apiClient.post<BatchResponse>(
+        `/campaigns/batch/activate`,
+        { campaignIds }
       )
       return response.data
     },

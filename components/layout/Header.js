@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { FiMenu, FiX, FiHeart, FiUsers, FiArrowRight, FiChevronDown } from 'react-icons/fi';
+import { FiMenu, FiX, FiHeart, FiUsers, FiArrowRight, FiChevronDown, FiLogIn, FiLogOut, FiGrid } from 'react-icons/fi';
+import { useAuthStore } from '@/store/authStore';
 
 // ─── Keyframes ────────────────────────────────────────────────────────────────
 
@@ -274,6 +276,30 @@ const PrimaryBtn = styled(motion.a)`
   }
 `;
 
+// Same visual language as SecondaryBtn, but a real <button> for actions
+// (log out) rather than a navigation link.
+const SecondaryActionBtn = styled(motion.button)`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #475569;
+  border: 1.5px solid #E2E8F0;
+  background: transparent;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+
+  &:hover {
+    border-color: #94A3B8;
+    color: #0F172A;
+    background: rgba(15, 23, 42, 0.03);
+  }
+`;
+
 // ─── Mobile Controls ──────────────────────────────────────────────────────────
 
 const MobileControls = styled.div`
@@ -520,6 +546,79 @@ const DrawerSecondaryBtn = styled(motion.a)`
   }
 `;
 
+// Same visual language as DrawerSecondaryBtn, but a real <button> (log out)
+const DrawerSecondaryActionBtn = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 20px;
+  background: transparent;
+  color: #475569;
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 14px;
+  border: 1.5px solid #E2E8F0;
+  cursor: pointer;
+  transition: all 0.18s ease;
+
+  &:hover {
+    color: #0F172A;
+    border-color: #94A3B8;
+    background: rgba(15, 23, 42, 0.03);
+  }
+`;
+
+const DrawerUserRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 22px 16px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.03);
+  border-radius: 14px;
+`;
+
+const DrawerUserAvatar = styled.div`
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: white;
+  background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+`;
+
+const DrawerUserInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+
+  .welcome-name {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0F172A;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .welcome-email {
+    font-size: 12px;
+    color: #94A3B8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
 // ─── Drawer Trust Strip ───────────────────────────────────────────────────────
 
 const DrawerTrustStrip = styled.div`
@@ -625,6 +724,8 @@ const navItemVariants = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Header() {
+  const router = useRouter();
+  const { user, isAuthenticated, clearAuth } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -642,6 +743,14 @@ export default function Header() {
   }, [menuOpen]);
 
   const close = () => setMenuOpen(false);
+
+  const handleLogout = () => {
+    clearAuth();
+    close();
+    router.push('/');
+  };
+
+  const initial = (user?.displayName || user?.email || '?').trim().charAt(0).toUpperCase();
 
   return (
     <>
@@ -685,27 +794,71 @@ export default function Header() {
               View Campaigns
             </SecondaryBtn>
 
-            <PrimaryBtn
-              href="/login"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-            >
-              <FiHeart size={14} />
-              Start a Campaign
-              <span className="price">$19.99</span>
-            </PrimaryBtn>
+            {isAuthenticated ? (
+              <>
+                <SecondaryActionBtn
+                  onClick={handleLogout}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <FiLogOut size={14} />
+                  Log Out
+                </SecondaryActionBtn>
+
+                <PrimaryBtn
+                  href="/dashboard"
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                >
+                  <FiGrid size={14} />
+                  Go to Dashboard
+                </PrimaryBtn>
+              </>
+            ) : (
+              <>
+                <SecondaryBtn
+                  href="/login"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                >
+                  <FiLogIn size={14} />
+                  Log In
+                </SecondaryBtn>
+
+                <PrimaryBtn
+                  href="/login"
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                >
+                  <FiHeart size={14} />
+                  Start a Campaign
+                  <span className="price">$19.99</span>
+                </PrimaryBtn>
+              </>
+            )}
           </DesktopActions>
 
           {/* ── Mobile Controls ───────────────────────────────────── */}
           <MobileControls>
-            <MobilePrimaryBtn
-              href="/login"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.96 }}
-            >
-              <FiHeart size={12} />
-              Start
-            </MobilePrimaryBtn>
+            {isAuthenticated ? (
+              <MobilePrimaryBtn
+                href="/dashboard"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <FiGrid size={12} />
+                Dashboard
+              </MobilePrimaryBtn>
+            ) : (
+              <MobilePrimaryBtn
+                href="/login"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <FiHeart size={12} />
+                Start
+              </MobilePrimaryBtn>
+            )}
 
             <HamburgerBtn
               onClick={() => setMenuOpen(true)}
@@ -787,6 +940,16 @@ export default function Header() {
                 ))}
               </DrawerNavSection>
 
+              {isAuthenticated && (
+                <DrawerUserRow>
+                  <DrawerUserAvatar>{initial}</DrawerUserAvatar>
+                  <DrawerUserInfo>
+                    <span className="welcome-name">{user?.displayName || 'Welcome back'}</span>
+                    <span className="welcome-email">{user?.email}</span>
+                  </DrawerUserInfo>
+                </DrawerUserRow>
+              )}
+
               <DrawerDivider />
 
               {/* Trust Strip */}
@@ -800,26 +963,71 @@ export default function Header() {
 
               {/* CTA Buttons */}
               <DrawerCTASection>
-                <DrawerPrimaryBtn
-                  href="/login"
-                  onClick={close}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  <FiHeart size={16} />
-                  Start a Campaign
-                  <span className="price-chip">$19.99</span>
-                </DrawerPrimaryBtn>
+                {isAuthenticated ? (
+                  <>
+                    <DrawerPrimaryBtn
+                      href="/dashboard"
+                      onClick={close}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <FiGrid size={16} />
+                      Go to Dashboard
+                    </DrawerPrimaryBtn>
 
-                <DrawerSecondaryBtn
-                  href="/sponsorships"
-                  onClick={close}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  View Sponsorships
-                  <FiArrowRight size={15} />
-                </DrawerSecondaryBtn>
+                    <DrawerSecondaryBtn
+                      href="/sponsorships"
+                      onClick={close}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      View Sponsorships
+                      <FiArrowRight size={15} />
+                    </DrawerSecondaryBtn>
+
+                    <DrawerSecondaryActionBtn
+                      onClick={handleLogout}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <FiLogOut size={15} />
+                      Log Out
+                    </DrawerSecondaryActionBtn>
+                  </>
+                ) : (
+                  <>
+                    <DrawerPrimaryBtn
+                      href="/login"
+                      onClick={close}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <FiHeart size={16} />
+                      Start a Campaign
+                      <span className="price-chip">$19.99</span>
+                    </DrawerPrimaryBtn>
+
+                    <DrawerSecondaryBtn
+                      href="/login"
+                      onClick={close}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <FiLogIn size={15} />
+                      Log In
+                    </DrawerSecondaryBtn>
+
+                    <DrawerSecondaryBtn
+                      href="/sponsorships"
+                      onClick={close}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      View Sponsorships
+                      <FiArrowRight size={15} />
+                    </DrawerSecondaryBtn>
+                  </>
+                )}
               </DrawerCTASection>
             </Drawer>
           </>

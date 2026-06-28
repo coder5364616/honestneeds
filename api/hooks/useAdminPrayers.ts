@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
+import { apiClient } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
 /**
  * Admin Prayer Hooks
@@ -43,13 +41,8 @@ export function useAdminModerationQueue(filters?: any) {
       if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom)
       if (filters?.dateTo) params.append('dateTo', filters.dateTo)
 
-      const { data } = await axios.get(
-        `${API_BASE}/admin/prayers/moderation-queue?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.get(
+        `/admin/prayers/moderation-queue?${params.toString()}`
       )
       return data.data
     },
@@ -67,14 +60,9 @@ export function useBulkApprovePrayers() {
 
   return useMutation({
     mutationFn: async (prayerIds: string[]) => {
-      const { data } = await axios.post(
-        `${API_BASE}/admin/prayers/bulk-approve`,
-        { prayerIds },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.post(
+        `/admin/prayers/bulk-approve`,
+        { prayerIds }
       )
       return data.data
     },
@@ -103,14 +91,9 @@ export function useBulkRejectPrayers() {
 
   return useMutation({
     mutationFn: async ({ prayerIds, reason }: { prayerIds: string[]; reason: string }) => {
-      const { data } = await axios.post(
-        `${API_BASE}/admin/prayers/bulk-reject`,
-        { prayerIds, reason },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.post(
+        `/admin/prayers/bulk-reject`,
+        { prayerIds, reason }
       )
       return data.data
     },
@@ -139,14 +122,9 @@ export function useBulkFlagPrayers() {
 
   return useMutation({
     mutationFn: async ({ prayerIds, reason }: { prayerIds: string[]; reason: string }) => {
-      const { data } = await axios.post(
-        `${API_BASE}/admin/prayers/bulk-flag`,
-        { prayerIds, reason },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.post(
+        `/admin/prayers/bulk-flag`,
+        { prayerIds, reason }
       )
       return data.data
     },
@@ -173,13 +151,8 @@ export function useSpamDetectionData() {
   return useQuery({
     queryKey: adminPrayerKeys.spam(),
     queryFn: async () => {
-      const { data } = await axios.get(
-        `${API_BASE}/admin/prayers/spam-detection`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.get(
+        `/admin/prayers/spam-detection`
       )
       return data.data
     },
@@ -195,13 +168,8 @@ export function usePrayerAnalytics() {
   return useQuery({
     queryKey: adminPrayerKeys.analytics(),
     queryFn: async () => {
-      const { data } = await axios.get(
-        `${API_BASE}/admin/prayers/analytics`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.get(
+        `/admin/prayers/analytics`
       )
       return data.data
     },
@@ -217,13 +185,8 @@ export function useComplianceReport(dateRange: 'week' | 'month' | 'year' = 'week
   return useQuery({
     queryKey: adminPrayerKeys.compliance(dateRange),
     queryFn: async () => {
-      const { data } = await axios.get(
-        `${API_BASE}/admin/prayers/compliance-report?dateRange=${dateRange}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.get(
+        `/admin/prayers/compliance-report?dateRange=${dateRange}`
       )
       return data.data
     },
@@ -246,12 +209,9 @@ export function useExportPrayers() {
       dateRange: 'week' | 'month' | 'year'
       format: 'json' | 'csv'
     }) => {
-      const response = await axios.get(
-        `${API_BASE}/admin/prayers/export?dateRange=${dateRange}&format=${format}`,
+      const response = await apiClient.get(
+        `/admin/prayers/export?dateRange=${dateRange}&format=${format}`,
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
           responseType: format === 'csv' ? 'blob' : 'json',
         }
       )
@@ -302,14 +262,9 @@ export function useBlockUserFromPrayers() {
       reason: string
       durationDays?: number
     }) => {
-      const { data } = await axios.post(
-        `${API_BASE}/admin/users/${userId}/block-prayer`,
-        { reason, durationDays: durationDays || 30 },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.post(
+        `/admin/users/${userId}/block-prayer`,
+        { reason, durationDays: durationDays || 30 }
       )
       return data.data
     },
@@ -338,13 +293,8 @@ export function useUnblockUserFromPrayers() {
 
   return useMutation({
     mutationFn: async (userId: string) => {
-      const { data } = await axios.delete(
-        `${API_BASE}/admin/users/${userId}/unblock-prayer`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-        }
+      const { data } = await apiClient.delete(
+        `/admin/users/${userId}/unblock-prayer`
       )
       return data.data
     },

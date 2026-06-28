@@ -1,9 +1,12 @@
 'use client'
 
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styled, { keyframes, css } from 'styled-components'
-import { Upload, X, MapPin, Map, Globe, Zap } from 'lucide-react'
-import { CAMPAIGN_CATEGORIES, GEOGRAPHIC_SCOPES } from '@/utils/validationSchemas'
+import { Upload, X, MapPin, Map, Globe, Zap, Sparkles, Wand2, Loader2, Check, ChevronDown, Search } from 'lucide-react'
+import { toast } from 'react-toastify'
+import { CAMPAIGN_CATEGORY_OPTIONS, GEOGRAPHIC_SCOPES } from '@/utils/validationSchemas'
+import { useDraftCampaign } from '@/api/hooks/useAI'
+import { LocationAutocomplete } from '@/components/campaign/LocationAutocomplete'
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
 const t = {
@@ -27,7 +30,10 @@ const FormRow = styled.div`
 const SectionBlock = styled.div`
   background:${t.white};border:1.5px solid ${t.slate200};
   border-radius:${t.r};padding:1.5rem;
-  animation:${fadeUp} 0.3s ease both;
+  /* No fill-mode: the keyframe's translateY(0) must NOT linger, or the
+     retained transform creates a stacking context that traps the category
+     dropdown's z-index and lets later sections paint over it. */
+  animation:${fadeUp} 0.3s ease;
 `
 const BlockTitle = styled.h3`
   font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;
@@ -65,6 +71,210 @@ const Select = styled.select<{ $error?: boolean }>`
   appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;
+`
+
+// ── Searchable category combobox ───────────────────────────────────────────────
+const Combo = styled.div`position:relative`
+const ComboBtn = styled.button<{ $error?: boolean; $placeholder?: boolean }>`
+  ${inputBase};
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  text-align:left;cursor:pointer;
+  color:${({ $placeholder }) => ($placeholder ? t.slate400 : t.slate900)};
+`
+const ComboPanel = styled.div`
+  position:absolute;z-index:40;top:calc(100% + 4px);left:0;right:0;
+  background:${t.white};border:1.5px solid ${t.slate200};border-radius:${t.rs};
+  box-shadow:0 10px 30px rgba(15,23,42,.14);overflow:hidden;
+  animation:${fadeUp} 0.15s ease both;
+`
+const ComboSearchWrap = styled.div`
+  display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid ${t.slate100};
+  svg{color:${t.slate400};flex-shrink:0}
+`
+const ComboSearch = styled.input`
+  border:none;outline:none;width:100%;font-family:inherit;font-size:0.85rem;
+  color:${t.slate900};background:transparent;
+  &::placeholder{color:${t.slate400}}
+`
+const ComboList = styled.ul`
+  list-style:none;margin:0;padding:4px;max-height:240px;overflow-y:auto;
+`
+const ComboOption = styled.li<{ $sel?: boolean }>`
+  padding:9px 10px;border-radius:6px;cursor:pointer;font-size:0.85rem;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  color:${({ $sel }) => ($sel ? t.indigoDark : t.slate700)};
+  background:${({ $sel }) => ($sel ? t.indigoLight : 'transparent')};
+  font-weight:${({ $sel }) => ($sel ? 600 : 400)};
+  transition:background ${t.tr};
+  &:hover{background:${t.indigoLight};color:${t.indigoDark}}
+`
+const ComboEmpty = styled.li`
+  padding:14px 10px;font-size:0.82rem;color:${t.slate400};text-align:center;
+`
+
+const CategorySelect: React.FC<{
+  value: string
+  error?: boolean
+  onChange: (id: string) => void
+}> = ({ value, error, onChange }) => {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  const selected = CAMPAIGN_CATEGORY_OPTIONS.find((c) => c.id === value)
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return CAMPAIGN_CATEGORY_OPTIONS
+    return CAMPAIGN_CATEGORY_OPTIONS.filter((c) => c.name.toLowerCase().includes(q))
+  }, [query])
+
+  // Close when clicking outside the combobox.
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  // Reset the query and focus the search box each time the panel opens.
+  useEffect(() => {
+    if (!open) return
+    setQuery('')
+    const raf = requestAnimationFrame(() => searchRef.current?.focus())
+    return () => cancelAnimationFrame(raf)
+  }, [open])
+
+  const handleSelect = (id: string) => {
+    onChange(id)
+    setOpen(false)
+  }
+
+  return (
+    <Combo ref={wrapRef}>
+      <ComboBtn
+        type="button" id="cat" $error={error} $placeholder={!selected}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox" aria-expanded={open} aria-invalid={error}
+      >
+        {selected ? selected.name : 'Select a category…'}
+        <ChevronDown size={16} style={{ flexShrink: 0, color: t.slate400 }} />
+      </ComboBtn>
+
+      {open && (
+        <ComboPanel>
+          <ComboSearchWrap>
+            <Search size={15} />
+            <ComboSearch
+              ref={searchRef} type="text" value={query}
+              placeholder="Search categories…"
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
+            />
+          </ComboSearchWrap>
+          <ComboList role="listbox" aria-label="Category">
+            {filtered.length === 0 ? (
+              <ComboEmpty>No categories match “{query}”.</ComboEmpty>
+            ) : (
+              filtered.map((c) => (
+                <ComboOption
+                  key={c.id} role="option" $sel={c.id === value}
+                  aria-selected={c.id === value}
+                  onClick={() => handleSelect(c.id)}
+                >
+                  {c.name}
+                  {c.id === value && <Check size={14} style={{ color: t.indigo, flexShrink: 0 }} />}
+                </ComboOption>
+              ))
+            )}
+          </ComboList>
+        </ComboPanel>
+      )}
+    </Combo>
+  )
+}
+
+// ── AI Campaign Writer ──────────────────────────────────────────────────────
+const spin = keyframes`to{transform:rotate(360deg)}`
+
+const AiBar = styled.div`
+  display:flex;align-items:center;justify-content:space-between;gap:0.75rem;
+  flex-wrap:wrap;margin-bottom:1rem;
+`
+const AiPitch = styled.p`
+  font-size:0.78rem;color:${t.slate600};margin:0;line-height:1.45;
+  display:flex;align-items:center;gap:6px;
+  svg{color:${t.indigo};flex-shrink:0}
+`
+const AiToggleBtn = styled.button<{ $open?: boolean }>`
+  display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
+  padding:8px 14px;border-radius:${t.rs};cursor:pointer;
+  font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:700;
+  border:1.5px solid ${t.indigo};transition:all ${t.tr};
+  background:${({ $open }) => ($open ? t.white : t.indigo)};
+  color:${({ $open }) => ($open ? t.indigo : t.white)};
+  &:hover{background:${({ $open }) => ($open ? t.indigoLight : t.indigoDark)}}
+  &:focus-visible{box-shadow:0 0 0 3px rgba(79,70,229,.3)}
+`
+const AiPanel = styled.div`
+  border:1.5px solid ${t.indigoMid};background:${t.indigoLight};
+  border-radius:${t.r};padding:1.25rem;margin-bottom:1.25rem;
+  animation:${fadeUp} 0.25s ease both;
+  display:flex;flex-direction:column;gap:0.85rem;
+`
+const AiRow = styled.div`
+  display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;
+`
+const AiToneWrap = styled.div`display:flex;flex-direction:column;gap:0.35rem;min-width:140px`
+const AiGenerateBtn = styled.button`
+  display:inline-flex;align-items:center;gap:7px;
+  padding:10px 18px;border:none;border-radius:${t.rs};
+  background:${t.indigo};color:white;cursor:pointer;
+  font-family:'Syne',sans-serif;font-size:0.83rem;font-weight:700;
+  transition:all ${t.tr};white-space:nowrap;
+  &:hover:not(:disabled){background:${t.indigoDark}}
+  &:disabled{opacity:.55;cursor:not-allowed}
+  svg.spin{animation:${spin} 0.8s linear infinite}
+`
+const AiResult = styled.div`
+  display:flex;flex-direction:column;gap:0.85rem;
+  border-top:1px dashed ${t.indigoMid};padding-top:0.85rem;
+`
+const AiResultLabel = styled.p`
+  font-size:0.72rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;
+  color:${t.indigoDark};margin:0 0 0.4rem;
+`
+const TitleChips = styled.div`display:flex;flex-direction:column;gap:6px`
+const TitleChip = styled.button`
+  display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;
+  padding:9px 12px;border-radius:${t.rs};cursor:pointer;
+  border:1.5px solid ${t.slate200};background:${t.white};
+  font-family:inherit;font-size:0.83rem;color:${t.slate700};line-height:1.35;
+  transition:all ${t.tr};
+  &:hover{border-color:${t.indigo};background:${t.indigoLight};color:${t.indigoDark}}
+  span.apply{display:inline-flex;align-items:center;gap:3px;font-size:0.72rem;font-weight:700;color:${t.indigo};flex-shrink:0}
+`
+const DescPreview = styled.div`
+  background:${t.white};border:1.5px solid ${t.slate200};border-radius:${t.rs};
+  padding:12px;font-size:0.82rem;line-height:1.55;color:${t.slate700};
+  white-space:pre-wrap;max-height:180px;overflow-y:auto;
+`
+const ApplyDescBtn = styled.button`
+  align-self:flex-start;display:inline-flex;align-items:center;gap:6px;margin-top:0.5rem;
+  padding:8px 14px;border-radius:${t.rs};cursor:pointer;
+  border:1.5px solid ${t.indigo};background:${t.white};color:${t.indigo};
+  font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:700;transition:all ${t.tr};
+  &:hover{background:${t.indigoLight}}
+`
+const InlineSuggestBtn = styled.button`
+  display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;
+  font-size:0.75rem;font-weight:600;color:${t.indigo};padding:0;transition:opacity ${t.tr};
+  &:hover{opacity:.75}
+  &:disabled{opacity:.5;cursor:not-allowed}
+  svg.spin{animation:${spin} 0.8s linear infinite}
 `
 
 // ── Drop zone ─────────────────────────────────────────────────────────────────
@@ -166,6 +376,75 @@ export const Step2BasicInfo: React.FC<Step2BasicInfoProps> = ({
   const [isDragActive, setIsDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // ── AI Campaign Writer state ──────────────────────────────────────────────
+  const draftCampaign = useDraftCampaign()
+  const [aiOpen, setAiOpen] = useState(false)
+  const [brief, setBrief] = useState('')
+  const [tone, setTone] = useState('hopeful')
+  const [titleOptions, setTitleOptions] = useState<string[]>([])
+  const [draftDescription, setDraftDescription] = useState<string | null>(null)
+  const [suggesting, setSuggesting] = useState(false)
+
+  // Generate a full draft (title options + description) from the brief.
+  const handleGenerateDraft = useCallback(async () => {
+    if (brief.trim().length < 10) {
+      toast.info('Add a sentence or two about your situation first.')
+      return
+    }
+    try {
+      const result = await draftCampaign.mutateAsync({
+        brief: brief.trim(),
+        need_type: formData.category || undefined,
+        tone,
+      })
+      setTitleOptions(result.title_options || [])
+      setDraftDescription(result.description || null)
+      if (result.ai_unavailable) {
+        toast.info('AI is offline right now — showing a basic draft from your brief.')
+      }
+    } catch {
+      toast.error('Could not generate a draft. Please try again.')
+    }
+  }, [brief, tone, formData.category, draftCampaign])
+
+  // "Suggest title" when the title is blank — seeds the brief from the description.
+  const handleSuggestTitle = useCallback(async () => {
+    const seed = formData.description.trim() || brief.trim()
+    if (seed.length < 10) {
+      toast.info('Write a short description first, then AI can suggest titles.')
+      return
+    }
+    setSuggesting(true)
+    try {
+      const result = await draftCampaign.mutateAsync({
+        brief: seed,
+        need_type: formData.category || undefined,
+        tone,
+      })
+      setTitleOptions(result.title_options || [])
+      if (!result.title_options?.length) toast.info('No title suggestions came back — try again.')
+    } catch {
+      toast.error('Could not suggest a title. Please try again.')
+    } finally {
+      setSuggesting(false)
+    }
+  }, [formData.description, formData.category, brief, tone, draftCampaign])
+
+  const applyTitle = useCallback((title: string) => {
+    onChange('title', title)
+    setTitleOptions([])
+    toast.success('Title applied.')
+  }, [onChange])
+
+  const applyDescription = useCallback(() => {
+    if (draftDescription) {
+      onChange('description', draftDescription)
+      toast.success('Description applied — feel free to edit it.')
+    }
+  }, [draftDescription, onChange])
+
+  const isGenerating = draftCampaign.isPending && !suggesting
+
   const processFile = (file: File) => {
     if (file.size > 10 * 1024 * 1024 || !['image/jpeg','image/png','image/webp'].includes(file.type)) return
     const reader = new FileReader()
@@ -192,9 +471,107 @@ export const Step2BasicInfo: React.FC<Step2BasicInfoProps> = ({
       {/* Core details */}
       <SectionBlock>
         <BlockTitle>Core details</BlockTitle>
+
+        {/* AI Campaign Writer */}
+        <AiBar>
+          <AiPitch>
+            <Sparkles size={15} />
+            Not sure where to start? Let AI draft your title and story.
+          </AiPitch>
+          <AiToggleBtn
+            type="button" $open={aiOpen}
+            onClick={() => setAiOpen((o) => !o)}
+            aria-expanded={aiOpen}
+          >
+            <Wand2 size={15} />
+            {aiOpen ? 'Hide AI Writer' : 'Write with AI'}
+          </AiToggleBtn>
+        </AiBar>
+
+        {aiOpen && (
+          <AiPanel>
+            <Field>
+              <FieldLabel htmlFor="ai-brief">Describe your situation</FieldLabel>
+              <Textarea
+                id="ai-brief" rows={3} maxLength={4000}
+                value={brief}
+                placeholder="E.g. 'My family lost our home in a fire last week and we need help covering a deposit and basics while we get back on our feet.'"
+                onChange={(e) => setBrief(e.target.value)}
+              />
+              <FieldHint>A sentence or two is enough — AI writes the rest in your voice.</FieldHint>
+            </Field>
+
+            <AiRow>
+              <AiToneWrap>
+                <FieldLabel htmlFor="ai-tone">Tone</FieldLabel>
+                <Select
+                  id="ai-tone" value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                >
+                  <option value="hopeful">Hopeful</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="grateful">Grateful</option>
+                  <option value="heartfelt">Heartfelt</option>
+                  <option value="determined">Determined</option>
+                </Select>
+              </AiToneWrap>
+              <AiGenerateBtn
+                type="button"
+                onClick={handleGenerateDraft}
+                disabled={isGenerating || brief.trim().length < 10}
+              >
+                {isGenerating
+                  ? <><Loader2 size={15} className="spin" /> Generating…</>
+                  : <><Sparkles size={15} /> Generate draft</>}
+              </AiGenerateBtn>
+            </AiRow>
+
+            {(titleOptions.length > 0 || draftDescription) && (
+              <AiResult>
+                {titleOptions.length > 0 && (
+                  <div>
+                    <AiResultLabel>Suggested titles — click to use</AiResultLabel>
+                    <TitleChips>
+                      {titleOptions.map((opt, i) => (
+                        <TitleChip key={i} type="button" onClick={() => applyTitle(opt)}>
+                          {opt}
+                          <span className="apply"><Check size={12} /> Use</span>
+                        </TitleChip>
+                      ))}
+                    </TitleChips>
+                  </div>
+                )}
+                {draftDescription && (
+                  <div>
+                    <AiResultLabel>Suggested story</AiResultLabel>
+                    <DescPreview>{draftDescription}</DescPreview>
+                    <ApplyDescBtn type="button" onClick={applyDescription}>
+                      <Check size={14} /> Use this description
+                    </ApplyDescBtn>
+                  </div>
+                )}
+              </AiResult>
+            )}
+          </AiPanel>
+        )}
+
         <FormStack>
           <Field>
-            <FieldLabel htmlFor="title">Campaign title <span className="req">*</span></FieldLabel>
+            <FieldLabel htmlFor="title">
+              Campaign title <span className="req">*</span>
+              {!formData.title.trim() && (
+                <InlineSuggestBtn
+                  type="button"
+                  onClick={handleSuggestTitle}
+                  disabled={suggesting}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  {suggesting
+                    ? <><Loader2 size={12} className="spin" /> Suggesting…</>
+                    : <><Sparkles size={12} /> Suggest title</>}
+                </InlineSuggestBtn>
+              )}
+            </FieldLabel>
             <Input
               id="title" type="text" maxLength={200}
               value={formData.title} $error={!!errors.title}
@@ -207,12 +584,27 @@ export const Step2BasicInfo: React.FC<Step2BasicInfoProps> = ({
               <CharCount $warn={titleLen > 170}>{titleLen}/200</CharCount>
             </div>
             {errors.title && <FieldError>{errors.title}</FieldError>}
+
+            {/* Inline title suggestions (when the AI Writer panel is collapsed) */}
+            {!aiOpen && titleOptions.length > 0 && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <AiResultLabel>AI title suggestions — click to use</AiResultLabel>
+                <TitleChips>
+                  {titleOptions.map((opt, i) => (
+                    <TitleChip key={i} type="button" onClick={() => applyTitle(opt)}>
+                      {opt}
+                      <span className="apply"><Check size={12} /> Use</span>
+                    </TitleChip>
+                  ))}
+                </TitleChips>
+              </div>
+            )}
           </Field>
 
           <Field>
             <FieldLabel htmlFor="description">Description <span className="req">*</span></FieldLabel>
             <Textarea
-              id="description" rows={5} maxLength={2000}
+              id="description" rows={7} maxLength={5000}
               value={formData.description} $error={!!errors.description}
               placeholder="Tell your story. What is this campaign about and why do you need support?…"
               onChange={(e) => onChange('description', e.target.value)}
@@ -220,7 +612,7 @@ export const Step2BasicInfo: React.FC<Step2BasicInfoProps> = ({
             />
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <FieldHint>Be personal — donors connect with stories, not stats</FieldHint>
-              <CharCount $warn={descLen > 1800}>{descLen}/2000</CharCount>
+              <CharCount $warn={descLen > 4800}>{descLen}/5000</CharCount>
             </div>
             {errors.description && <FieldError>{errors.description}</FieldError>}
           </Field>
@@ -233,14 +625,11 @@ export const Step2BasicInfo: React.FC<Step2BasicInfoProps> = ({
         <FormRow>
           <Field>
             <FieldLabel htmlFor="cat">Category <span className="req">*</span></FieldLabel>
-            <Select
-              id="cat" value={formData.category} $error={!!errors.category}
-              onChange={(e) => onChange('category', e.target.value)}
-              aria-invalid={!!errors.category}
-            >
-              <option value="">Select a category…</option>
-              {CAMPAIGN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </Select>
+            <CategorySelect
+              value={formData.category}
+              error={!!errors.category}
+              onChange={(id) => onChange('category', id)}
+            />
             {errors.category && <FieldError>{errors.category}</FieldError>}
           </Field>
 
@@ -248,13 +637,14 @@ export const Step2BasicInfo: React.FC<Step2BasicInfoProps> = ({
             <FieldLabel htmlFor="location">
               Location <span style={{ fontWeight: 300, color: t.slate400 }}>(optional)</span>
             </FieldLabel>
-            <Input
-              id="location" type="text"
-              value={formData.location} $error={!!errors.location}
-              placeholder="City, State or Zip code"
-              onChange={(e) => onChange('location', e.target.value)}
+            <LocationAutocomplete
+              id="location"
+              value={formData.location}
+              error={!!errors.location}
+              placeholder="City, State, Zip or Country"
+              onChange={(val) => onChange('location', val)}
             />
-            <FieldHint>Helps local supporters find you</FieldHint>
+            <FieldHint>Start typing to search — helps local supporters find you</FieldHint>
             {errors.location && <FieldError>{errors.location}</FieldError>}
           </Field>
         </FormRow>

@@ -13,10 +13,13 @@ import { PendingRewardsList } from '@/components/share/PendingRewardsList'
 import { VerifiedRewardsList } from '@/components/share/VerifiedRewardsList'
 import { SharerPayoutRequestForm } from '@/components/share/SharerPayoutRequestForm'
 import { Modal } from '@/components/Modal'
+import { tk, DashboardGlobalStyle } from '@/styles/dashboardTokens'
 
 const DashboardContainer = styled.div`
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: ${tk.canvas};
+  font-family: 'DM Sans', sans-serif;
+  color: ${tk.body};
   padding: 2rem 1rem;
 
   @media (max-width: 640px) {
@@ -34,10 +37,15 @@ const PageHeader = styled.div`
 `
 
 const PageTitle = styled.h1`
+  font-family: 'Syne', sans-serif;
   font-size: 2rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 800;
+  background: linear-gradient(135deg, ${tk.heading} 0%, ${tk.blue} 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
 
   @media (max-width: 640px) {
     font-size: 1.5rem;
@@ -45,7 +53,7 @@ const PageTitle = styled.h1`
 `
 
 const PageDescription = styled.p`
-  color: #64748b;
+  color: ${tk.muted};
   margin: 0;
   font-size: 1rem;
 `
@@ -54,7 +62,7 @@ const TabContainer = styled.div`
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 1px solid ${tk.border};
   flex-wrap: wrap;
 
   @media (max-width: 640px) {
@@ -66,16 +74,17 @@ const Tab = styled.button<{ $active: boolean }>`
   background: none;
   border: none;
   padding: 1rem 1.5rem;
-  color: ${ props => props.$active ? '#6366f1' : '#64748b'};
-  font-weight: ${props => (props.$active ? 600 : 500)};
+  font-family: 'Syne', sans-serif;
+  color: ${props => props.$active ? tk.heading : tk.muted};
+  font-weight: ${props => (props.$active ? 700 : 500)};
   font-size: 1rem;
   cursor: pointer;
-  border-bottom: 2px solid ${props => (props.$active ? '#6366f1' : 'transparent')};
-  margin-bottom: -2px;
+  border-bottom: 2px solid ${props => (props.$active ? tk.amber : 'transparent')};
+  margin-bottom: -1px;
   transition: all 0.2s ease;
 
   &:hover {
-    color: #0f172a;
+    color: ${tk.heading};
   }
 
   @media (max-width: 640px) {
@@ -121,6 +130,7 @@ export const SharerRewardsDashboard: React.FC<SharerRewardsDashboardProps> = ({
 
   return (
     <DashboardContainer>
+      <DashboardGlobalStyle />
       <ContentWrapper>
         <PageHeader>
           <PageTitle>💰 Your Rewards</PageTitle>
@@ -139,7 +149,7 @@ export const SharerRewardsDashboard: React.FC<SharerRewardsDashboardProps> = ({
             $active={activeTab === 'pending'}
             onClick={() => setActiveTab('pending')}
           >
-            ⏳ Pending ({' '}{ '30-Day Hold'})
+            ⏳ Owed
           </Tab>
           <Tab
             $active={activeTab === 'verified'}

@@ -3,7 +3,8 @@
  * Handles QR code generation, URL creation, and flyer asset management
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { apiClient } from '@/lib/api'
+
 const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://honestneed.com'
 
 /**
@@ -34,23 +35,12 @@ export const generateQRCodeDataUrl = async (url: string): Promise<string> => {
  */
 export const trackQRScan = async (campaignId: string, storeLocationId?: string, source?: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/campaigns/${campaignId}/track-qr-scan`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('auth_token') : ''}`,
-      },
-      body: JSON.stringify({
-        storeLocationId,
-        source,
-        timestamp: new Date().toISOString(),
-        userAgent: typeof window !== 'undefined' ? navigator.userAgent : '',
-      }),
+    await apiClient.post(`/campaigns/${campaignId}/track-qr-scan`, {
+      storeLocationId,
+      source,
+      timestamp: new Date().toISOString(),
+      userAgent: typeof window !== 'undefined' ? navigator.userAgent : '',
     })
-
-    if (!response.ok) {
-      console.warn('Failed to track QR scan:', response.statusText)
-    }
   } catch (error) {
     console.error('Error tracking QR scan:', error)
     // Don't throw - tracking failures shouldn't break the app

@@ -45,11 +45,15 @@ const RECONNECT_INTERVAL = 3000; // 3 seconds initial
 const MAX_RECONNECT_INTERVAL = 30000; // 30 seconds max
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 
-const buildWebSocketUrl = (baseUrl: string, userId: string) => {
+const buildWebSocketUrl = (baseUrl: string, _userId: string) => {
   const url = new URL(baseUrl);
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   url.pathname = '/api/notifications';
-  url.searchParams.set('token', userId);
+  // The backend authenticates the WS by verifying a JWT and DERIVING the userId
+  // from it — it must be the access token, never the raw userId.
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  url.searchParams.set('token', token || '');
   return url.toString();
 };
 
@@ -136,8 +140,8 @@ export const useWebSocketNotifications = (
 ): UseWebSocketNotificationsReturn => {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttemptRef = useRef(0);
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

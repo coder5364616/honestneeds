@@ -4,8 +4,9 @@ import { useMemo, useRef, useImperativeHandle, forwardRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import styled, { keyframes } from 'styled-components'
-import { donationAmountSchema, type DonationAmountFormData } from '@/utils/validationSchemas'
+import { donationAmountSchema, type DonationAmountFormData, DONATION_FEE_PERCENT } from '@/utils/validationSchemas'
 import { FeeBreakdown } from './FeeBreakdown'
+import { tk } from '@/styles/dashboardTokens'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,30 +42,31 @@ const Container = styled.div`
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 const StepEyebrow = styled.p`
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #F59E0B;
-  letter-spacing: 0.08em;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: ${tk.amberDark};
+  letter-spacing: 1px;
   text-transform: uppercase;
   margin: 0 0 10px;
 `
 
 const Title = styled.h2`
-  font-family: 'Nunito', 'Poppins', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: clamp(20px, 4vw, 26px);
   font-weight: 800;
-  color: #0F172A;
+  color: ${tk.heading};
   margin: 0 0 8px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.5px;
   line-height: 1.2;
 `
 
 const Subtitle = styled.p`
   font-size: 14px;
-  color: #64748B;
+  color: ${tk.muted};
   margin: 0 0 28px;
   line-height: 1.6;
-  font-weight: 500;
+  font-weight: 400;
 `
 
 // ─── Form ─────────────────────────────────────────────────────────────────────
@@ -77,11 +79,11 @@ const Label = styled.label`
   display: block;
   font-size: 13px;
   font-weight: 700;
-  color: #334155;
+  color: ${tk.body};
   margin-bottom: 8px;
   letter-spacing: 0.01em;
 
-  .req { color: #EF4444; margin-left: 3px; }
+  .req { color: ${tk.red}; margin-left: 3px; }
 `
 
 const InputWrapper = styled.div`
@@ -95,7 +97,8 @@ const CurrencySymbol = styled.span`
   left: 16px;
   font-size: 20px;
   font-weight: 800;
-  color: #0F172A;
+  font-family: 'Syne', sans-serif;
+  color: ${tk.heading};
   pointer-events: none;
   line-height: 1;
 `
@@ -105,11 +108,11 @@ const AmountInput = styled.input<{ $error?: boolean }>`
   padding: 16px 16px 16px 40px;
   font-size: 24px;
   font-weight: 800;
-  font-family: 'Nunito', sans-serif;
-  color: #0F172A;
-  border: 2px solid ${({ $error }) => $error ? '#EF4444' : '#E2E8F0'};
-  border-radius: 16px;
-  background: ${({ $error }) => $error ? 'rgba(239,68,68,0.03)' : '#FAFAFA'};
+  font-family: 'Syne', sans-serif;
+  color: ${tk.heading};
+  border: 2px solid ${({ $error }) => $error ? tk.red : tk.border};
+  border-radius: 14px;
+  background: ${({ $error }) => $error ? tk.redLight : tk.canvas};
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   -moz-appearance: textfield;
 
@@ -118,25 +121,25 @@ const AmountInput = styled.input<{ $error?: boolean }>`
 
   &:focus {
     outline: none;
-    border-color: #F59E0B;
-    background: #FFFFFF;
-    box-shadow: 0 0 0 4px rgba(245,158,11,0.12);
+    border-color: ${tk.amber};
+    background: ${tk.white};
+    box-shadow: 0 0 0 4px rgba(212,135,10,0.12);
   }
 
   &:disabled {
-    background: #F1F5F9;
-    color: #94A3B8;
+    background: ${tk.canvasDeep};
+    color: ${tk.muted};
     cursor: not-allowed;
   }
 
-  &::placeholder { color: #CBD5E1; font-weight: 600; font-size: 20px; }
+  &::placeholder { color: ${tk.muted}; font-weight: 600; font-size: 20px; }
 `
 
 const ErrorMsg = styled.span`
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #EF4444;
+  color: ${tk.red};
   font-size: 12.5px;
   font-weight: 600;
   margin-top: 6px;
@@ -147,11 +150,12 @@ const ErrorMsg = styled.span`
 // ─── Preset Grid ──────────────────────────────────────────────────────────────
 
 const PresetLabel = styled.p`
+  font-family: 'DM Mono', monospace;
   font-size: 12px;
-  font-weight: 700;
-  color: #94A3B8;
+  font-weight: 500;
+  color: ${tk.muted};
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 1px;
   margin: 16px 0 10px;
 `
 
@@ -170,32 +174,27 @@ const PresetBtn = styled.button<{ $selected?: boolean }>`
   padding: 10px 6px;
   border-radius: 12px;
   font-size: 14px;
-  font-weight: 800;
-  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-family: 'Syne', sans-serif;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
-  border: 2px solid ${({ $selected }) => $selected ? 'transparent' : '#E2E8F0'};
-  background: ${({ $selected }) => $selected
-    ? 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)'
-    : '#FFFFFF'};
-  color: ${({ $selected }) => $selected ? '#FFFFFF' : '#475569'};
+  border: 2px solid ${({ $selected }) => $selected ? tk.amber : tk.border};
+  background: ${({ $selected }) => $selected ? tk.amber : tk.white};
+  color: ${({ $selected }) => $selected ? tk.white : tk.body};
   box-shadow: ${({ $selected }) => $selected
-    ? '0 4px 14px rgba(245,158,11,0.35)'
-    : '0 1px 3px rgba(15,23,42,0.06)'};
+    ? '0 4px 14px rgba(212,135,10,0.25)'
+    : '0 1px 3px rgba(0,0,0,0.05)'};
 
   &:hover:not(:disabled) {
-    border-color: ${({ $selected }) => $selected ? 'transparent' : '#F59E0B'};
-    color: ${({ $selected }) => $selected ? '#FFFFFF' : '#F59E0B'};
+    border-color: ${tk.amber};
+    color: ${({ $selected }) => $selected ? tk.white : tk.amberDark};
     transform: translateY(-2px);
-    box-shadow: ${({ $selected }) => $selected
-      ? '0 6px 20px rgba(245,158,11,0.40)'
-      : '0 4px 12px rgba(245,158,11,0.18)'};
   }
 
   &:active:not(:disabled) { transform: translateY(0); }
 
   &:focus-visible {
-    outline: 2px solid #F59E0B;
+    outline: 2px solid ${tk.amber};
     outline-offset: 2px;
   }
 
@@ -206,10 +205,10 @@ const PresetBtn = styled.button<{ $selected?: boolean }>`
 
 const FeeCard = styled.div`
   margin-top: 20px;
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1.5px solid #E2E8F0;
-  background: #FFFFFF;
+  border: 1px solid ${tk.border};
+  background: ${tk.white};
 `
 
 // ─── Info Box ─────────────────────────────────────────────────────────────────
@@ -219,12 +218,12 @@ const InfoBox = styled.div`
   gap: 12px;
   align-items: flex-start;
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(245,158,11,0.07) 0%, rgba(239,68,68,0.05) 100%);
-  border: 1.5px solid rgba(245,158,11,0.2);
+  background: ${tk.amberLight};
+  border: 1px solid rgba(212,135,10,0.2);
   border-radius: 14px;
   margin-top: 16px;
   font-size: 13px;
-  color: #92400E;
+  color: ${tk.amberDark};
   line-height: 1.55;
   font-weight: 500;
 `
@@ -236,8 +235,8 @@ const InfoDot = styled.span`
   width: 22px;
   height: 22px;
   min-width: 22px;
-  background: linear-gradient(135deg, #F59E0B, #EF4444);
-  color: white;
+  background: ${tk.amber};
+  color: ${tk.white};
   border-radius: 50%;
   font-size: 12px;
   font-weight: 800;
@@ -326,7 +325,7 @@ export const DonationStep1Amount = forwardRef<Step1AmountRef, Step1AmountProps>(
         <InfoBox>
           <InfoDot>i</InfoDot>
           <div>
-            <strong>20% platform fee</strong> — covers secure payments, fraud prevention, and platform operations.
+            <strong>{DONATION_FEE_PERCENT}% platform fee</strong> — covers secure payments, fraud prevention, and platform operations.
             The remaining amount goes directly to the creator.
           </div>
         </InfoBox>

@@ -419,6 +419,9 @@ const ConfirmRow = styled.div`
 
 export interface Step4ReviewHandle {
   handleNextAction: () => boolean
+  // Exposed so the wizard's step-6 validation can require terms acceptance ONLY
+  // on the details view (where the terms checkbox is actually shown).
+  view: 'preview' | 'details'
 }
 
 interface Step4ReviewProps {
@@ -441,6 +444,7 @@ const Step4ReviewContent = React.forwardRef<Step4ReviewHandle, Step4ReviewProps>
     const [view, setView] = useState<'preview' | 'details'>('preview')
 
     useImperativeHandle(ref, () => ({
+      view,
       handleNextAction: () => {
         if (view === 'preview') { setView('details'); return false }
         return true
@@ -646,15 +650,30 @@ const Step4ReviewContent = React.forwardRef<Step4ReviewHandle, Step4ReviewProps>
                       <DataLabel>Reward / Share</DataLabel>
                       <DataValue>{formatCurrency(formData.sharingData?.rewardPerShare || 0)}</DataValue>
                     </DataCell>
+                    {/* SU-1: dollar fundraising goal + reach target shown distinctly */}
+                    <DataCell>
+                      <DataLabel>Fundraising Goal</DataLabel>
+                      <DataValue>
+                        {(formData.sharingData?.fundraisingGoal || 0) >= 5
+                          ? formatCurrency(formData.sharingData.fundraisingGoal)
+                          : 'None (virality only)'}
+                      </DataValue>
+                    </DataCell>
+                    <DataCell>
+                      <DataLabel>Reach Target</DataLabel>
+                      <DataValue>
+                        {(formData.sharingData?.reachTarget || 0) > 0
+                          ? `${formData.sharingData.reachTarget.toLocaleString()} shares`
+                          : '—'}
+                      </DataValue>
+                    </DataCell>
                     <DataCell>
                       <DataLabel>Platforms</DataLabel>
                       <DataValue>{(formData.sharingData?.platforms || []).length}</DataValue>
                     </DataCell>
                     <DataCell>
-                      <DataLabel>Max Shares</DataLabel>
-                      <DataValue>
-                        {formData.sharingData?.maxShares || 'Unlimited'}
-                      </DataValue>
+                      <DataLabel>Payment Methods</DataLabel>
+                      <DataValue>{(formData.sharingData?.paymentMethods || []).length}</DataValue>
                     </DataCell>
                   </DataGrid>
                   {(formData.sharingData?.platforms || []).length > 0 && (

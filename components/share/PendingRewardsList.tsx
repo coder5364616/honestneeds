@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react'
 import styled from 'styled-components'
+import { tk } from '@/styles/dashboardTokens'
 import { usePendingRewards } from '@/api/hooks/useSharerRewards'
 import { RewardEarningCard } from './RewardEarningCard'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
@@ -15,14 +16,14 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 const ContainerWrapper = styled.div`
   background-color: white;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${tk.border};
   overflow: hidden;
   margin-bottom: 2rem;
 `
 
 const SectionHeader = styled.div`
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background-color: ${tk.canvas};
+  border-bottom: 1px solid ${tk.border};
   padding: 1.5rem;
   display: flex;
   justify-content: space-between;
@@ -37,7 +38,7 @@ const SectionHeader = styled.div`
 const SectionTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
+  color: ${tk.heading};
   margin: 0;
   display: flex;
   align-items: center;
@@ -45,8 +46,8 @@ const SectionTitle = styled.h3`
 `
 
 const SummaryBadge = styled.span`
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: ${tk.amberLight};
+  color: ${tk.amberDark};
   padding: 0.375rem 0.75rem;
   border-radius: 4px;
   font-size: 0.85rem;
@@ -63,7 +64,7 @@ const RewardsList = styled.div`
 const EmptyState = styled.div`
   text-align: center;
   padding: 2rem;
-  color: #64748b;
+  color: ${tk.muted};
 `
 
 const EmptyStateIcon = styled.div`
@@ -89,17 +90,17 @@ const PaginationContainer = styled.div`
   align-items: center;
   gap: 0.5rem;
   padding: 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  background-color: #f8fafc;
+  border-top: 1px solid ${tk.border};
+  background-color: ${tk.canvas};
 `
 
 const PaginationButton = styled.button<{ $active?: boolean; $disabled?: boolean }>`
   min-width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid ${props => props.$active ? '#6366f1' : '#e2e8f0'};
-  background-color: ${props => props.$active ? '#6366f1' : 'white'};
-  color: ${props => props.$active ? 'white' : '#0f172a'};
+  border: 1px solid ${props => props.$active ? tk.blue : tk.border};
+  background-color: ${props => props.$active ? tk.blue : 'white'};
+  color: ${props => props.$active ? 'white' : tk.heading};
   border-radius: 6px;
   font-weight: 600;
   cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
@@ -107,12 +108,12 @@ const PaginationButton = styled.button<{ $active?: boolean; $disabled?: boolean 
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    border-color: #6366f1;
+    border-color: ${tk.blue};
   }
 `
 
 const PageInfo = styled.span`
-  color: #64748b;
+  color: ${tk.muted};
   font-size: 0.9rem;
 `
 
@@ -128,7 +129,7 @@ export const PendingRewardsList: React.FC<PendingRewardsListProps> = ({ limit = 
     return (
       <ContainerWrapper>
         <SectionHeader>
-          <SectionTitle>⏳ Pending Rewards (30-Day Hold)</SectionTitle>
+          <SectionTitle>⏳ Owed — awaiting payout</SectionTitle>
         </SectionHeader>
         <LoadingContainer>
           <LoadingSpinner />
@@ -145,7 +146,7 @@ export const PendingRewardsList: React.FC<PendingRewardsListProps> = ({ limit = 
     <ContainerWrapper>
       <SectionHeader>
         <SectionTitle>
-          ⏳ Pending Rewards (30-Day Hold)
+          ⏳ Owed — awaiting payout
           {rewards.length > 0 && (
             <SummaryBadge>${rewards.reduce((sum, r) => sum + r.amountCents, 0) / 100} pending</SummaryBadge>
           )}

@@ -110,6 +110,18 @@ const PlatformLabel = styled.label`
   input{width:15px;height:15px;accent-color:${t.indigo};cursor:pointer;flex-shrink:0}
 `
 
+// ── Consent (trust-based payout agreement) ────────────────────────────────────
+const ConsentBlock = styled.div<{ $err?: boolean }>`
+  background:${t.amberLight};
+  border:1.5px solid ${({ $err }) => ($err ? t.red : '#FDE68A')};
+  border-radius:${t.rs};padding:14px 16px;display:flex;gap:12px;align-items:flex-start;
+`
+const ConsentCheckbox = styled.input`
+  width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:${t.indigo};cursor:pointer;
+`
+const ConsentText = styled.div`font-size:0.8rem;color:${t.slate700};line-height:1.55`
+const ConsentStrong = styled.span`font-weight:700;color:${t.slate900}`
+
 // ── CTA ───────────────────────────────────────────────────────────────────────
 const CtaRow = styled.div`display:flex;justify-content:flex-end;gap:10px;margin-top:1.5rem`
 const BtnSecondary = styled.button`
@@ -229,6 +241,12 @@ const SharingStep: React.FC<SharingStepProps> = ({ formData, errors, onChange, o
   const reward = formData.sharingData?.rewardPerShare ?? 0
   const estShares = reward > 0 ? Math.floor(budget / reward).toLocaleString() : '—'
   const platforms: string[] = formData.sharingData?.platforms || []
+  // SU-1: a Share-to-Earn campaign still accepts donations. Collect a dollar
+  // fundraising goal AND (optionally) a reach target — tracked on SEPARATE
+  // meters so dollars and shares never mix.
+  const fundGoal = formData.sharingData?.fundraisingGoal ?? 0
+  const reachTarget = formData.sharingData?.reachTarget ?? 0
+  const payoutConsent: boolean = formData.sharingData?.payoutConsent ?? false
 
   const setSharing = (key: string, val: any) =>
     onChange('sharingData', { ...formData.sharingData, [key]: val })
@@ -307,6 +325,66 @@ const SharingStep: React.FC<SharingStepProps> = ({ formData, errors, onChange, o
             <SliderVal>${reward.toFixed(2)} per share</SliderVal>
             {errors.rewardPerShare && <FieldError>{errors.rewardPerShare}</FieldError>}
           </Field>
+
+          <ConsentBlock $err={!!errors.payoutConsent}>
+            <ConsentCheckbox
+              type="checkbox"
+              id="payout-consent"
+              checked={payoutConsent}
+              onChange={(e) => setSharing('payoutConsent', e.target.checked)}
+              aria-invalid={!!errors.payoutConsent}
+            />
+            <ConsentText as="label" htmlFor="payout-consent">
+              <ConsentStrong>I agree to pay sharers directly from this budget</ConsentStrong> when they
+              request a payout. HonestNeed tracks and verifies shares and payments but{' '}
+              <ConsentStrong>does not hold or guarantee these funds</ConsentStrong>. Share-to-Earn
+              activates immediately once you create this campaign.
+            </ConsentText>
+          </ConsentBlock>
+          {errors.payoutConsent && <FieldError>{errors.payoutConsent}</FieldError>}
+        </FormStack>
+      </SectionBlock>
+
+      <SectionBlock>
+        <BlockTitle>Donation goal &amp; reach target</BlockTitle>
+        <FieldHint>
+          Share-to-Earn campaigns still accept donations — that's how a share "converts"
+          and a sharer earns. Set a <strong>dollar fundraising goal</strong> donors give toward,
+          and optionally a <strong>reach target</strong> measured in shares. These show on two
+          separate meters — dollars and shares never mix.
+        </FieldHint>
+        <FormStack>
+          <Field>
+            <FieldLabel>Fundraising goal <span style={{ color: t.slate400, fontWeight: 400 }}>(optional, $)</span></FieldLabel>
+            <SliderCombo>
+              <NumberInput
+                type="number" min={5} step={1}
+                value={fundGoal || ''}
+                placeholder="$ (min $5)"
+                onChange={(e) => setSharing('fundraisingGoal', parseFloat(e.target.value) || 0)}
+                aria-invalid={!!errors.fundraisingGoal}
+              />
+            </SliderCombo>
+            <SliderVal>
+              {fundGoal >= 5 ? `$${fundGoal.toLocaleString()} donation goal` : 'No dollar goal — pure virality'}
+            </SliderVal>
+            {errors.fundraisingGoal && <FieldError>{errors.fundraisingGoal}</FieldError>}
+          </Field>
+
+          <Field>
+            <FieldLabel>Reach target <span style={{ color: t.slate400, fontWeight: 400 }}>(optional, in shares)</span></FieldLabel>
+            <SliderCombo>
+              <NumberInput
+                type="number" min={1} step={1}
+                value={reachTarget || ''}
+                placeholder="shares"
+                onChange={(e) => setSharing('reachTarget', parseInt(e.target.value) || 0)}
+              />
+            </SliderCombo>
+            <SliderVal>
+              {reachTarget > 0 ? `${reachTarget.toLocaleString()} shares` : 'No reach target'}
+            </SliderVal>
+          </Field>
         </FormStack>
       </SectionBlock>
 
@@ -329,6 +407,20 @@ const SharingStep: React.FC<SharingStepProps> = ({ formData, errors, onChange, o
           ))}
         </PlatformGrid>
         {errors.platforms && <FieldError style={{ marginTop: '0.5rem' }}>{errors.platforms}</FieldError>}
+      </SectionBlock>
+
+      {/* SU-1: sharing campaigns accept donations, so they need real payment
+          methods just like fundraising campaigns (not a stripe placeholder). */}
+      <SectionBlock>
+        <BlockTitle>Payment methods</BlockTitle>
+        <PaymentMethodsManager
+          methods={formData.sharingData?.paymentMethods || []}
+          onChange={(methods) => setSharing('paymentMethods', methods)}
+          maxMethods={6}
+          error={errors.paymentMethods}
+          helperText="Donors send payments here when they support your campaign (1–6 methods)"
+          title=""
+        />
       </SectionBlock>
     </FormStack>
   )

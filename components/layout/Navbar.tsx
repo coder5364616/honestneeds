@@ -8,6 +8,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import Button from '@/components/ui/Button'
+import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import {
   Menu,
   X,
@@ -21,10 +22,33 @@ import {
   FileText,
   Banknote,
   Settings,
-  Layers,
-  Briefcase,
+  Sparkles,
+  ShieldAlert,
   LogOut,
   User,
+  Building2,
+  HeartHandshake,
+  Award,
+  BadgeCheck,
+  BarChart3,
+  TrendingUp,
+  Globe,
+  ShieldCheck,
+  Wallet,
+  Users,
+  MessageSquareWarning,
+  ScrollText,
+  FileBarChart,
+  LineChart,
+  Clock,
+  Trophy,
+  Mail,
+  Rocket,
+  MessageSquare,
+  Siren,
+  HandHeart,
+  Inbox,
+  Send,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -42,6 +66,12 @@ interface NavLink {
 const publicNavLinks: NavLink[] = [
   { label: 'Browse Campaigns', href: '/campaigns', icon: <Compass size={15} />, group: 'Explore' },
   { label: 'Sweepstakes', href: '/sweepstakes', icon: <Gift size={15} />, group: 'Explore' },
+  { label: 'Businesses', href: '/business', icon: <Building2 size={15} />, group: 'Explore' },
+  { label: 'Volunteer', href: '/opportunities', icon: <HeartHandshake size={15} />, group: 'Explore' },
+  { label: 'Hope Responders', href: '/hope-responders', icon: <Siren size={15} />, group: 'Explore' },
+  { label: 'Giveaways', href: '/giveaways', icon: <Gift size={15} />, group: 'Explore' },
+  { label: 'Rewards', href: '/rewards', icon: <Award size={15} />, group: 'Explore' },
+  { label: 'Impact', href: '/impact', icon: <Globe size={15} />, group: 'Explore' },
 ]
 
 const authenticatedNavLinks: NavLink[] = [
@@ -52,23 +82,87 @@ const authenticatedNavLinks: NavLink[] = [
     roles: ['supporter', 'creator', 'admin'],
     group: 'General',
   },
+  {
+    label: 'My Business',
+    href: '/business/dashboard',
+    icon: <Building2 size={15} />,
+    roles: ['supporter', 'creator', 'admin'],
+    group: 'Business',
+  },
+  {
+    label: 'Business Impact',
+    href: '/business/impact',
+    icon: <BarChart3 size={15} />,
+    roles: ['supporter', 'creator', 'admin'],
+    group: 'Business',
+  },
+  {
+    label: 'Sponsor ROI',
+    href: '/sponsorships/roi',
+    icon: <TrendingUp size={15} />,
+    roles: ['supporter', 'creator', 'admin'],
+    group: 'Business',
+  },
+  // H-1: payout-method management is for everyone (sharers need it to get paid),
+  // not just creators. No `roles` → shown to every authenticated user, sidestepping
+  // the supporter/user role-label mismatch.
+  {
+    label: 'Payout Methods',
+    href: '/settings',
+    icon: <Settings size={15} />,
+    group: 'General',
+  },
 ]
 
 const supporterNavLinks: NavLink[] = [
+  { label: 'Discover', href: '/discover', icon: <Sparkles size={15} />, roles: ['supporter'], group: 'My Activity' },
   { label: 'My Donations', href: '/donations', icon: <Heart size={15} />, roles: ['supporter'], group: 'My Activity' },
   { label: 'My Shares', href: '/shares', icon: <Share2 size={15} />, roles: ['supporter'], group: 'My Activity' },
+  { label: 'Share Leaderboard', href: '/shares/leaderboard', icon: <Trophy size={15} />, roles: ['supporter'], group: 'My Activity' },
+  { label: 'Prayers', href: '/prayers', icon: <HandHeart size={15} />, roles: ['supporter'], group: 'My Activity' },
   { label: 'Sweepstakes', href: '/sweepstakes', icon: <Gift size={15} />, roles: ['supporter'], group: 'My Activity' },
+  { label: 'My Wins', href: '/giveaways/wins', icon: <Award size={15} />, roles: ['supporter'], group: 'My Activity' },
+  { label: 'My Giving', href: '/donor-analytics', icon: <TrendingUp size={15} />, roles: ['supporter'], group: 'My Activity' },
+]
+
+// Volunteering hub — top-level /volunteers pages, available to every authenticated
+// user (the page itself is not behind a role route-group).
+const volunteerNavLinks: NavLink[] = [
+  { label: 'Volunteer Center', href: '/volunteers', icon: <HeartHandshake size={15} />, group: 'Volunteering' },
+  { label: 'My Invitations', href: '/volunteers/invites', icon: <Inbox size={15} />, group: 'Volunteering' },
+  { label: 'Hire Volunteers', href: '/volunteers/directory', icon: <Users size={15} />, group: 'Volunteering' },
+  { label: 'Sent Invitations', href: '/volunteers/sent', icon: <Send size={15} />, group: 'Volunteering' },
+  { label: 'Log Hours', href: '/volunteers/hours', icon: <Clock size={15} />, group: 'Volunteering' },
+  { label: 'Verify Hours', href: '/volunteers/verify', icon: <BadgeCheck size={15} />, group: 'Volunteering' },
+  { label: 'Leaderboard', href: '/volunteers/leaderboard', icon: <Trophy size={15} />, group: 'Volunteering' },
+  { label: 'References', href: '/volunteers/references', icon: <Mail size={15} />, group: 'Volunteering' },
+  { label: 'Hope Responders', href: '/hope-responders', icon: <Siren size={15} />, group: 'Volunteering' },
 ]
 
 const creatorNavLinks: NavLink[] = [
   { label: 'My Campaigns', href: '/dashboard/campaigns', icon: <FileText size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
+  { label: 'Analytics', href: '/analytics', icon: <BarChart3 size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
+  { label: 'Messages', href: '/messages', icon: <MessageSquare size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
+  { label: 'Boosts', href: '/boosts', icon: <Rocket size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
+  { label: 'Wallet', href: '/wallet', icon: <Wallet size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
+  { label: 'AI Assistant', href: '/ai', icon: <Sparkles size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
   { label: 'Sharers Payouts', href: '/sharers-payouts', icon: <Banknote size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
-  { label: 'Settings', href: '/settings', icon: <Settings size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
 ]
 
+// Order mirrors AdminSidebar's AD-01..AD-10 nav (app/admin/_components/AdminSidebar.tsx).
 const adminNavLinks: NavLink[] = [
-  { label: 'Manage Sweepstakes', href: '/admin/sweepstakes', icon: <Layers size={15} />, roles: ['admin'], group: 'Admin' },
-  { label: 'Manage Sponsorships', href: '/admin/sponsorships', icon: <Briefcase size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Analytics', href: '/admin/analytics', icon: <LineChart size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Campaign Queue', href: '/admin/moderation', icon: <ShieldCheck size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Users', href: '/admin/users', icon: <Users size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Finance', href: '/admin/finance', icon: <Wallet size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Verifications', href: '/admin/verifications', icon: <BadgeCheck size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Fraud', href: '/admin/fraud', icon: <ShieldAlert size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Configuration', href: '/admin/config', icon: <Settings size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Content', href: '/admin/content', icon: <MessageSquareWarning size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Audit Log', href: '/admin/audit', icon: <ScrollText size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'Reports', href: '/admin/reports', icon: <FileBarChart size={15} />, roles: ['admin'], group: 'Admin' },
+  { label: 'AI', href: '/admin/ai', icon: <Sparkles size={15} />, roles: ['admin'], group: 'Admin' },
 ]
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
@@ -753,7 +847,12 @@ export default function Navbar() {
   const getVisibleLinks = useCallback((): NavLink[] => {
     if (!isAuthenticated) return publicNavLinks
 
-    const role = user?.role || 'supporter'
+    // The auth store types role as 'user' | 'creator' | 'admin', but the nav link
+    // definitions use the 'supporter' label. Normalize so a plain 'user' sees the
+    // supporter ("My Activity") links — without this they were silently hidden.
+    const rawRole = user?.role || 'supporter'
+    const role = rawRole === 'user' ? 'supporter' : rawRole
+
     const links: NavLink[] = [
       ...authenticatedNavLinks.filter((l) => !l.roles || l.roles.includes(role)),
       ...publicNavLinks,
@@ -769,6 +868,9 @@ export default function Navbar() {
       links.push(...adminNavLinks.filter((l) => l.roles?.includes('admin')))
       links.push(...supporterNavLinks.filter((l) => l.roles?.includes('supporter')))
     }
+
+    // Volunteering hub is available to every authenticated user, all roles.
+    links.push(...volunteerNavLinks)
 
     return links
   }, [isAuthenticated, user?.role])
@@ -863,6 +965,10 @@ export default function Navbar() {
 
           {/* Right section */}
           <RightSection>
+            {/* Notification bell — authenticated users only. Sits left of the
+                avatar on desktop and left of the hamburger on mobile. */}
+            {isAuthenticated && <NotificationBell />}
+
             {!isAuthenticated ? (
               <AuthButtons>
                 <Button variant="ghost" as="link" href="/login" size="sm">
@@ -892,6 +998,19 @@ export default function Navbar() {
                       <UserName>{user?.name}</UserName>
                       <UserEmail>{user?.email || 'No email set'}</UserEmail>
                     </UserInfo>
+                    <DropdownDivider />
+                    <DropdownItem href="/profile" role="menuitem" $active={isActive('/profile')} onClick={() => setUserMenuOpen(false)}>
+                      <User size={14} />
+                      Profile
+                    </DropdownItem>
+                    <DropdownItem href="/settings" role="menuitem" $active={isActive('/settings')} onClick={() => setUserMenuOpen(false)}>
+                      <Settings size={14} />
+                      Settings
+                    </DropdownItem>
+                    <DropdownItem href="/verify/identity" role="menuitem" $active={isActive('/verify/identity')} onClick={() => setUserMenuOpen(false)}>
+                      <BadgeCheck size={14} />
+                      Verify Identity
+                    </DropdownItem>
                     <DropdownDivider />
                     <DropdownActionButton
                       role="menuitem"
@@ -1035,6 +1154,18 @@ export default function Navbar() {
                         <DrawerUserEmail>{user?.email || 'No email set'}</DrawerUserEmail>
                       </DrawerUserInfo>
                     </DrawerUserRow>
+                    <DrawerLink href="/profile" $active={isActive('/profile')} onClick={() => setMobileOpen(false)}>
+                      <User size={16} />
+                      Profile
+                    </DrawerLink>
+                    <DrawerLink href="/settings" $active={isActive('/settings')} onClick={() => setMobileOpen(false)}>
+                      <Settings size={16} />
+                      Settings
+                    </DrawerLink>
+                    <DrawerLink href="/verify/identity" $active={isActive('/verify/identity')} onClick={() => setMobileOpen(false)}>
+                      <BadgeCheck size={16} />
+                      Verify Identity
+                    </DrawerLink>
                     <DrawerSignOut onClick={handleLogout}>
                       <LogOut size={15} />
                       Sign out

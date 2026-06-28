@@ -66,6 +66,7 @@ export default function BackgroundMusicPlayer() {
       />
 
       <button
+        id="hn-music-btn"
         onClick={toggleMute}
         aria-label={isMuted ? 'Unmute background music' : 'Mute background music'}
         title={isMuted ? 'Click to play music' : 'Click to mute'}
@@ -103,6 +104,7 @@ export default function BackgroundMusicPlayer() {
       {/* Pulse ring animation when playing */}
       {!isMuted && (
         <div
+          id="hn-music-pulse"
           aria-hidden="true"
           style={{
             position: 'fixed',

@@ -5,9 +5,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import axios, { AxiosError } from 'axios'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+import { apiClient } from '@/lib/api'
 
 interface ScheduleResponse {
   success: boolean
@@ -36,16 +34,10 @@ export const useScheduleActivation = () => {
 
   return useMutation(
     async ({ campaignId, scheduledTime }: { campaignId: string; scheduledTime: Date }) => {
-      const response = await axios.post<ScheduleResponse>(
-        `${API_BASE_URL}/campaigns/${campaignId}/schedule-activation`,
+      const response = await apiClient.post<ScheduleResponse>(
+        `/campaigns/${campaignId}/schedule-activation`,
         {
           scheduled_activation_at: scheduledTime.toISOString(),
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-          },
         }
       )
       return response.data
@@ -68,13 +60,8 @@ export const useCancelScheduledActivation = () => {
 
   return useMutation(
     async (campaignId: string) => {
-      const response = await axios.delete(
-        `${API_BASE_URL}/campaigns/${campaignId}/scheduled-activation`,
-        {
-          headers: {
-            Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-          },
-        }
+      const response = await apiClient.delete(
+        `/campaigns/${campaignId}/scheduled-activation`
       )
       return response.data
     },
@@ -96,16 +83,10 @@ export const useRescheduleActivation = () => {
 
   return useMutation(
     async ({ campaignId, scheduledTime }: { campaignId: string; scheduledTime: Date }) => {
-      const response = await axios.put(
-        `${API_BASE_URL}/campaigns/${campaignId}/scheduled-activation`,
+      const response = await apiClient.put(
+        `/campaigns/${campaignId}/scheduled-activation`,
         {
           scheduled_activation_at: scheduledTime.toISOString(),
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-          },
         }
       )
       return response.data
@@ -130,14 +111,10 @@ export const useGetScheduledActivation = (campaignId: string) => {
   return useQuery(
     ['scheduledActivation', campaignId],
     async () => {
-      const response = await axios.get<{
+      const response = await apiClient.get<{
         success: boolean
         data: ScheduledActivationStatus
-      }>(`${API_BASE_URL}/campaigns/${campaignId}/scheduled-activation`, {
-        headers: {
-          Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
-        },
-      })
+      }>(`/campaigns/${campaignId}/scheduled-activation`)
       return response.data.data
     },
     {

@@ -368,3 +368,17 @@ pre code {
     text-decoration: underline;
   }
 }
+
+/* Respect users who ask for less motion — cuts the constant repaint cost of
+   the landing page's infinite keyframe animations (shimmer, glow, float, etc.)
+   that can cause scroll lag/jank on low-power devices. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

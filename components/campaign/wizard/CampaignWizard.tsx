@@ -509,6 +509,15 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
   const isPaidBoost = formData.boostData.selectedTier && formData.boostData.selectedTier !== 'free'
   const isActivationStep = (currentStep === 8 && !isPaidBoost) || currentStep === 9
 
+  /* Jump back to the top of the page whenever the step changes — otherwise the
+     long form leaves the viewport scrolled down, so Next/Back appears to scroll
+     the user further down instead of to the new step's heading. */
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [currentStep])
+
   /* Total visible steps (excl. activation) */
   const totalSteps = isPaidBoost ? 8 : 7
 
@@ -549,6 +558,18 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
           newErrors.rewardPerShare = 'Reward per share must be at least $0.10'
         if (!sd.platforms || sd.platforms.length === 0)
           newErrors.platforms = 'Select at least one platform'
+        // Phase A (trust-based): creator must accept paying sharers directly
+        // before Share-to-Earn activates.
+        if (!sd.payoutConsent)
+          newErrors.payoutConsent = 'You must agree to pay sharers directly to enable Share-to-Earn'
+        // SU-1: a fundraising goal is optional, but if set it must clear the $5
+        // floor (matches backend SF-3) so the donor sees the error before submit.
+        if (sd.fundraisingGoal && sd.fundraisingGoal > 0 && sd.fundraisingGoal < 5)
+          newErrors.fundraisingGoal = 'Fundraising goal must be at least $5.00 (or leave blank for virality-only)'
+        // If donations are enabled (a fundraising goal is set), real payment
+        // methods are required so donors can actually pay.
+        if (sd.fundraisingGoal && sd.fundraisingGoal >= 5 && (!sd.paymentMethods || sd.paymentMethods.length === 0))
+          newErrors.paymentMethods = 'Add at least one payment method so donors can support your goal'
       }
     } else if (currentStep === 6) {
       const isDetailsView = step4ReviewRef.current?.view === 'details'
@@ -629,7 +650,10 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
         delete newErrors.meterType
         delete newErrors.budget
         delete newErrors.rewardPerShare
+        delete newErrors.payoutConsent
         delete newErrors.platforms
+        delete newErrors.fundraisingGoal
+        delete newErrors.paymentMethods
         setErrors(newErrors)
         setSharingData({ ...formData.sharingData, ...value })
       } else if (field === 'fundraisingData') {
@@ -814,6 +838,7 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
                 saveDraft()
                 setCurrentStep(6)
               }}
+              onBack={handleBack}
               isLoading={isSubmitting}
             />
           )}

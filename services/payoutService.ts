@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { apiClient } from '@/lib/api'
 
 /**
  * Payout Service - Frontend
@@ -50,7 +50,7 @@ export const payoutService = {
    * Get available amount for payout
    */
   async getAvailableForPayout(): Promise<AvailablePayoutResponse> {
-    const { data } = await axios.get('/api/payouts/available')
+    const { data } = await apiClient.get('/payouts/available')
     return data
   },
 
@@ -60,7 +60,7 @@ export const payoutService = {
   async requestPayout(
     request: PayoutRequest
   ): Promise<{ success: boolean; data: PayoutResponse }> {
-    const { data } = await axios.post('/api/payouts', request)
+    const { data } = await apiClient.post('/payouts', request)
     return data
   },
 
@@ -71,7 +71,7 @@ export const payoutService = {
     page = 1,
     limit = 20
   ): Promise<PayoutHistoryResponse> {
-    const { data } = await axios.get('/api/payouts/my-payouts', {
+    const { data } = await apiClient.get('/payouts/my-payouts', {
       params: { page, limit },
     })
     return data
@@ -84,7 +84,7 @@ export const payoutService = {
     success: boolean
     data: PayoutResponse
   }> {
-    const { data } = await axios.get(`/api/payouts/${payoutId}`)
+    const { data } = await apiClient.get(`/payouts/${payoutId}`)
     return data
   },
 
@@ -95,7 +95,7 @@ export const payoutService = {
     page = 1,
     limit = 20
   ): Promise<PayoutHistoryResponse> {
-    const { data } = await axios.get('/api/payouts/admin/pending', {
+    const { data } = await apiClient.get('/payouts/admin/pending', {
       params: { page, limit },
     })
     return data
@@ -112,7 +112,7 @@ export const payoutService = {
       approved_at: string
     }
   }> {
-    const { data } = await axios.post(`/api/payouts/admin/${payoutId}/approve`)
+    const { data } = await apiClient.post(`/payouts/admin/${payoutId}/approve`)
     return data
   },
 
@@ -130,7 +130,7 @@ export const payoutService = {
       failed_reason: string
     }
   }> {
-    const { data } = await axios.post(
+    const { data } = await apiClient.post(
       `/api/payouts/admin/${payoutId}/reject`,
       { reason }
     )
@@ -152,7 +152,7 @@ export const payoutService = {
       transaction_reference: string
     }
   }> {
-    const { data } = await axios.post(
+    const { data } = await apiClient.post(
       `/api/payouts/admin/${payoutId}/process`,
       { transaction_reference }
     )
@@ -185,7 +185,7 @@ export const payoutService = {
       }
     }
   }> {
-    const { data } = await axios.get('/api/payouts/admin/stats')
+    const { data } = await apiClient.get('/payouts/admin/stats')
     return data
   },
 }

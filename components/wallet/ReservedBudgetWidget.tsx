@@ -14,6 +14,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, Lock } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 
 interface WidgetData {
   reserved_dollars: string;
@@ -56,17 +57,8 @@ export default function ReservedBudgetWidget({
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/creator/balance/breakdown', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch reserved budget');
-      }
-
-      const json = await response.json();
+      const response = await apiClient.get('/creator/balance/breakdown');
+      const json = response.data;
       if (json.success && json.data) {
         setData(json.data);
       }
@@ -107,7 +99,7 @@ export default function ReservedBudgetWidget({
         </div>
         {showLink && (
           <Link
-            href="/dashboard/balance"
+            href="/wallet"
             className="text-xs text-amber-700 hover:text-amber-900 font-medium whitespace-nowrap"
           >
             Learn more →
@@ -131,12 +123,12 @@ export default function ReservedBudgetWidget({
 
           <p className="text-sm text-amber-800 mt-2">
             {data.active_campaigns_count} active campaign{data.active_campaigns_count !== 1 ? 's' : ''} • 
-            ${data.available_dollars} available for withdrawal
+            ${data.available_dollars} available to spend on rewards
           </p>
 
           {showLink && (
             <Link
-              href="/dashboard/balance"
+              href="/wallet"
               className="inline-block text-sm font-medium text-amber-700 hover:text-amber-900 mt-3"
             >
               View detailed breakdown →

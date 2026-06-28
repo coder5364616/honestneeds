@@ -8,12 +8,14 @@ import { toast } from 'react-toastify'
 import Link from 'next/link'
 import { useCheckWinner, useClaimPrize, useCurrentSweepstakes } from '@/api/hooks/useSimpleSweepstakes'
 import { useAuthStore } from '@/store/authStore'
+import { DashboardFonts } from '@/features/dashboardUI'
 import Button from '@/components/ui/Button'
 
-// Styled Components
+// Styled Components — mapped to the creator dashboard design system
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #F7F5F1;
+  font-family: 'DM Sans', sans-serif;
   padding: 2rem 1rem;
 `
 
@@ -26,14 +28,14 @@ const BackButton = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: white;
+  color: #1A5FA8;
   text-decoration: none;
   margin-bottom: 2rem;
   font-weight: 500;
   transition: opacity 200ms;
 
   &:hover {
-    opacity: 0.8;
+    opacity: 0.75;
   }
 
   svg {
@@ -43,48 +45,53 @@ const BackButton = styled(Link)`
 `
 
 const Card = styled.div`
-  background: white;
-  border-radius: 1rem;
+  background: #FFFFFF;
+  border: 1px solid #E2DDD6;
+  border-radius: 14px;
   padding: 2rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(26, 95, 168, 0.06);
   margin-bottom: 1.5rem;
 `
 
 const Title = styled.h1`
+  font-family: 'Syne', sans-serif;
   font-size: 1.75rem;
-  font-weight: 700;
-  color: #111827;
+  font-weight: 800;
+  color: #18171A;
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  letter-spacing: -0.5px;
 `
 
 const Subtitle = styled.p`
-  color: #6b7280;
+  color: #8C8790;
   font-size: 1rem;
   margin-bottom: 2rem;
 `
 
 const PrizeInfo = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #D4870A 0%, #F5C961 100%);
+  color: #18171A;
+  border-radius: 12px;
   padding: 1.5rem;
   text-align: center;
   margin-bottom: 2rem;
 
   .prize-label {
-    font-size: 0.875rem;
-    opacity: 0.9;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    opacity: 0.8;
     margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 1px;
   }
 
   .prize-amount {
+    font-family: 'Syne', sans-serif;
     font-size: 2.5rem;
-    font-weight: 700;
+    font-weight: 800;
   }
 `
 
@@ -115,8 +122,8 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #D4870A;
+    box-shadow: 0 0 0 3px #FBF3E0;
   }
 
   &:disabled {
@@ -164,12 +171,12 @@ const StatusMessage = styled.div`
   }
 
   &.info {
-    background: #eff6ff;
-    border: 2px solid #93c5fd;
+    background: #E8F0FB;
+    border: 2px solid #1A5FA8;
     color: #0c4a6e;
 
     svg {
-      color: #3b82f6;
+      color: #1A5FA8;
       flex-shrink: 0;
       margin-top: 0.25rem;
     }
@@ -309,6 +316,7 @@ export default function ClaimPrizePage() {
   if (isLoadingWinner) {
     return (
       <PageContainer>
+        <DashboardFonts />
         <Content>
           <Card style={{ textAlign: 'center' }}>
             <p style={{ color: '#6b7280' }}>Loading...</p>
@@ -321,6 +329,7 @@ export default function ClaimPrizePage() {
   if (!isWinner || !canClaim) {
     return (
       <PageContainer>
+        <DashboardFonts />
         <Content>
           <BackButton href="/sweepstakes">
             <ArrowLeft />
@@ -345,6 +354,7 @@ export default function ClaimPrizePage() {
 
   return (
     <PageContainer>
+      <DashboardFonts />
       <Content>
         <BackButton href="/sweepstakes">
           <ArrowLeft />

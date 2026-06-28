@@ -7,6 +7,14 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { PrayerTrendChart } from '@/components/analytics/PrayerTrendChart'
 import { COLORS, SPACING, TYPOGRAPHY } from '@/styles/tokens'
 
+// ─── Accent tokens (mirrors /dashboard & the analytics page shell) ───────────
+const tk = {
+  blue: '#1A5FA8',
+  blueLight: '#E8F0FB',
+  green: '#1A7A4A',
+  greenLight: '#E8F5EE',
+}
+
 // Styled Components
 const Container = styled.div`
   display: flex;
@@ -134,7 +142,7 @@ const ProgressTitle = styled.h3`
 const ProgressPercent = styled.span`
   font-size: ${TYPOGRAPHY.SIZE_SM};
   font-weight: 700;
-  color: #9333ea;
+  color: ${tk.blue};
 `
 
 const ProgressTrack = styled.div`
@@ -147,7 +155,7 @@ const ProgressTrack = styled.div`
 
 const ProgressFill = styled.div<{ width: number; isGoalReached: boolean }>`
   height: 100%;
-  background: linear-gradient(to right, #a855f7, #9333ea);
+  background: ${tk.blue};
   transition: width 500ms ease-in-out;
   width: ${(props) => props.width}%;
   animation: ${(props) => (props.isGoalReached ? 'pulse 2s infinite' : 'none')};
@@ -174,10 +182,10 @@ const ProgressStats = styled.div`
 const GoalMessage = styled.div`
   margin-top: ${SPACING[3]};
   padding: ${SPACING[2]};
-  background: #dcfce7;
+  background: ${tk.greenLight};
   border-radius: 0.25rem;
   font-size: ${TYPOGRAPHY.SIZE_SM};
-  color: #166534;
+  color: ${tk.green};
   display: flex;
   align-items: center;
   gap: ${SPACING[2]};
@@ -233,20 +241,20 @@ const BreakdownLabel = styled.div`
 
 const BreakdownPercentage = styled.div`
   font-size: 0.75rem;
-  color: #9333ea;
+  color: ${tk.blue};
   font-weight: 600;
   margin-top: ${SPACING[1]};
 `
 
 const InfoBox = styled.div`
-  background: #f3e8ff;
-  border: 1px solid #e9d5ff;
+  background: ${tk.blueLight};
+  border: 1px solid ${tk.blue}33;
   border-radius: 0.5rem;
   padding: ${SPACING[4]};
 
   p {
     font-size: ${TYPOGRAPHY.SIZE_SM};
-    color: #6b21a8;
+    color: ${tk.blue};
   }
 
   strong {

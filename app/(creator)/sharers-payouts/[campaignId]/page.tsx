@@ -2,26 +2,90 @@
 
 import React, { useState, useCallback } from 'react'
 import styled from 'styled-components'
-import { useCampaignPayoutRequests, useCampaignPayoutSummary, useMarkPayoutAsPaid } from '@/api/hooks/useCampaignPayouts'
+import {
+  useCampaignPayoutRequests,
+  useCampaignPayoutSummary,
+  useMarkPayoutAsPaid,
+  useSharerTracking,
+  useDisputePayout,
+} from '@/api/hooks/useCampaignPayouts'
 import { useRouter, useParams } from 'next/navigation'
-import { 
-  DollarSign, 
-  ArrowRight, 
-  CheckCircle, 
-  Clock, 
+import {
+  DollarSign,
+  ArrowRight,
+  CheckCircle,
+  Clock,
   AlertCircle,
   Send,
   Filter,
   ChevronLeft,
   Eye,
   X,
-  Copy
+  Copy,
+  Search,
+  Activity,
+  Flag,
+  MousePointerClick,
+  Share2
 } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
+import { ShareRequestsInbox } from '@/components/campaign/ShareRequestsInbox'
+import { tk } from '@/styles/dashboardTokens'
+
+const MethodHead = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  background: ${tk.amberLight};
+  border-bottom: 1px solid ${tk.border};
+  label {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    input { width: 18px; height: 18px; cursor: pointer; }
+    strong { color: ${tk.ink}; font-size: 0.95rem; }
+    span { color: ${tk.body}; font-size: 0.85rem; }
+  }
+  small { color: ${tk.amberDark}; font-weight: 700; font-size: 0.8rem; }
+`
+
+const SearchBox = styled.div`
+  display: flex; align-items: center; gap: 8px;
+  background: ${tk.white}; border: 1px solid ${tk.border}; border-radius: 10px;
+  padding: 0 12px; margin-bottom: 1.25rem; color: ${tk.muted};
+  input {
+    flex: 1; border: none; outline: none; padding: 11px 0; font-size: 0.9rem;
+    color: ${tk.ink}; background: transparent;
+  }
+  &:focus-within { border-color: ${tk.amber}; }
+`
+
+const BulkBar = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1.25rem;
+  background: ${tk.ink};
+  color: ${tk.white};
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  .meta { font-weight: 700; }
+  .actions { display: flex; gap: 0.6rem; }
+  button {
+    border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+  }
+  .clear { background: transparent; color: ${tk.offWhite}; border: 1px solid ${tk.inkBorder}; }
+  .pay { background: ${tk.amber}; color: #fff; }
+`
 
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: #F7F5F1;
   padding: 2rem;
 `
 
@@ -87,7 +151,7 @@ const StatCard = styled.div`
   padding: 1.5rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid ${props => props.color || '#0066cc'};
+  border-left: 4px solid ${props => props.color || tk.amber};
 
   .label {
     font-size: 0.9rem;
@@ -118,24 +182,24 @@ const FilterBar = styled.div`
 
   button {
     padding: 0.5rem 1rem;
-    border: 2px solid #e0e0e0;
-    background: white;
-    color: #333;
+    border: 2px solid ${tk.border};
+    background: ${tk.white};
+    color: ${tk.body};
     border-radius: 8px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 
     &:hover {
-      border-color: #0066cc;
+      border-color: ${tk.amberMid};
     }
 
     &[data-active="true"] {
-      border-color: #0066cc;
-      background: #0066cc;
+      border-color: ${tk.amber};
+      background: ${tk.amber};
       color: white;
     }
   }
@@ -329,23 +393,28 @@ const StatusBadge = styled.span`
   font-weight: 600;
   
   &.pending {
-    background: #fff3cd;
-    color: #856404;
+    background: ${tk.amberLight};
+    color: ${tk.amberDark};
   }
 
   &.processing {
-    background: #d1ecf1;
-    color: #0c5460;
+    background: ${tk.blueLight};
+    color: ${tk.blue};
   }
 
   &.completed {
-    background: #d4edda;
-    color: #155724;
+    background: ${tk.greenLight};
+    color: ${tk.green};
   }
 
-  &.failed {
-    background: #f8d7da;
-    color: #721c24;
+  &.failed, &.cancelled {
+    background: ${tk.redLight};
+    color: ${tk.red};
+  }
+
+  &.disputed {
+    background: ${tk.redLight};
+    color: ${tk.red};
   }
 `
 
@@ -356,19 +425,19 @@ const ActionButtons = styled.div`
   button {
     padding: 0.4rem 0.8rem;
     border: none;
-    background: #0066cc;
+    background: ${tk.amber};
     color: white;
     border-radius: 6px;
     cursor: pointer;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 700;
     display: flex;
     align-items: center;
     gap: 4px;
     transition: all 0.2s;
 
     &:hover:not(:disabled) {
-      background: #0052a3;
+      background: ${tk.amberDark};
       transform: translateY(-1px);
     }
 
@@ -580,6 +649,7 @@ const SharerDetails = styled.div`
 
 // Memoize statusOptions outside component to prevent recreation
 const STATUS_OPTIONS = [
+  { value: 'actionable', label: 'Action needed', icon: AlertCircle },
   { value: 'pending', label: 'Pending', icon: Clock },
   { value: 'processing', label: 'Processing', icon: ArrowRight },
   { value: 'completed', label: 'Completed', icon: CheckCircle },
@@ -590,10 +660,25 @@ export default function CampaignPayoutsPage() {
   const router = useRouter()
   const params = useParams()
   const campaignId = params.campaignId as string
-  const [selectedStatus, setSelectedStatus] = useState('pending')
+  const [selectedStatus, setSelectedStatus] = useState('actionable')
   const [page, setPage] = useState(1)
   const [selectedRequest, setSelectedRequest] = useState<any>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  // F-2: Mark-paid modal state (reference + optional proof screenshot)
+  const [payRequest, setPayRequest] = useState<any>(null)
+  const [payReference, setPayReference] = useState('')
+  const [payProof, setPayProof] = useState<File | null>(null)
+  // C2: bulk selection + bulk mark-paid
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkReference, setBulkReference] = useState('')
+  const [bulkBusy, setBulkBusy] = useState(false)
+  // C3: in-campaign search
+  const [search, setSearch] = useState('')
+  // Phase 4: tracking proof view + dispute
+  const [trackingSharer, setTrackingSharer] = useState<{ id: string; name: string } | null>(null)
+  const [disputeRequest, setDisputeRequest] = useState<any>(null)
+  const [disputeReason, setDisputeReason] = useState('')
   const { showToast } = useToast()
 
   // Fetch payout requests - stable dependencies
@@ -611,18 +696,112 @@ export default function CampaignPayoutsPage() {
   const { data: summaryData } = useCampaignPayoutSummary(campaignId)
 
   // Mark as paid mutation
-  const { mutate: markAsPaid, isPending: isMarking } = useMarkPayoutAsPaid()
+  const { mutate: markAsPaid, mutateAsync: markAsPaidAsync, isPending: isMarking } = useMarkPayoutAsPaid()
 
-  const handleMarkAsPaid = useCallback((withdrawalId: string) => {
+  // Phase 4: tracking proof view (lazy — only fetches when a sharer is selected) + dispute
+  const { data: tracking, isLoading: trackingLoading } = useSharerTracking(
+    campaignId,
+    trackingSharer?.id ?? null
+  )
+  const { mutate: disputePayout, isPending: isDisputing } = useDisputePayout()
+
+  const submitDispute = useCallback(() => {
+    if (!disputeRequest || !disputeReason.trim()) return
+    disputePayout(
+      { campaignId, withdrawalId: disputeRequest.id, reason: disputeReason.trim() },
+      {
+        onSuccess: () => {
+          showToast({ type: 'success', message: 'Claim disputed. The sharer has been notified.' })
+          setDisputeRequest(null)
+          setDisputeReason('')
+        },
+        onError: (error: Error) => {
+          const msg = (error as any).response?.data?.error || 'Failed to dispute claim'
+          showToast({ type: 'error', message: msg })
+        },
+      }
+    )
+  }, [campaignId, disputePayout, disputeRequest, disputeReason, showToast])
+
+  const isPendingSlice = (r: any) => ((r?.slice_status ?? r?.status) === 'pending')
+  const isDisputedSlice = (r: any) => ((r?.slice_status ?? r?.status) === 'disputed')
+
+  // C5: aging helpers
+  const ageDays = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000))
+  const ageColor = (d: number) => (d > 7 ? tk.red : d >= 3 ? tk.amberDark : tk.muted)
+
+  // C6: build a payable "name · handle · amount" block for a method group
+  const payHandle = (pm: any) => {
+    if (!pm) return ''
+    if (pm.type === 'bank_transfer') {
+      return [pm.bank_account_holder, pm.bank_name, pm.bank_account_number || (pm.bank_account_last_four && `****${pm.bank_account_last_four}`)].filter(Boolean).join(' / ')
+    }
+    if (pm.type === 'mobile_money') return [pm.mobile_money_provider, pm.mobile_number].filter(Boolean).join(' ')
+    if (pm.type === 'paypal') return pm.account_holder || pm.display_name || 'PayPal'
+    return pm.display_name || pm.account_holder || (pm.last4 && `****${pm.last4}`) || ''
+  }
+  const copyGroupToPay = (rows: any[]) => {
+    const lines = rows.filter(isPendingSlice).map(
+      (r) => `${r.sharer?.name || r.sharer?.username || 'Sharer'} · ${payHandle(r.payment_method)} · $${r.amount.toFixed(2)}`
+    )
+    if (lines.length === 0) return
+    navigator.clipboard.writeText(lines.join('\n'))
+    showToast({ type: 'success', message: `Copied ${lines.length} payment line${lines.length !== 1 ? 's' : ''} to clipboard.` })
+  }
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((prev) => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }, [])
+
+  const submitBulkPaid = useCallback(async () => {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    setBulkBusy(true)
+    let ok = 0
+    let fail = 0
+    for (const id of ids) {
+      try {
+        await markAsPaidAsync({
+          campaignId,
+          withdrawalId: id,
+          transaction_id: bulkReference.trim() || undefined,
+          notes: 'Bulk marked paid by creator',
+        })
+        ok += 1
+      } catch {
+        fail += 1
+      }
+    }
+    setBulkBusy(false)
+    setBulkOpen(false)
+    setBulkReference('')
+    setSelected(new Set())
+    showToast({
+      type: fail ? 'error' : 'success',
+      message: `Marked ${ok} paid${fail ? `, ${fail} failed` : ''}. Sharers notified.`,
+    })
+  }, [selected, campaignId, bulkReference, markAsPaidAsync, showToast])
+
+  const submitMarkAsPaid = useCallback(() => {
+    if (!payRequest) return
     markAsPaid(
       {
         campaignId,
-        withdrawalId,
-        notes: `Marked as sent by creator`
+        withdrawalId: payRequest.id,
+        transaction_id: payReference.trim() || undefined,
+        notes: 'Marked as paid by creator',
+        proof: payProof,
       },
       {
         onSuccess: () => {
-          showToast({ type: 'success', message: 'Payment marked as sent! Sharer will be notified.' })
+          showToast({ type: 'success', message: 'Payment marked as paid! Sharer will be notified.' })
+          setPayRequest(null)
+          setPayReference('')
+          setPayProof(null)
         },
         onError: (error: Error) => {
           const errorMessage = (error as any).response?.data?.error || 'Failed to mark as paid'
@@ -630,7 +809,7 @@ export default function CampaignPayoutsPage() {
         }
       }
     )
-  }, [campaignId, markAsPaid, showToast])
+  }, [campaignId, markAsPaid, showToast, payRequest, payReference, payProof])
 
   // Memoize clipboard handler to prevent recreation on every render
   const handleCopyToClipboard = useCallback((text: string, fieldName: string) => {
@@ -652,34 +831,57 @@ export default function CampaignPayoutsPage() {
             </div>
             <h1>
               <DollarSign size={32} />
-              Sharers Payouts
+              Pay Your Sharers
             </h1>
             <div className="campaign-title">
-              Manage withdrawal requests for this campaign
+              Pay sharers who&apos;ve claimed their share-to-earn rewards. You pay them
+              directly using the details below, then mark each claim as paid.
             </div>
           </div>
         </Header>
 
-        {/* Summary Stats */}
+        {/* Summary Stats — what you owe, what you've paid, what you've funded */}
         {summaryData && (
-          <StatsGrid>
-            <StatCard color="#0066cc">
-              <div className="label">Total Pending</div>
-              <div className="value">${(summaryData.totalPending || 0).toFixed(2)}</div>
-              <div className="subtext">{summaryData.pendingCount || 0} requests</div>
-            </StatCard>
-            <StatCard color="#ffc107">
-              <div className="label">Processing</div>
-              <div className="value">${(summaryData.totalProcessing || 0).toFixed(2)}</div>
-              <div className="subtext">{summaryData.processingCount || 0} requests</div>
-            </StatCard>
-            <StatCard color="#28a745">
-              <div className="label">Completed</div>
-              <div className="value">${(summaryData.totalCompleted || 0).toFixed(2)}</div>
-              <div className="subtext">{summaryData.completedCount || 0} paid</div>
-            </StatCard>
-          </StatsGrid>
+          <>
+            <StatsGrid>
+              <StatCard color={tk.amber}>
+                <div className="label">You Owe Now</div>
+                <div className="value">${(summaryData.ledger?.owed_now ?? 0).toFixed(2)}</div>
+                <div className="subtext">{summaryData.summary?.pending?.count ?? 0} unpaid claim(s)</div>
+              </StatCard>
+              <StatCard color={tk.green}>
+                <div className="label">Paid to Sharers</div>
+                <div className="value">${(summaryData.ledger?.paid_via_payouts ?? 0).toFixed(2)}</div>
+                <div className="subtext">{summaryData.summary?.completed?.count ?? 0} settled</div>
+              </StatCard>
+              <StatCard color={tk.blue}>
+                <div className="label">Budget Funded</div>
+                <div className="value">${(summaryData.ledger?.funded_budget ?? 0).toFixed(2)}</div>
+                <div className="subtext">${(summaryData.ledger?.funded_remaining ?? 0).toFixed(2)} remaining</div>
+              </StatCard>
+            </StatsGrid>
+            {summaryData.ledger && !summaryData.ledger.can_cover_owed && (summaryData.ledger.shortfall ?? 0) > 0 && (
+              <div style={{
+                margin: '0 0 1.5rem',
+                padding: '0.875rem 1.125rem',
+                borderRadius: '10px',
+                background: '#FEF3F2',
+                border: '1px solid #FDA29B',
+                color: '#B42318',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+              }}>
+                ⚠️ You owe <strong>${summaryData.ledger.owed_now.toFixed(2)}</strong> in claims but only{' '}
+                <strong>${summaryData.ledger.funded_remaining.toFixed(2)}</strong> of your share budget is
+                funded — a <strong>${summaryData.ledger.shortfall.toFixed(2)}</strong> shortfall. Reload your
+                share budget to cover these payouts.
+              </div>
+            )}
+          </>
         )}
+
+        {/* Extra-share request inbox (daily share-limit rule) */}
+        <ShareRequestsInbox campaignId={campaignId} />
 
         {/* Status Filter Bar */}
         <FilterBar>
@@ -702,6 +904,35 @@ export default function CampaignPayoutsPage() {
           })}
         </FilterBar>
 
+        {/* C3: in-campaign search */}
+        <SearchBox>
+          <Search size={16} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search this campaign's sharers by name, @username or email…"
+          />
+        </SearchBox>
+
+        {/* C2: bulk action bar */}
+        {selected.size > 0 && (
+          <BulkBar>
+            <span className="meta">
+              {selected.size} selected ·{' '}
+              ${(requestsData?.withdrawals || [])
+                .filter((r: any) => selected.has(r.id))
+                .reduce((s: number, r: any) => s + r.amount, 0)
+                .toFixed(2)}
+            </span>
+            <div className="actions">
+              <button className="clear" onClick={() => setSelected(new Set())}>Clear</button>
+              <button className="pay" onClick={() => { setBulkReference(''); setBulkOpen(true) }}>
+                Mark {selected.size} paid
+              </button>
+            </div>
+          </BulkBar>
+        )}
+
         {/* Requests Table */}
         {requestsLoading ? (
           <LoadingState>Loading payout requests...</LoadingState>
@@ -714,98 +945,200 @@ export default function CampaignPayoutsPage() {
         ) : !requestsData?.withdrawals || requestsData.withdrawals.length === 0 ? (
           <EmptyState>
             <DollarSign />
-            <h3>No {selectedStatus} Payouts</h3>
-            <p>Sharers will create withdrawal requests when they want to claim their earnings.</p>
+            <h3>{selectedStatus === 'actionable' ? "You're all caught up" : 'No claims to show'}</h3>
+            <p>
+              {selectedStatus === 'actionable'
+                ? 'No sharer payouts are waiting on you right now. New claims will appear here to pay.'
+                : 'When sharers claim their earnings, their payment requests show up here for you to pay.'}
+            </p>
           </EmptyState>
         ) : (
-          <RequestsTable>
-            <TableHeader>
-              <div>Sharer</div>
-              <div>Payment Method</div>
-              <div>Amount</div>
-              <div>Status</div>
-              <div>Requested</div>
-              <div>Action</div>
-            </TableHeader>
+          (() => {
+            // C3: filter by sharer name/username/email within the campaign.
+            const sq = search.trim().toLowerCase()
+            const visible = sq
+              ? requestsData.withdrawals.filter((r: any) =>
+                  `${r.sharer?.name || ''} ${r.sharer?.username || ''} ${r.sharer?.email || ''}`.toLowerCase().includes(sq)
+                )
+              : requestsData.withdrawals
+            if (visible.length === 0) {
+              return (
+                <EmptyState>
+                  <DollarSign />
+                  <h3>No matches</h3>
+                  <p>No sharers match “{search}”.</p>
+                </EmptyState>
+              )
+            }
+            // C1: group claims by payout method so the creator can batch one rail.
+            const groups: Record<string, any[]> = {}
+            visible.forEach((r: any) => {
+              const key = r.payment_method?.type || 'other'
+              ;(groups[key] = groups[key] || []).push(r)
+            })
+            const label = (k: string) => k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 
-            {requestsData.withdrawals.map((request: any) => (
-              <TableRow key={request.id}>
-                <SharerInfo>
-                  {request.sharer.profile_picture && (
-                    <img src={request.sharer.profile_picture} alt={request.sharer.name} />
-                  )}
-                  <div className="details">
-                    <h4>{request.sharer.name}</h4>
-                    <p>@{request.sharer.username} • {request.sharer.email}</p>
-                  </div>
-                </SharerInfo>
+            return Object.entries(groups).map(([method, rows]) => {
+              const pendingRows = rows.filter(isPendingSlice)
+              const groupTotal = rows.reduce((s, r) => s + r.amount, 0)
+              const allSel = pendingRows.length > 0 && pendingRows.every((r) => selected.has(r.id))
+              const toggleGroup = () => {
+                setSelected((prev) => {
+                  const n = new Set(prev)
+                  if (allSel) pendingRows.forEach((r) => n.delete(r.id))
+                  else pendingRows.forEach((r) => n.add(r.id))
+                  return n
+                })
+              }
+              return (
+                <RequestsTable key={method}>
+                  <MethodHead>
+                    <label>
+                      {pendingRows.length > 0 && (
+                        <input type="checkbox" checked={allSel} onChange={toggleGroup} />
+                      )}
+                      <strong>{label(method)}</strong>
+                      <span>{rows.length} claim{rows.length !== 1 ? 's' : ''} · ${groupTotal.toFixed(2)}</span>
+                    </label>
+                    {pendingRows.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <small>{pendingRows.length} to pay</small>
+                        <button
+                          type="button"
+                          onClick={() => copyGroupToPay(rows)}
+                          title="Copy name · handle · amount for all pending in this group"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            background: tk.white, border: `1px solid ${tk.border}`, color: tk.amberDark,
+                            borderRadius: 8, padding: '5px 10px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                          }}
+                        >
+                          <Copy size={13} /> Copy to pay
+                        </button>
+                      </div>
+                    )}
+                  </MethodHead>
+                  <TableHeader>
+                    <div>Sharer</div>
+                    <div>Payment Method</div>
+                    <div>Amount</div>
+                    <div>Status</div>
+                    <div>Requested</div>
+                    <div>Action</div>
+                  </TableHeader>
 
-                <PaymentDetails>
-                  <div className="type">
-                    {request.payment_method.type.replace('_', ' ').toUpperCase()}
-                  </div>
-                  <div className="details">
-                    {request.payment_method.account_holder && `${request.payment_method.account_holder} `}
-                    {request.payment_method.last4 && `•••• ${request.payment_method.last4}`}
-                  </div>
-                </PaymentDetails>
+                  {rows.map((request: any) => {
+                    const pending = isPendingSlice(request)
+                    return (
+                      <TableRow key={request.id} data-selected={selected.has(request.id)}>
+                        <SharerInfo>
+                          {pending && (
+                            <input
+                              type="checkbox"
+                              checked={selected.has(request.id)}
+                              onChange={() => toggleSelect(request.id)}
+                              style={{ width: 18, height: 18, flexShrink: 0, cursor: 'pointer' }}
+                            />
+                          )}
+                          {request.sharer.profile_picture && (
+                            <img src={request.sharer.profile_picture} alt={request.sharer.name} />
+                          )}
+                          <div className="details">
+                            <h4>{request.sharer.name}</h4>
+                            <p>@{request.sharer.username} • {request.sharer.email}</p>
+                          </div>
+                        </SharerInfo>
 
-                <AmountColumn>
-                  <div className="amount">${request.amount.toFixed(2)}</div>
-                  <div className="with-fee">-${request.fee.toFixed(2)} fee</div>
-                </AmountColumn>
+                        <PaymentDetails>
+                          <div className="type">
+                            {request.payment_method.type.replace('_', ' ').toUpperCase()}
+                          </div>
+                          <div className="details">
+                            {request.payment_method.account_holder && `${request.payment_method.account_holder} `}
+                            {request.payment_method.last4 && `•••• ${request.payment_method.last4}`}
+                          </div>
+                        </PaymentDetails>
 
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.5rem',
-                  alignItems: 'flex-start',
-                }}>
-                  <StatusBadge className={request.status}>
-                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                  </StatusBadge>
-                </div>
+                        <AmountColumn>
+                          <div className="amount">${request.amount.toFixed(2)}</div>
+                          {request.slice_received_at && (
+                            <div className="with-fee" style={{ color: tk.green }}>✓ received</div>
+                          )}
+                        </AmountColumn>
 
-                <div style={{
-                  fontSize: '0.9rem',
-                  color: '#666',
-                }}>
-                  {new Date(request.requested_at).toLocaleDateString()}
-                </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          {(() => {
+                            const display = isDisputedSlice(request) ? 'disputed' : pending ? 'pending' : request.status
+                            return (
+                              <StatusBadge className={display}>
+                                {display.charAt(0).toUpperCase() + display.slice(1)}
+                              </StatusBadge>
+                            )
+                          })()}
+                          {request.slice_proof_url && (
+                            <a href={request.slice_proof_url} target="_blank" rel="noopener noreferrer"
+                               style={{ fontSize: '0.72rem', color: tk.blue, textDecoration: 'underline' }}>
+                              view proof
+                            </a>
+                          )}
+                        </div>
 
-                <ActionButtons>
-                  <button
-                    onClick={() => setSelectedRequest(request)}
-                    title="View account details"
-                    style={{
-                      background: '#17a2b8',
-                    }}
-                  >
-                    <Eye size={14} /> Details
-                  </button>
-                  {request.status === 'pending' && (
-                    <button
-                      onClick={() => handleMarkAsPaid(request.id)}
-                      disabled={isMarking}
-                      title="Mark as sent to sharer"
-                    >
-                      <Send size={14} /> Send
-                    </button>
-                  )}
-                  {request.status === 'processing' && (
-                    <span style={{ color: '#17a2b8', fontWeight: '600', fontSize: '0.8rem' }}>
-                      ✓ Marked as sent
-                    </span>
-                  )}
-                  {request.status === 'completed' && (
-                    <span style={{ color: '#28a745', fontWeight: '600', fontSize: '0.8rem' }}>
-                      ✓ Completed
-                    </span>
-                  )}
-                </ActionButtons>
-              </TableRow>
-            ))}
-          </RequestsTable>
+                        <div style={{ fontSize: '0.9rem', color: tk.muted }}>
+                          {new Date(request.requested_at).toLocaleDateString()}
+                          {pending && (() => {
+                            const d = ageDays(request.requested_at)
+                            return (
+                              <div style={{ fontSize: '0.75rem', fontWeight: d > 7 ? 700 : 500, color: ageColor(d), marginTop: 3 }}>
+                                {d > 7 ? '⚠ ' : ''}waiting {d}d
+                                {request.slice_reminder_count > 0 && ` · ${request.slice_reminder_count} reminder${request.slice_reminder_count !== 1 ? 's' : ''}`}
+                              </div>
+                            )
+                          })()}
+                        </div>
+
+                        <ActionButtons>
+                          <button onClick={() => setSelectedRequest(request)} title="View account details" style={{ background: tk.blue }}>
+                            <Eye size={14} /> Details
+                          </button>
+                          <button
+                            onClick={() => setTrackingSharer({ id: request.sharer.id, name: request.sharer.name || request.sharer.username || 'Sharer' })}
+                            title="View this sharer's share/conversion tracking before paying"
+                            style={{ background: tk.green }}
+                          >
+                            <Activity size={14} /> Tracking
+                          </button>
+                          {isDisputedSlice(request) ? (
+                            <span style={{ color: tk.red, fontWeight: 600, fontSize: '0.8rem' }}>⚠ Disputed</span>
+                          ) : pending ? (
+                            <>
+                              <button
+                                onClick={() => { setPayRequest(request); setPayReference(''); setPayProof(null) }}
+                                disabled={isMarking}
+                                title="Record payment to this sharer"
+                              >
+                                <Send size={14} /> Mark Paid
+                              </button>
+                              <button
+                                onClick={() => { setDisputeRequest(request); setDisputeReason('') }}
+                                title="Dispute this claim"
+                                style={{ background: tk.red }}
+                              >
+                                <Flag size={14} /> Dispute
+                              </button>
+                            </>
+                          ) : request.status === 'completed' ? (
+                            <span style={{ color: tk.green, fontWeight: 600, fontSize: '0.8rem' }}>✓ Completed</span>
+                          ) : (
+                            <span style={{ color: tk.blue, fontWeight: 600, fontSize: '0.8rem' }}>✓ You paid · awaiting other campaigns</span>
+                          )}
+                        </ActionButtons>
+                      </TableRow>
+                    )
+                  })}
+                </RequestsTable>
+              )
+            })
+          })()
         )}
 
         {/* Pagination */}
@@ -1087,6 +1420,252 @@ export default function CampaignPayoutsPage() {
                 </>
               )}
             </ModalSection>
+          </>
+        )}
+      </DetailModal>
+
+      {/* F-2: Mark-Paid modal — reference + optional proof screenshot */}
+      <Overlay isOpen={!!payRequest} onClick={() => !isMarking && setPayRequest(null)} />
+      <DetailModal isOpen={!!payRequest}>
+        {payRequest && (
+          <>
+            <ModalHeader>
+              <h2>Record payment</h2>
+              <button onClick={() => !isMarking && setPayRequest(null)}>
+                <X size={24} />
+              </button>
+            </ModalHeader>
+
+            <div style={{ padding: '0 0 1rem' }}>
+              <p style={{ color: '#475569', fontSize: '0.9rem', marginTop: 0 }}>
+                Confirm you&apos;ve paid <strong>{payRequest.sharer?.name || payRequest.sharer?.username || 'this sharer'}</strong>{' '}
+                <strong>${Number(payRequest.amount).toFixed(2)}</strong> off-platform. A reference or
+                screenshot gives the sharer evidence and you a dispute trail.
+              </p>
+
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', margin: '0.75rem 0 0.35rem' }}>
+                Reference / transaction number (optional)
+              </label>
+              <input
+                type="text"
+                value={payReference}
+                onChange={(e) => setPayReference(e.target.value)}
+                placeholder="e.g. PayPal txn 4XY..., bank ref 99812"
+                style={{ width: '100%', padding: '9px 11px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.88rem' }}
+              />
+
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', margin: '0.9rem 0 0.35rem' }}>
+                Proof screenshot (optional)
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setPayProof(e.target.files?.[0] || null)}
+                style={{ fontSize: '0.85rem' }}
+              />
+              {payProof && (
+                <div style={{ fontSize: '0.78rem', color: '#16a34a', marginTop: 4 }}>{payProof.name} attached</div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, marginTop: '1.25rem' }}>
+                <button
+                  onClick={() => setPayRequest(null)}
+                  disabled={isMarking}
+                  style={{ flex: 1, background: '#fff', border: '1px solid #cbd5e1', color: '#334155', borderRadius: 8, padding: '10px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitMarkAsPaid}
+                  disabled={isMarking}
+                  style={{ flex: 1, background: '#16a34a', border: 'none', color: '#fff', borderRadius: 8, padding: '10px', fontWeight: 700, cursor: 'pointer', opacity: isMarking ? 0.6 : 1 }}
+                >
+                  {isMarking ? 'Saving…' : 'Confirm paid'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </DetailModal>
+
+      {/* C2: bulk Mark-Paid modal — one shared reference for all selected */}
+      <Overlay isOpen={bulkOpen} onClick={() => !bulkBusy && setBulkOpen(false)} />
+      <DetailModal isOpen={bulkOpen}>
+        <ModalHeader>
+          <h2>Mark {selected.size} payouts paid</h2>
+          <button onClick={() => !bulkBusy && setBulkOpen(false)}><X size={24} /></button>
+        </ModalHeader>
+        <div style={{ padding: '0 0 1rem' }}>
+          <p style={{ color: tk.body, fontSize: '0.9rem', marginTop: 0 }}>
+            Confirm you&apos;ve paid all <strong>{selected.size}</strong> selected sharers off-platform.
+            One reference is recorded against each (optional).
+          </p>
+          <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: tk.ink, margin: '0.5rem 0 0.35rem' }}>
+            Shared reference / batch id (optional)
+          </label>
+          <input
+            type="text"
+            value={bulkReference}
+            onChange={(e) => setBulkReference(e.target.value)}
+            placeholder="e.g. PayPal batch 2026-07-01"
+            style={{ width: '100%', padding: '9px 11px', border: `1px solid ${tk.border}`, borderRadius: 8, fontSize: '0.88rem' }}
+          />
+          <div style={{ display: 'flex', gap: 10, marginTop: '1.25rem' }}>
+            <button
+              onClick={() => setBulkOpen(false)}
+              disabled={bulkBusy}
+              style={{ flex: 1, background: '#fff', border: `1px solid ${tk.border}`, color: tk.body, borderRadius: 8, padding: '10px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitBulkPaid}
+              disabled={bulkBusy}
+              style={{ flex: 1, background: tk.green, border: 'none', color: '#fff', borderRadius: 8, padding: '10px', fontWeight: 700, cursor: 'pointer', opacity: bulkBusy ? 0.6 : 1 }}
+            >
+              {bulkBusy ? 'Marking…' : `Confirm ${selected.size} paid`}
+            </button>
+          </div>
+        </div>
+      </DetailModal>
+
+      {/* Phase 4: Sharer tracking proof view — what you inspect before paying */}
+      <Overlay isOpen={!!trackingSharer} onClick={() => setTrackingSharer(null)} />
+      <DetailModal isOpen={!!trackingSharer}>
+        {trackingSharer && (
+          <>
+            <ModalHeader>
+              <h2>Share tracking — {trackingSharer.name}</h2>
+              <button onClick={() => setTrackingSharer(null)}><X size={24} /></button>
+            </ModalHeader>
+
+            {trackingLoading ? (
+              <LoadingState>Loading tracking…</LoadingState>
+            ) : !tracking ? (
+              <EmptyState>
+                <Activity />
+                <h3>No tracking found</h3>
+                <p>This sharer has no recorded shares for this campaign.</p>
+              </EmptyState>
+            ) : (
+              <>
+                {/* Headline tallies */}
+                <ModalSection>
+                  <h3>📈 Summary</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.75rem' }}>
+                    <DetailField>
+                      <div className="label"><Share2 size={12} style={{ verticalAlign: 'middle' }} /> Shares</div>
+                      <div className="value">{tracking.share_summary.total_shares}</div>
+                    </DetailField>
+                    <DetailField>
+                      <div className="label"><MousePointerClick size={12} style={{ verticalAlign: 'middle' }} /> Clicks</div>
+                      <div className="value">{tracking.share_summary.total_clicks}</div>
+                    </DetailField>
+                    <DetailField>
+                      <div className="label">Conversions</div>
+                      <div className="value">{tracking.share_summary.total_conversions}</div>
+                    </DetailField>
+                    <DetailField>
+                      <div className="label">Owed / Paid</div>
+                      <div className="value" style={{ fontSize: '0.95rem' }}>
+                        ${tracking.totals.owed_dollars} / ${tracking.totals.paid_dollars}
+                      </div>
+                    </DetailField>
+                  </div>
+                </ModalSection>
+
+                {/* Converting donations — the evidence each reward is real */}
+                <ModalSection>
+                  <h3>💸 Converting donations ({tracking.totals.conversion_count})</h3>
+                  {tracking.conversions.length === 0 ? (
+                    <p style={{ color: tk.muted, fontSize: '0.9rem', margin: 0 }}>No conversions yet.</p>
+                  ) : (
+                    tracking.conversions.map((c) => (
+                      <DetailField key={c.reward_id}>
+                        <div className="value" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ fontSize: '0.9rem' }}>
+                            {c.donation.amount_cents != null
+                              ? `$${(c.donation.amount_cents / 100).toFixed(2)} donation`
+                              : 'Donation'}
+                            {c.channel ? ` · ${c.channel}` : ''}
+                            {c.donation.donated_at ? ` · ${new Date(c.donation.donated_at).toLocaleDateString()}` : ''}
+                          </span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                            <strong>+${(c.reward_amount_cents / 100).toFixed(2)}</strong>
+                            <StatusBadge className={c.reward_status === 'paid' ? 'completed' : 'pending'}>
+                              {c.reward_status === 'paid' ? 'Paid' : 'Owed'}
+                            </StatusBadge>
+                          </span>
+                        </div>
+                      </DetailField>
+                    ))
+                  )}
+                </ModalSection>
+
+                {/* Raw share links */}
+                <ModalSection>
+                  <h3>🔗 Shares</h3>
+                  {tracking.shares.length === 0 ? (
+                    <p style={{ color: tk.muted, fontSize: '0.9rem', margin: 0 }}>No shares recorded.</p>
+                  ) : (
+                    tracking.shares.map((s) => (
+                      <DetailField key={s.share_id}>
+                        <div className="value" style={{ fontSize: '0.85rem' }}>
+                          <span>{s.channel} · {s.referral_code}</span>
+                          <span style={{ color: tk.muted }}>{s.clicks} clicks · {s.conversions} conv.</span>
+                        </div>
+                      </DetailField>
+                    ))
+                  )}
+                </ModalSection>
+              </>
+            )}
+          </>
+        )}
+      </DetailModal>
+
+      {/* Phase 4: Dispute modal */}
+      <Overlay isOpen={!!disputeRequest} onClick={() => !isDisputing && setDisputeRequest(null)} />
+      <DetailModal isOpen={!!disputeRequest}>
+        {disputeRequest && (
+          <>
+            <ModalHeader>
+              <h2>Dispute claim</h2>
+              <button onClick={() => !isDisputing && setDisputeRequest(null)}><X size={24} /></button>
+            </ModalHeader>
+            <div style={{ padding: '0 0 1rem' }}>
+              <p style={{ color: tk.body, fontSize: '0.9rem', marginTop: 0 }}>
+                Dispute <strong>{disputeRequest.sharer?.name || disputeRequest.sharer?.username || 'this sharer'}</strong>&apos;s{' '}
+                <strong>${Number(disputeRequest.amount).toFixed(2)}</strong> claim if you believe it&apos;s
+                fraudulent or incorrect. The sharer is notified; the claim is held until resolved.
+              </p>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: tk.ink, margin: '0.5rem 0 0.35rem' }}>
+                Reason <span style={{ color: tk.red }}>*</span>
+              </label>
+              <textarea
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                placeholder="e.g. Conversions look like self-referrals / fake donations…"
+                rows={4}
+                style={{ width: '100%', padding: '9px 11px', border: `1px solid ${tk.border}`, borderRadius: 8, fontSize: '0.88rem', resize: 'vertical', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: 10, marginTop: '1.25rem' }}>
+                <button
+                  onClick={() => setDisputeRequest(null)}
+                  disabled={isDisputing}
+                  style={{ flex: 1, background: '#fff', border: `1px solid ${tk.border}`, color: tk.body, borderRadius: 8, padding: '10px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitDispute}
+                  disabled={isDisputing || !disputeReason.trim()}
+                  style={{ flex: 1, background: tk.red, border: 'none', color: '#fff', borderRadius: 8, padding: '10px', fontWeight: 700, cursor: 'pointer', opacity: (isDisputing || !disputeReason.trim()) ? 0.6 : 1 }}
+                >
+                  {isDisputing ? 'Submitting…' : 'Submit dispute'}
+                </button>
+              </div>
+            </div>
           </>
         )}
       </DetailModal>

@@ -162,6 +162,9 @@ const CATEGORIES = [
   { id: 'youth',       name: 'Youth & Children',    emoji: '👧', count: 9,  filter: 'community' },
 ] as const
 
+// Catch-all option — always offered, regardless of the active area filter.
+const OTHER_CATEGORY = { id: 'other', name: 'Other', emoji: '✨', count: 0, filter: 'all' } as const
+
 type CategoryId = (typeof CATEGORIES)[number]['id']
 
 const FILTERS = [
@@ -190,14 +193,23 @@ export const Step1TypeSelection: React.FC<Step1TypeSelectionProps> = ({
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
 
-  const visible = useMemo(() =>
-    CATEGORIES.filter(c => {
-      const matchFilter = activeFilter === 'all' || c.filter === activeFilter
-      const matchSearch = c.name.toLowerCase().includes(search.toLowerCase())
-      return matchFilter && matchSearch
-    }),
-    [search, activeFilter]
+  // Alphabetize once so the grid is always in A→Z order.
+  const sortedCategories = useMemo(
+    () => [...CATEGORIES].sort((a, b) => a.name.localeCompare(b.name)),
+    []
   )
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const list = sortedCategories.filter(c => {
+      const matchFilter = activeFilter === 'all' || c.filter === activeFilter
+      const matchSearch = c.name.toLowerCase().includes(q)
+      return matchFilter && matchSearch
+    })
+    // 'Other' is a catch-all: always appended (last) when it matches the search.
+    if (OTHER_CATEGORY.name.toLowerCase().includes(q)) list.push(OTHER_CATEGORY)
+    return list
+  }, [search, activeFilter, sortedCategories])
 
   return (
     <div role="region" aria-label="Category selection">
@@ -250,7 +262,7 @@ export const Step1TypeSelection: React.FC<Step1TypeSelectionProps> = ({
           >
             <CatEmoji aria-hidden="true">{c.emoji}</CatEmoji>
             <CatName>{c.name}</CatName>
-            <CatCount>{c.count} campaigns</CatCount>
+            <CatCount>{c.id === 'other' ? 'Something else' : `${c.count} campaigns`}</CatCount>
           </CatCard>
         ))}
       </CategoryGrid>

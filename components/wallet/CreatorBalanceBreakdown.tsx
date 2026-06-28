@@ -15,6 +15,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, Lock, TrendingUp, Calendar } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 
 interface Campaign {
   campaign_id: string;
@@ -56,18 +57,8 @@ export default function CreatorBalanceBreakdown() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/creator/balance/breakdown', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch balance breakdown');
-      }
-
-      const data = await response.json();
-      setBreakdown(data);
+      const response = await apiClient.get('/creator/balance/breakdown');
+      setBreakdown(response.data);
     } catch (err) {
       console.error('Error fetching balance breakdown:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -126,18 +117,12 @@ export default function CreatorBalanceBreakdown() {
             </div>
           </div>
           
-          {data.can_request_payout ? (
-            <Link
-              href="/dashboard/payouts"
-              className="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded mt-2 transition"
-            >
-              Request Payout
-            </Link>
-          ) : (
-            <p className="text-sm text-green-700 mt-2">
-              Minimum payout: ${(data.minimum_payout_cents / 100).toFixed(2)}
-            </p>
-          )}
+          <Link
+            href="/wallet"
+            className="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded mt-2 transition"
+          >
+            View earnings
+          </Link>
         </div>
 
         {/* Reserved Balance Card */}

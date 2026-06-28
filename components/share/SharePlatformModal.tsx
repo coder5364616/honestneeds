@@ -9,24 +9,28 @@ import React, { useState } from 'react'
 import styled from 'styled-components'
 import { Modal } from '@/components/Modal'
 import { useCreateShareReward } from '@/api/hooks/useSharerRewards'
+import { tk } from '@/styles/dashboardTokens'
 
 const ModalTitle = styled.h3`
+  font-family: 'Syne', sans-serif;
   font-size: 1.5rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 800;
+  color: ${tk.heading};
   margin: 0 0 1.5rem 0;
+  letter-spacing: -0.3px;
 `
 
 const ModalDescription = styled.p`
-  color: #64748b;
+  color: ${tk.muted};
   margin: 0 0 1.5rem 0;
   line-height: 1.5;
+  font-family: 'DM Sans', sans-serif;
 `
 
 const RewardInfo = styled.div`
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
+  background-color: ${tk.greenLight};
+  border: 1px solid rgba(26,122,74,0.2);
+  border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1.5rem;
   display: flex;
@@ -41,20 +45,25 @@ const RewardAmount = styled.div`
 `
 
 const RewardLabel = styled.span`
-  font-size: 0.85rem;
-  color: #15803d;
-  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: ${tk.green};
+  font-weight: 500;
 `
 
 const RewardValue = styled.span`
+  font-family: 'Syne', sans-serif;
   font-size: 1.75rem;
-  font-weight: 700;
-  color: #15803d;
+  font-weight: 800;
+  color: ${tk.green};
 `
 
 const HoldInfo = styled.span`
   font-size: 0.8rem;
-  color: #047857;
+  color: ${tk.green};
+  text-align: right;
 `
 
 const PlatformGrid = styled.div`
@@ -74,16 +83,16 @@ const PlatformButton = styled.button<{ $selected: boolean; $disabled: boolean }>
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  border: 2px solid ${props => (props.$selected ? '#667eea' : '#e2e8f0')};
-  background-color: ${props => (props.$selected ? '#f3f1ff' : '#f8fafc')};
-  border-radius: 8px;
+  border: 2px solid ${props => (props.$selected ? tk.blue : tk.border)};
+  background-color: ${props => (props.$selected ? tk.blueLight : tk.canvas)};
+  border-radius: 10px;
   cursor: ${props => (props.$disabled ? 'not-allowed' : 'pointer')};
   opacity: ${props => (props.$disabled ? 0.5 : 1)};
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    border-color: #667eea;
-    background-color: #f3f1ff;
+    border-color: ${tk.blue};
+    background-color: ${tk.blueLight};
   }
 
   &:active:not(:disabled) {
@@ -98,7 +107,7 @@ const PlatformIcon = styled.span`
 const PlatformName = styled.span`
   font-size: 0.85rem;
   font-weight: 600;
-  color: #0f172a;
+  color: ${tk.heading};
   text-align: center;
 `
 
@@ -115,22 +124,23 @@ const ButtonContainer = styled.div`
 const SubmitButton = styled.button`
   flex: 1;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: ${tk.ink};
   color: white;
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
+    background: ${tk.inkLight};
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
   }
 
   &:disabled {
-    background: #cbd5e1;
+    background: ${tk.border};
     cursor: not-allowed;
   }
 `
@@ -139,17 +149,18 @@ const CancelButton = styled.button`
   flex: 1;
   padding: 0.75rem 1.5rem;
   background-color: white;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-weight: 600;
+  color: ${tk.body};
+  border: 1px solid ${tk.border};
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
-    background-color: #f8fafc;
-    border-color: #94a3b8;
+    background-color: ${tk.canvasDeep};
+    border-color: ${tk.muted};
   }
 `
 
@@ -208,7 +219,9 @@ export const SharePlatformModal: React.FC<SharePlatformModalProps> = ({
     <Modal onClose={onClose}>
       <ModalTitle>Share "{campaignTitle}" to Earn</ModalTitle>
       <ModalDescription>
-        Select a platform and share the campaign. Your reward will be held for 30 days as part of our fraud prevention process, then you can request a payout.
+        Select a platform and share the campaign. When your share converts, the reward
+        is owed to you right away — the campaign creator pays you directly when you
+        request a payout.
       </ModalDescription>
 
       <RewardInfo>
@@ -217,8 +230,8 @@ export const SharePlatformModal: React.FC<SharePlatformModalProps> = ({
           <RewardValue>${(rewardAmount / 100).toFixed(2)}</RewardValue>
         </RewardAmount>
         <HoldInfo>
-          30-day hold<br />
-          Then payout eligible
+          No hold<br />
+          Claimable on conversion
         </HoldInfo>
       </RewardInfo>
 

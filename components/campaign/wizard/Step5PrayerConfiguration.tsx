@@ -5,7 +5,7 @@ import styled, { keyframes, css } from 'styled-components'
 import {
   HandHeart, MessageSquare, Mic, Video,
   Globe, Hash, UserX, ShieldCheck,
-  ChevronRight, Target, Loader2
+  ChevronRight, ChevronLeft, Target, Loader2
 } from 'lucide-react'
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -31,7 +31,17 @@ const Shell = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
   animation: ${fadeUp} 0.3s ease;
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  @media (max-width: 480px) {
+    gap: 1rem;
+  }
 `
 
 // ─── Enable toggle card ───────────────────────────────────────────────────────
@@ -48,9 +58,15 @@ const EnableCard = styled.div<{ $enabled: boolean }>`
   box-shadow: ${({ $enabled }) => $enabled ? '0 0 0 3px rgba(29,158,117,0.08)' : 'none'};
   transition: border-color 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  width: 100%;
 
   &:hover {
     border-color: #9FE1CB;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+    gap: 0.75rem;
   }
 `
 
@@ -85,12 +101,14 @@ const EnableTitle = styled.p`
   font-weight: 700;
   color: #0f172a;
   margin: 0 0 0.125rem;
+  overflow-wrap: anywhere;
 `
 
 const EnableSub = styled.p`
   font-size: 0.8125rem;
   color: #64748b;
   margin: 0;
+  overflow-wrap: anywhere;
 `
 
 // ─── Toggle switch ────────────────────────────────────────────────────────────
@@ -124,6 +142,7 @@ const SectionBlock = styled.div`
   border: 0.5px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
+  width: 100%;
   animation: ${expandDown} 0.22s ease;
 `
 
@@ -151,6 +170,10 @@ const SectionBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
+
+  @media (max-width: 480px) {
+    padding: 0.875rem 0.875rem;
+  }
 `
 
 // ─── Text fields ──────────────────────────────────────────────────────────────
@@ -253,6 +276,10 @@ const ToggleRow = styled.label<{ $disabled?: boolean }>`
   opacity: ${({ $disabled }) => $disabled ? 0.5 : 1};
 
   &:last-child { border-bottom: none; }
+
+  @media (max-width: 480px) {
+    gap: 0.75rem;
+  }
 `
 
 const ToggleRowLeft = styled.div`
@@ -275,13 +302,16 @@ const ToggleRowIcon = styled.div`
   color: #64748b;
 `
 
-const ToggleRowText = styled.div``
+const ToggleRowText = styled.div`
+  min-width: 0;
+`
 
 const ToggleRowTitle = styled.p`
   font-size: 0.875rem;
   font-weight: 500;
   color: #0f172a;
   margin: 0;
+  overflow-wrap: anywhere;
 `
 
 const ToggleRowSub = styled.p`
@@ -289,6 +319,7 @@ const ToggleRowSub = styled.p`
   color: #94a3b8;
   margin: 0;
   margin-top: 1px;
+  overflow-wrap: anywhere;
 `
 
 const HiddenCheckbox = styled.input`
@@ -323,6 +354,54 @@ const SubmitBtn = styled.button`
   &:focus-visible { outline: 2px solid #1D9E75; outline-offset: 2px; }
 
   svg.spin { animation: ${spin} 0.8s linear infinite; }
+
+  @media (max-width: 480px) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 0.875rem;
+  }
+`
+
+const Actions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+
+  ${SubmitBtn} { margin-top: 0; }
+
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+  }
+`
+
+const BackBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  background: #ffffff;
+  color: #0F6E56;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-family: 'Syne', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) { background: #f3f4f6; }
+  &:active:not(:disabled) { transform: scale(0.99); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  &:focus-visible { outline: 2px solid #1D9E75; outline-offset: 2px; }
+
+  @media (max-width: 480px) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 0.875rem;
+  }
 `
 
 // ─── Toggle component ─────────────────────────────────────────────────────────
@@ -382,6 +461,7 @@ interface CampaignPrayerConfig {
 interface Step5Props {
   currentData?: Partial<CampaignPrayerConfig>
   onNext: (config: Partial<CampaignPrayerConfig>) => void
+  onBack?: () => void
   isLoading?: boolean
 }
 
@@ -390,6 +470,7 @@ interface Step5Props {
 const Step5PrayerConfiguration: React.FC<Step5Props> = ({
   currentData = {},
   onNext,
+  onBack,
   isLoading = false,
 }) => {
   const s = currentData?.settings ?? {}
@@ -596,19 +677,27 @@ const Step5PrayerConfiguration: React.FC<Step5Props> = ({
         </>
       )}
 
-      <SubmitBtn type="button" onClick={handleSubmit} disabled={isLoading}>
-        {isLoading ? (
-          <>
-            <Loader2 size={16} className="spin" aria-hidden="true" />
-            Saving…
-          </>
-        ) : (
-          <>
-            Continue
-            <ChevronRight size={16} aria-hidden="true" />
-          </>
+      <Actions>
+        {onBack && (
+          <BackBtn type="button" onClick={onBack} disabled={isLoading}>
+            <ChevronLeft size={16} aria-hidden="true" />
+            Back
+          </BackBtn>
         )}
-      </SubmitBtn>
+        <SubmitBtn type="button" onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 size={16} className="spin" aria-hidden="true" />
+              Saving…
+            </>
+          ) : (
+            <>
+              Continue
+              <ChevronRight size={16} aria-hidden="true" />
+            </>
+          )}
+        </SubmitBtn>
+      </Actions>
     </Shell>
   )
 }

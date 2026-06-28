@@ -2,8 +2,9 @@
 
 import styled from 'styled-components'
 import { useState } from 'react'
-import { useDonation } from '@/api/hooks/useDonations'
+import { useDonation, useRequestRefund } from '@/api/hooks/useDonations'
 import { Modal } from '@/components/Modal'
+import { DONATION_FEE_RATE, DONATION_FEE_PERCENT } from '@/utils/validationSchemas'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { DonationStatusBadge, type DonationStatus } from './DonationStatusBadge'
 
@@ -12,6 +13,53 @@ interface DonationDetailModalProps {
   isOpen: boolean
   onClose: () => void
 }
+
+const RefundBox = styled.div<{ $tone?: 'amber' | 'green' | 'red' | 'slate' }>`
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+  font-size: 0.85rem;
+  border: 1px solid;
+  ${({ $tone }) => {
+    switch ($tone) {
+      case 'green': return 'background:#d1fae5;border-color:#6ee7b7;color:#065f46;'
+      case 'red': return 'background:#fee2e2;border-color:#fca5a5;color:#7f1d1d;'
+      case 'amber': return 'background:#fef3c7;border-color:#fcd34d;color:#92400e;'
+      default: return 'background:#f8fafc;border-color:#e2e8f0;color:#475569;'
+    }
+  }}
+`
+
+const RefundReasonInput = styled.textarea`
+  width: 100%;
+  min-height: 70px;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: vertical;
+  &:focus { outline: 2px solid #6366f1; outline-offset: 1px; }
+`
+
+const RefundActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+`
+
+const RefundBtn = styled.button<{ $variant: 'primary' | 'ghost' }>`
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  ${({ $variant }) => $variant === 'primary'
+    ? 'background:#6366f1;color:#fff;'
+    : 'background:#fff;color:#475569;border-color:#e2e8f0;'}
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+`
 
 const ModalContent = styled.div`
   display: flex;
@@ -265,6 +313,9 @@ export function DonationDetailModal({
 }: DonationDetailModalProps) {
   const { data: donation, isLoading, error } = useDonation(transactionId || '')
   const [downloading, setDownloading] = useState(false)
+  const [showRefundForm, setShowRefundForm] = useState(false)
+  const [refundReason, setRefundReason] = useState('')
+  const requestRefund = useRequestRefund()
 
   const handleDownloadReceipt = async () => {
     if (!donation) return
@@ -368,8 +419,8 @@ Thank you for your donation!
                 <span>${(donation.amount / 100).toFixed(2)}</span>
               </AmountRow>
               <AmountRow>
-                <span>Platform Fee (20%):</span>
-                <span>${((donation.amount / 100) * 0.2).toFixed(2)}</span>
+                <span>Platform Fee ({DONATION_FEE_PERCENT}%):</span>
+                <span>${((donation.amount / 100) * DONATION_FEE_RATE).toFixed(2)}</span>
               </AmountRow>
               <AmountRow className="total">
                 <span>Total Amount Charged:</span>
@@ -438,6 +489,67 @@ Thank you for your donation!
                 </TimelineItem>
               )}
             </TimelineContainer>
+          </div>
+
+          {/* CE-7: Refund request (donor) */}
+          <div>
+            <SectionHeader>Refund</SectionHeader>
+            {donation.refundRequest ? (
+              <RefundBox
+                $tone={
+                  donation.refundRequest.status === 'approved' ? 'green'
+                  : donation.refundRequest.status === 'declined' ? 'red'
+                  : 'amber'
+                }
+              >
+                <strong>
+                  {donation.refundRequest.status === 'requested' && 'Refund requested — awaiting creator review.'}
+                  {donation.refundRequest.status === 'approved' && 'Refund approved. The donation was reversed.'}
+                  {donation.refundRequest.status === 'declined' && 'Refund request was declined.'}
+                </strong>
+                {donation.refundRequest.reason && (
+                  <div style={{ marginTop: 4 }}>Your reason: {donation.refundRequest.reason}</div>
+                )}
+                {donation.refundRequest.decisionNote && (
+                  <div style={{ marginTop: 4 }}>Creator note: {donation.refundRequest.decisionNote}</div>
+                )}
+              </RefundBox>
+            ) : donation.canRequestRefund ? (
+              showRefundForm ? (
+                <RefundBox $tone="slate">
+                  <div>Tell the creator why you'd like a refund:</div>
+                  <RefundReasonInput
+                    value={refundReason}
+                    onChange={(e) => setRefundReason(e.target.value)}
+                    placeholder="e.g. I donated to the wrong campaign"
+                    disabled={requestRefund.isPending}
+                  />
+                  <RefundActions>
+                    <RefundBtn
+                      $variant="primary"
+                      disabled={requestRefund.isPending || refundReason.trim().length === 0}
+                      onClick={() =>
+                        requestRefund.mutate(
+                          { donationId: donation.transactionId, reason: refundReason.trim() },
+                          { onSuccess: () => setShowRefundForm(false) }
+                        )
+                      }
+                    >
+                      {requestRefund.isPending ? 'Submitting…' : 'Submit request'}
+                    </RefundBtn>
+                    <RefundBtn $variant="ghost" onClick={() => setShowRefundForm(false)} disabled={requestRefund.isPending}>
+                      Cancel
+                    </RefundBtn>
+                  </RefundActions>
+                </RefundBox>
+              ) : (
+                <RefundBtn $variant="ghost" onClick={() => setShowRefundForm(true)}>
+                  Request a refund
+                </RefundBtn>
+              )
+            ) : (
+              <RefundBox $tone="slate">Refunds aren't available for this donation.</RefundBox>
+            )}
           </div>
 
           <ButtonGroup>

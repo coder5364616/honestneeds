@@ -6,9 +6,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef } from 'react';
-import axios from 'axios';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { apiClient } from '@/lib/api';
 
 export const usePrayerNotifications = (userId: string) => {
   const queryClient = useQueryClient();
@@ -19,9 +17,7 @@ export const usePrayerNotifications = (userId: string) => {
   const preferencesQuery = useQuery({
     queryKey: ['prayer', 'notifications', 'preferences', userId],
     queryFn: async () => {
-      const { data } = await axios.get(`${API_BASE}/prayers/notifications/preferences`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const { data } = await apiClient.get('/prayers/notifications/preferences');
       return data.data;
     },
     enabled: !!userId,
@@ -32,12 +28,11 @@ export const usePrayerNotifications = (userId: string) => {
   const notificationsQuery = useQuery({
     queryKey: ['prayer', 'notifications', 'feed', userId],
     queryFn: async () => {
-      const { data } = await axios.get(`${API_BASE}/prayers/notifications`, {
+      const { data } = await apiClient.get('/prayers/notifications', {
         params: {
           limit: 20,
           offset: 0,
         },
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
       });
       return data;
     },
@@ -49,9 +44,7 @@ export const usePrayerNotifications = (userId: string) => {
   const unreadCountQuery = useQuery({
     queryKey: ['prayer', 'notifications', 'unread', userId],
     queryFn: async () => {
-      const { data } = await axios.get(`${API_BASE}/prayers/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const { data } = await apiClient.get('/prayers/notifications/unread-count');
       return data.data.count;
     },
     enabled: !!userId,
@@ -61,9 +54,7 @@ export const usePrayerNotifications = (userId: string) => {
   // Mutation: Update preferences
   const updatePreferencesMutation = useMutation({
     mutationFn: async (updates) => {
-      const { data } = await axios.put(`${API_BASE}/prayers/notifications/preferences`, updates, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const { data } = await apiClient.put('/prayers/notifications/preferences', updates);
       return data;
     },
     onSuccess: () => {
@@ -76,12 +67,9 @@ export const usePrayerNotifications = (userId: string) => {
   // Mutation: Mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId) => {
-      const { data } = await axios.put(
-        `${API_BASE}/prayers/notifications/${notificationId}/read`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-        }
+      const { data } = await apiClient.put(
+        `/prayers/notifications/${notificationId}/read`,
+        {}
       );
       return data;
     },
@@ -98,11 +86,8 @@ export const usePrayerNotifications = (userId: string) => {
   // Mutation: Delete notification
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId) => {
-      const { data } = await axios.delete(
-        `${API_BASE}/prayers/notifications/${notificationId}`,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-        }
+      const { data } = await apiClient.delete(
+        `/prayers/notifications/${notificationId}`
       );
       return data;
     },

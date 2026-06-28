@@ -27,9 +27,16 @@ const SectionSubtitle = styled.p`
 `;
 
 const PricingGrid = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: ${({ theme }) => theme?.spacing?.['3xl'] || '48px'};
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme?.spacing?.xl || '24px'};
+  max-width: 760px;
+  margin: 0 auto ${({ theme }) => theme?.spacing?.['3xl'] || '48px'};
+  align-items: stretch;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 `;
 
 const PricingCard = styled(motion.div)`
@@ -42,10 +49,11 @@ const PricingCard = styled(motion.div)`
   flex-direction: column;
   width: 100%;
   max-width: 480px;
+  margin: 0 auto;
 
   ${({ featured, theme }) => featured && `
     border: 2px solid ${theme?.colors?.primary || '#6366F1'};
-    transform: scale(1.02);
+    box-shadow: 0 12px 32px rgba(99,102,241,0.18);
   `}
 `;
 
@@ -209,17 +217,36 @@ const NoteText = styled.p`
 
 const plans = [
   {
+    name: 'Free Campaign',
+    price: 0,
+    period: '/forever',
+    badge: 'Always Free',
+    description: 'Start a campaign in minutes — no card required. 100% of donations go straight to you.',
+    features: [
+      { text: 'Create & publish a campaign', included: true },
+      { text: 'Campaign listing & discovery', included: true },
+      { text: 'Share-to-earn rewards', included: true },
+      { text: 'Real-time progress analytics', included: true },
+      { text: '100% of donations to recipient', included: true },
+    ],
+    cta: 'Start for Free',
+    featured: true,
+  },
+  {
     name: 'Standard Campaign',
     price: 19.99,
-    description: 'Launch your crowdfunding campaign today. Simple, direct, transparent.',
+    period: '/campaign',
+    badge: 'Premium',
+    description: 'Everything in Free, plus extra reach when you want your need seen by more people.',
     features: [
-      { text: 'Campaign listing & visibility', included: true },
-      { text: 'Real-time progress analytics', included: true },
-      { text: 'Email & priority support', included: true },
-      { text: 'Share reward integration', included: true },
-      { text: 'Visibility boost options', included: true },
+      { text: 'Everything in Free', included: true },
+      { text: 'Featured placement & visibility boost', included: true },
+      { text: 'Priority email support', included: true },
+      { text: 'Enhanced campaign analytics', included: true },
+      { text: 'Boost options from $5', included: true },
     ],
-    featured: true,
+    cta: 'Get Started',
+    featured: false,
   },
 ];
 
@@ -271,11 +298,11 @@ export default function Pricing() {
           <PricingGrid>
             {plans.map((plan) => (
               <PricingCard key={plan.name} featured={plan.featured} variants={itemVariants}>
-                {plan.featured && <FeaturedBadge>Flat Rate</FeaturedBadge>}
+                {plan.badge && <FeaturedBadge>{plan.badge}</FeaturedBadge>}
                 <PlanName>{plan.name}</PlanName>
                 <PlanPrice>
                   <PriceAmount>${plan.price}</PriceAmount>
-                  <PricePeriod>/campaign</PricePeriod>
+                  <PricePeriod>{plan.period || '/campaign'}</PricePeriod>
                 </PlanPrice>
                 <PlanDescription>{plan.description}</PlanDescription>
                 <FeaturesList>
@@ -286,13 +313,13 @@ export default function Pricing() {
                     </FeatureItem>
                   ))}
                 </FeaturesList>
-                <Button 
-                  variant={plan.featured ? 'primary' : 'secondary'} 
+                <Button
+                  variant={plan.featured ? 'primary' : 'secondary'}
                   size="large"
                   style={{ width: '100%' }}
                   onClick={handleGetStarted}
                 >
-                  Get Started
+                  {plan.cta || 'Get Started'}
                 </Button>
               </PricingCard>
             ))}
@@ -308,7 +335,11 @@ export default function Pricing() {
             <div>
               <BreakdownItem>
                 <BreakdownLabel>Campaign Creation</BreakdownLabel>
-                <BreakdownValue>$19.99</BreakdownValue>
+                <BreakdownValue highlight>Free</BreakdownValue>
+              </BreakdownItem>
+              <BreakdownItem>
+                <BreakdownLabel>Premium Listing</BreakdownLabel>
+                <BreakdownValue>$19.99 (optional)</BreakdownValue>
               </BreakdownItem>
               <BreakdownItem>
                 <BreakdownLabel>Boost Pricing</BreakdownLabel>
@@ -337,9 +368,9 @@ export default function Pricing() {
           <Note>
             <FiInfo />
             <NoteText>
-              HonestNeed does not process P2P donations. We collect platform fees only for 
-              campaign creation, boosts, and share reward transactions. All donations go 
-              directly from donors to recipients.
+              Creating a campaign is free. HonestNeed does not process P2P donations — we
+              collect platform fees only for optional premium listings, boosts, and share
+              reward transactions. All donations go directly from donors to recipients.
             </NoteText>
           </Note>
         </FeeBreakdown>

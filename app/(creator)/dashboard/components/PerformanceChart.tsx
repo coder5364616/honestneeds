@@ -12,7 +12,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts'
 import {
   Download,
@@ -777,22 +776,6 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
               content={<CustomTooltip visibleSeries={visibleSeries} />}
               cursor={{ stroke: tokens.brand, strokeWidth: 1, strokeDasharray: '4 4', strokeOpacity: 0.5 }}
             />
-
-            {goal && goal > 0 && (
-              <ReferenceLine
-                y={goal}
-                stroke={tokens.red}
-                strokeDasharray="5 4"
-                strokeWidth={1.5}
-                label={{
-                  value: `Goal $${goal}`,
-                  position: 'insideTopRight',
-                  fill: tokens.red,
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}
-              />
-            )}
 
             {chartType === 'area' ? (
               <>

@@ -11,7 +11,9 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import styled from 'styled-components';
 import CampaignAnalyticsDashboard from '@/components/campaign/CampaignAnalyticsDashboard';
+import { apiClient } from '@/lib/api';
 import { useLogout } from '@/api/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 
 // ============================================================================
 // STYLED COMPONENTS
@@ -208,39 +210,22 @@ export default function CampaignAnalyticsPage() {
     const fetchCampaign = async () => {
       try {
         setIsLoadingCampaign(true);
-        const token = localStorage.getItem('auth_token');
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/campaigns/${campaignId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            setError('unauthorized');
-            return;
-          }
-          if (response.status === 403) {
-            setError('access-denied');
-            return;
-          }
-          if (response.status === 404) {
-            setError('not-found');
-            return;
-          }
-          throw new Error('Failed to fetch campaign');
-        }
-
-        const data = await response.json();
+        const { data } = await apiClient.get(`/campaigns/${campaignId}`);
         setCampaignData(data.data);
         setError(null);
-      } catch (err) {
-        console.error('Error fetching campaign:', err);
-        setError('fetch-error');
+      } catch (err: any) {
+        const status = err?.response?.status;
+        if (status === 401) {
+          setError('unauthorized');
+        } else if (status === 403) {
+          setError('access-denied');
+        } else if (status === 404) {
+          setError('not-found');
+        } else {
+          console.error('Error fetching campaign:', err);
+          setError('fetch-error');
+        }
       } finally {
         setIsLoadingCampaign(false);
       }

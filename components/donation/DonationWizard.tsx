@@ -11,8 +11,10 @@ import { DonationStep2PaymentMethod } from './DonationStep2PaymentMethod'
 import { DonationStep3Confirmation } from './DonationStep3Confirmation'
 import { DonationSuccessModal } from './DonationSuccessModal'
 import { useCreateDonation } from '@/api/hooks/useDonations'
+import { donationService } from '@/api/services/donationService'
 import { useCampaign } from '@/api/hooks/useCampaigns'
 import type { DonationPaymentMethod, DonationConfirmationFormData } from '@/utils/validationSchemas'
+import { tk, DashboardGlobalStyle } from '@/styles/dashboardTokens'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,16 +32,6 @@ export interface DonationWizardContentProps {
 
 // ─── Keyframes ────────────────────────────────────────────────────────────────
 
-const shimmer = keyframes`
-  0%   { background-position: -200% center; }
-  100% { background-position:  200% center; }
-`
-
-const glowPulse = keyframes`
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50%       { opacity: 0.8; transform: scale(1.08); }
-`
-
 const fadeUp = keyframes`
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -54,57 +46,21 @@ const spin = keyframes`
 const PageShell = styled.div`
   width: 100%;
   min-height: 100vh;
-  background: #F8FAFF;
+  background: ${tk.canvas};
+  font-family: 'DM Sans', sans-serif;
+  color: ${tk.body};
   position: relative;
-  overflow: hidden;
-
-  /* Multi-radial background wash — brand-consistent */
-  &::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 65% 45% at 5%  10%,  rgba(253,224,71, 0.12) 0%, transparent 55%),
-      radial-gradient(ellipse 55% 40% at 95% 5%,   rgba(56,189,248, 0.10) 0%, transparent 50%),
-      radial-gradient(ellipse 50% 50% at 50% 100%,  rgba(244,63, 94, 0.08) 0%, transparent 55%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Dot grid */
-  &::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(15,23,42,0.045) 1px, transparent 1px);
-    background-size: 28px 28px;
-    pointer-events: none;
-    z-index: 0;
-    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%);
-  }
 `
 
+// Decorative blobs are retained as no-op spacers so the existing call sites keep
+// working, but render nothing — the dashboard look is flat canvas, no glass.
 const Blob = styled.div`
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(72px);
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 `
 
-const BlobAmber = styled(Blob)`
-  width: 300px; height: 300px;
-  background: rgba(253,224,71,0.18);
-  top: -80px; left: -60px;
-  animation: ${glowPulse} 8s ease-in-out infinite;
-`
+const BlobAmber = styled(Blob)``
 
-const BlobBlue = styled(Blob)`
-  width: 240px; height: 240px;
-  background: rgba(56,189,248,0.14);
-  top: 40px; right: -50px;
-  animation: ${glowPulse} 10s ease-in-out infinite 3s;
-`
+const BlobBlue = styled(Blob)``
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -144,11 +100,10 @@ const CampaignSidebar = styled.aside`
 `
 
 const SidebarCard = styled.div`
-  border-radius: 20px;
-  background: rgba(255,255,255,0.90);
-  backdrop-filter: blur(12px);
-  border: 1.5px solid rgba(255,255,255,0.75);
-  box-shadow: 0 4px 20px rgba(15,23,42,0.08), 0 1px 4px rgba(15,23,42,0.04);
+  border-radius: 14px;
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   padding: 20px;
   position: relative;
   overflow: hidden;
@@ -156,28 +111,29 @@ const SidebarCard = styled.div`
   &::before {
     content: '';
     position: absolute;
-    top: 0; left: 16px; right: 16px; height: 2.5px;
-    background: linear-gradient(90deg, #F59E0B, #EF4444, #EC4899);
-    border-radius: 0 0 2px 2px;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: ${tk.amber};
   }
 `
 
 const SidebarLabel = styled.p`
-  font-size: 10.5px;
-  font-weight: 800;
-  color: #94A3B8;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.67rem;
+  font-weight: 500;
+  color: ${tk.muted};
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 0 0 10px;
+  letter-spacing: 1px;
+  margin: 4px 0 10px;
 `
 
 const CampaignTitle = styled.h3`
-  font-family: 'Nunito', 'Poppins', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 16px;
   font-weight: 800;
-  color: #0F172A;
+  color: ${tk.heading};
   line-height: 1.3;
   margin: 0 0 6px;
+  letter-spacing: -0.3px;
 `
 
 const CreatorRow = styled.div`
@@ -189,18 +145,19 @@ const CreatorRow = styled.div`
 
 const CreatorAvatar = styled.div`
   width: 28px; height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #F59E0B, #EF4444);
+  border-radius: 8px;
+  background: ${tk.amberMid};
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 800; color: white; flex-shrink: 0;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px; font-weight: 700; color: ${tk.ink}; flex-shrink: 0;
 `
 
 const CreatorName = styled.span`
-  font-size: 13px; font-weight: 600; color: #475569;
+  font-size: 13px; font-weight: 500; color: ${tk.body};
 `
 
 const SidebarDivider = styled.div`
-  height: 1px; background: #F1F5F9; margin: 14px 0;
+  height: 1px; background: ${tk.canvasDeep}; margin: 14px 0;
 `
 
 const TrustItem = styled.div`
@@ -208,8 +165,8 @@ const TrustItem = styled.div`
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
-  font-weight: 600;
-  color: #64748B;
+  font-weight: 500;
+  color: ${tk.body};
   margin-bottom: 10px;
 
   .icon { font-size: 15px; flex-shrink: 0; }
@@ -220,17 +177,17 @@ const SecureBadge = styled.div`
   align-items: center;
   gap: 7px;
   padding: 8px 12px;
-  background: rgba(34,197,94,0.07);
-  border: 1.5px solid rgba(34,197,94,0.18);
+  background: ${tk.greenLight};
+  border: 1px solid rgba(26,122,74,0.2);
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
-  color: #15803D;
+  color: ${tk.green};
   margin-top: 14px;
 
   .dot {
     width: 7px; height: 7px; border-radius: 50%;
-    background: #22C55E; flex-shrink: 0;
+    background: ${tk.green}; flex-shrink: 0;
   }
 `
 
@@ -252,13 +209,10 @@ const WizardColumn = styled.main`
 `
 
 const WizardCard = styled.div`
-  background: rgba(255,255,255,0.94);
-  backdrop-filter: blur(14px);
-  border: 1.5px solid rgba(255,255,255,0.75);
-  border-radius: 24px;
-  box-shadow:
-    0 8px 32px rgba(15,23,42,0.09),
-    0 2px 8px rgba(15,23,42,0.05);
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   padding: 28px 24px;
   animation: ${fadeUp} 0.45s ease forwards;
 
@@ -290,20 +244,19 @@ const StepDot = styled.div<{ $state: 'done' | 'active' | 'idle' }>`
   position: relative;
   z-index: 1;
 
+  font-family: 'Syne', sans-serif;
   ${({ $state }) => $state === 'done' && css`
-    background: linear-gradient(135deg, #22C55E, #16A34A);
-    color: white;
-    box-shadow: 0 3px 10px rgba(34,197,94,0.30);
+    background: ${tk.green};
+    color: ${tk.white};
   `}
   ${({ $state }) => $state === 'active' && css`
-    background: linear-gradient(135deg, #F59E0B, #EF4444);
-    color: white;
-    box-shadow: 0 3px 12px rgba(245,158,11,0.35);
+    background: ${tk.amber};
+    color: ${tk.white};
   `}
   ${({ $state }) => $state === 'idle' && css`
-    background: #F1F5F9;
-    color: #94A3B8;
-    border: 2px solid #E2E8F0;
+    background: ${tk.canvasDeep};
+    color: ${tk.muted};
+    border: 2px solid ${tk.border};
   `}
 `
 
@@ -312,9 +265,7 @@ const StepConnector = styled.div<{ $done: boolean }>`
   height: 2px;
   margin: 0 6px;
   border-radius: 999px;
-  background: ${({ $done }) => $done
-    ? 'linear-gradient(90deg, #22C55E, #16A34A)'
-    : '#E2E8F0'};
+  background: ${({ $done }) => $done ? tk.green : tk.border};
   transition: background 0.4s ease;
 `
 
@@ -326,18 +277,20 @@ const StepMeta = styled.div`
 `
 
 const StepLabel = styled.p`
+  font-family: 'DM Mono', monospace;
   font-size: 12px;
-  font-weight: 700;
-  color: #94A3B8;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  color: ${tk.muted};
+  letter-spacing: 1px;
   text-transform: uppercase;
   margin: 0;
 `
 
 const StepCount = styled.p`
+  font-family: 'DM Mono', monospace;
   font-size: 12px;
-  font-weight: 700;
-  color: #CBD5E1;
+  font-weight: 400;
+  color: ${tk.muted};
   margin: 0;
 `
 
@@ -356,8 +309,8 @@ const StateContainer = styled.div`
 const SpinnerRing = styled.div`
   width: 44px; height: 44px;
   border-radius: 50%;
-  border: 3px solid #F1F5F9;
-  border-top-color: #F59E0B;
+  border: 3px solid ${tk.canvasDeep};
+  border-top-color: ${tk.amber};
   animation: ${spin} 0.8s linear infinite;
   margin-bottom: 16px;
 `
@@ -369,16 +322,17 @@ const StateEmoji = styled.div`
 `
 
 const StateTitle = styled.h3`
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 18px;
   font-weight: 800;
-  color: #0F172A;
+  color: ${tk.heading};
   margin: 0 0 8px;
+  letter-spacing: -0.3px;
 `
 
 const StateText = styled.p`
   font-size: 14px;
-  color: #64748B;
+  color: ${tk.muted};
   line-height: 1.6;
   margin: 0 0 20px;
   max-width: 320px;
@@ -389,19 +343,18 @@ const StateBtn = styled.button`
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
-  color: white;
-  font-family: 'Nunito', sans-serif;
+  background: ${tk.ink};
+  color: ${tk.white};
+  font-family: 'Syne', sans-serif;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(239,68,68,0.28);
-  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
 
   &:hover {
-    box-shadow: 0 6px 22px rgba(239,68,68,0.38);
+    background: ${tk.inkLight};
     transform: translateY(-1px);
   }
 `
@@ -413,11 +366,10 @@ const MobileCampaignBanner = styled.div`
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(10px);
-  border: 1.5px solid rgba(255,255,255,0.7);
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
   border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(15,23,42,0.07);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   margin-bottom: 16px;
 
   @media (min-width: 768px) {
@@ -430,13 +382,13 @@ const BannerAccent = styled.div`
   min-width: 4px;
   height: 36px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #F59E0B, #EF4444);
+  background: ${tk.amber};
   flex-shrink: 0;
 `
 
 const BannerText = styled.div`
-  .label { font-size: 10px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.06em; }
-  .title { font-size: 13.5px; font-weight: 800; color: #0F172A; line-height: 1.2; }
+  .label { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; color: ${tk.muted}; text-transform: uppercase; letter-spacing: 1px; }
+  .title { font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 800; color: ${tk.heading}; line-height: 1.2; }
 `
 
 // ─── Step label map ───────────────────────────────────────────────────────────
@@ -535,15 +487,30 @@ function DonationWizardContent({
       }
       if (referralCode) payload.referralCode = referralCode
 
-      const result = await createDonation(payload)
+      const result: any = await createDonation(payload)
 
-      if (result.share_reward) {
-        toast.info(
-          `🎉 You earned $${result.share_reward.amount_dollars} from your share (pending 30-day verification)`,
-          { autoClose: 6000, toastId: 'donation-share-reward' }
-        )
+      // The backend returns { success, data: { transaction_id, _id, ... }, message }.
+      // Support both that shape and any flattened legacy shape.
+      const txDbId: string | undefined = result?.data?._id || result?.id
+      const txPublicId: string | undefined = result?.data?.transaction_id || result?.transactionId
+      const txRef = txDbId || txPublicId
+
+      // CF-2: best-effort proof-of-payment. The donation is already recorded as
+      // pending — attaching proof (or just marking sent) must never block or
+      // fail the flow; the creator can still confirm without it.
+      if (txRef) {
+        try {
+          if (data.screenshotProof instanceof File) {
+            await donationService.uploadDonationProof(campaignId, txRef, data.screenshotProof)
+          } else {
+            await donationService.markDonationSent(campaignId, txRef)
+          }
+        } catch (proofError) {
+          console.warn('Proof upload / mark-sent failed (non-fatal):', proofError)
+        }
       }
-      onDonationSuccess(result.transactionId, formData.amount || 0)
+
+      onDonationSuccess(txPublicId || txRef || '', formData.amount || 0)
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.message || 'Failed to submit donation'
       toast.error(msg)
@@ -666,7 +633,7 @@ export function DonationWizard({ campaignId }: DonationWizardProps) {
   if (isLoading) {
     return (
       <PageShell>
-        <BlobAmber /><BlobBlue />
+        <DashboardGlobalStyle />
         <PageInner style={{ alignItems: 'center', justifyContent: 'center' }}>
           <WizardCard style={{ maxWidth: 400, width: '90%', margin: '40px auto' }}>
             <StateContainer>
@@ -684,7 +651,7 @@ export function DonationWizard({ campaignId }: DonationWizardProps) {
   if (campaignError || !campaign) {
     return (
       <PageShell>
-        <BlobAmber /><BlobBlue />
+        <DashboardGlobalStyle />
         <PageInner style={{ alignItems: 'center', justifyContent: 'center' }}>
           <WizardCard style={{ maxWidth: 420, width: '90%', margin: '40px auto' }}>
             <StateContainer>
@@ -704,7 +671,7 @@ export function DonationWizard({ campaignId }: DonationWizardProps) {
   if (!paymentMethods.length) {
     return (
       <PageShell>
-        <BlobAmber /><BlobBlue />
+        <DashboardGlobalStyle />
         <PageInner style={{ alignItems: 'center', justifyContent: 'center' }}>
           <WizardCard style={{ maxWidth: 420, width: '90%', margin: '40px auto' }}>
             <StateContainer>
@@ -724,7 +691,7 @@ export function DonationWizard({ campaignId }: DonationWizardProps) {
   if (userIdStr === campaign.creator_id) {
     return (
       <PageShell>
-        <BlobAmber /><BlobBlue />
+        <DashboardGlobalStyle />
         <PageInner style={{ alignItems: 'center', justifyContent: 'center' }}>
           <WizardCard style={{ maxWidth: 420, width: '90%', margin: '40px auto' }}>
             <StateContainer>
@@ -742,7 +709,7 @@ export function DonationWizard({ campaignId }: DonationWizardProps) {
   // ── Main wizard ──
   return (
     <PageShell>
-      <BlobAmber /><BlobBlue />
+      <DashboardGlobalStyle />
       <PageInner>
 
         {/* Sidebar — desktop only */}

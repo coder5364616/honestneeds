@@ -7,31 +7,31 @@ import {
   AlertCircle, ShieldCheck, ChevronDown, Star
 } from 'lucide-react'
 
-// ─── Brand Tokens ─────────────────────────────────────────────────────────────
+// ─── Design Tokens (shared with /dashboard) ──────────────────────────────────
 const B = {
-  yellow:      '#F5C000',
-  yellowLight: '#FFF8D6',
-  yellowMid:   '#FAEBB0',
-  yellowDark:  '#B88C00',
-  blue:        '#29ABE2',
-  blueLight:   '#E6F6FD',
-  blueDark:    '#1A7FB0',
-  green:       '#2E8B1A',
-  greenLight:  '#EAF7E6',
-  greenDark:   '#1D5E10',
-  navy:        '#1A1464',
-  pink:        '#E8338A',
-  pinkLight:   '#FDE8F3',
-  surface:     '#F7F9FC',
-  border:      '#E2E8F0',
-  borderFocus: '#29ABE2',
+  yellow:      '#D4870A',
+  yellowLight: '#FBF3E0',
+  yellowMid:   '#F5C961',
+  yellowDark:  '#A8680A',
+  blue:        '#1A5FA8',
+  blueLight:   '#E8F0FB',
+  blueDark:    '#0D4A8C',
+  green:       '#1A7A4A',
+  greenLight:  '#E8F5EE',
+  greenDark:   '#0F5132',
+  navy:        '#18171A',
+  pink:        '#C0392B',
+  pinkLight:   '#FBE9E7',
+  surface:     '#F7F5F1',
+  border:      '#E2DDD6',
+  borderFocus: '#1A5FA8',
   white:       '#FFFFFF',
-  text:        '#1A1464',
-  textMuted:   '#6B7B8D',
-  textLight:   '#9BA8B5',
-  error:       '#DC2626',
-  errorLight:  '#FEF2F2',
-  errorBorder: '#FCA5A5',
+  text:        '#18171A',
+  textMuted:   '#8C8790',
+  textLight:   '#A8A2AC',
+  error:       '#C0392B',
+  errorLight:  '#FBE9E7',
+  errorBorder: '#E8A89F',
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -157,9 +157,10 @@ const TypeIconWrap = styled.div<{ $type: PaymentMethodType; $active: boolean }>`
 `
 
 const TypeLabel = styled.span<{ $active: boolean }>`
-  font-size: 0.8rem;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
   font-weight: 700;
-  color: ${p => p.$active ? B.blueDark : B.textMuted};
+  color: ${p => p.$active ? B.blueDark : B.text};
   line-height: 1.3;
 
   @media (max-width: 480px) { font-size: 0.875rem; }
@@ -183,11 +184,12 @@ const ActiveDot = styled.div`
 
 // ─── Section Label ────────────────────────────────────────────────────────────
 const SectionLabel = styled.p`
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
   color: ${B.textMuted};
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.4px;
   margin: 0 0 0.75rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid ${B.border};
@@ -201,14 +203,15 @@ const FieldGroup = styled.div`
 `
 
 const Label = styled.label`
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 600;
   color: ${B.text};
   display: flex;
   align-items: center;
   gap: 0.3rem;
 
-  span.req { color: ${B.blue}; }
+  span.req { color: ${B.error}; }
 `
 
 const inputBase = css`
@@ -226,11 +229,11 @@ const inputBase = css`
 
   &::placeholder { color: ${B.textLight}; }
 
-  &:hover:not(:disabled) { border-color: #b0c4d8; }
+  &:hover:not(:disabled) { border-color: #C9C3BB; }
 
   &:focus {
     border-color: ${B.blue};
-    box-shadow: 0 0 0 3px rgba(41,171,226,0.15);
+    box-shadow: 0 0 0 3px rgba(26,95,168,0.15);
   }
 
   &:disabled {
@@ -244,7 +247,7 @@ const Input = styled.input<{ $hasError?: boolean }>`
   ${inputBase}
   ${p => p.$hasError && css`
     border-color: ${B.error};
-    &:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.12); }
+    &:focus { box-shadow: 0 0 0 3px rgba(192,57,43,0.12); }
   `}
 `
 
@@ -271,7 +274,8 @@ const Select = styled.select<{ $hasError?: boolean }>`
 `
 
 const HelpText = styled.p`
-  font-size: 0.75rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
   color: ${B.textLight};
   margin: 0;
   line-height: 1.4;
@@ -410,10 +414,11 @@ const SubmitBtn = styled.button`
   padding: 0.75rem 1.5rem;
   border-radius: 10px;
   border: none;
-  background: ${B.yellow};
-  color: ${B.navy};
+  background: ${B.navy};
+  color: ${B.white};
+  font-family: 'Syne', sans-serif;
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   transition: background 0.18s, transform 0.15s;
   display: flex;
@@ -421,7 +426,7 @@ const SubmitBtn = styled.button`
   justify-content: center;
   gap: 0.4rem;
 
-  &:hover:not(:disabled) { background: ${B.yellowDark}; color: ${B.white}; transform: translateY(-1px); }
+  &:hover:not(:disabled) { background: #242228; transform: translateY(-1px); }
   &:active:not(:disabled) { transform: translateY(0); }
   &:disabled { background: ${B.border}; color: ${B.textMuted}; cursor: not-allowed; }
 `
@@ -429,8 +434,8 @@ const SubmitBtn = styled.button`
 const Spinner = styled.span`
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(26,20,100,0.2);
-  border-top-color: ${B.navy};
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: ${B.white};
   border-radius: 50%;
   display: inline-block;
   animation: spin 0.7s linear infinite;
@@ -652,8 +657,9 @@ export const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
           <Banner $variant="security">
             <ShieldCheck />
             <BannerText>
-              <strong>Your details are safe.</strong> All banking information is AES-256 encrypted
-              and never stored in plain text.
+              <strong>Your details are safe.</strong> Your account and routing numbers are
+              encrypted at rest (AES-256-GCM) and only ever shown to the campaign creator who
+              pays you — never to other supporters.
             </BannerText>
           </Banner>
         </>
@@ -711,8 +717,8 @@ export const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
           <Banner $variant="security">
             <ShieldCheck />
             <BannerText>
-              <strong>Verified &amp; secure.</strong> Your mobile wallet details are encrypted
-              and used solely for payout purposes.
+              <strong>Used only for payouts.</strong> Your mobile wallet details are stored
+              securely and shared only with the campaign creator who pays you.
             </BannerText>
           </Banner>
         </>
@@ -732,7 +738,7 @@ export const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
             <Star /> Set as primary method
           </CheckTitle>
           <CheckSub>
-            This method will receive automatic payouts when your campaign goals are reached.
+            We&apos;ll preselect this method when you request a payout. You can change it anytime.
           </CheckSub>
         </CheckMeta>
       </CheckRow>
@@ -745,7 +751,7 @@ export const AddPaymentMethodForm: React.FC<AddPaymentMethodFormProps> = ({
           </CancelBtn>
         )}
         <SubmitBtn type="button" onClick={handleSubmit} disabled={isLoading}>
-          {isLoading ? <><Spinner /> Saving…</> : isEditing ? 'Save changes' : 'Add method'}
+          {isLoading ? <><Spinner /> Saving…</> : isEditing ? 'Save changes' : 'Add payout method'}
         </SubmitBtn>
       </Actions>
 

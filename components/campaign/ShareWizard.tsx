@@ -480,10 +480,50 @@ export function ShareWizard({
 
   const recordShareMutation = useRecordShare()
 
-  const shareUrl =
+  // Base campaign URL. The TRACKABLE link appends ?ref=<referralCode>; the
+  // campaign page (ReferralClickTracker) and donation wizard both read ?ref to
+  // attribute conversions back to the sharer. Without it, a shared/copied link
+  // earns nothing.
+  const baseShareUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/campaigns/${campaignId}`
       : ''
+  const trackableUrl = (code: string | null) =>
+    code ? `${baseShareUrl}?ref=${code}` : baseShareUrl
+  // Displayed/copied in the preview; updates once the referral code is created.
+  const shareUrl = trackableUrl(referralCode)
+
+  // Valid share channels accepted by the backend (ShareRecord.channel enum).
+  const VALID_CHANNELS = [
+    'email', 'facebook', 'twitter', 'instagram', 'linkedin',
+    'sms', 'whatsapp', 'telegram', 'reddit', 'tiktok', 'other',
+  ]
+  const channelFor = (platform: string | null) =>
+    platform && VALID_CHANNELS.includes(platform) ? platform : 'other'
+
+  // Create (once per session) the ShareRecord that backs this referral link and
+  // cache its code, so the SAME trackable link is used everywhere (copy + every
+  // social platform). Re-selecting platforms reuses the cached code.
+  const ensureReferralCode = async (platform: string | null): Promise<string | null> => {
+    if (referralCode) return referralCode
+    try {
+      const resp = await recordShareMutation.mutateAsync({
+        campaignId,
+        channel: channelFor(platform) as any,
+      })
+      // Backend returns referralCode as "?ref=ABC123" (already prefixed). Strip
+      // the prefix so trackableUrl() can append a single clean ?ref=.
+      const raw = (resp as any)?.referralCode as string | undefined
+      if (raw) {
+        const code = raw.replace(/^\??ref=/, '')
+        setReferralCode(code)
+        return code
+      }
+    } catch (e) {
+      console.error('ShareWizard: failed to create referral link', e)
+    }
+    return null
+  }
 
   const shareText = `Check out "${campaignTitle}"${
     creator_name ? ` by ${creator_name}` : ''
@@ -522,11 +562,15 @@ export function ShareWizard({
   const handlePlatformSelect = (platformId: string) => {
     setSelectedPlatform(platformId)
     setStep('preview')
+    // Pre-generate the trackable link so the preview's copyable link already
+    // carries ?ref= (fixes "link has no tracking code").
+    void ensureReferralCode(platformId)
   }
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl)
+      const code = await ensureReferralCode(selectedPlatform)
+      await navigator.clipboard.writeText(trackableUrl(code))
       setCopied(true)
       toast.success('Link copied to clipboard!')
       setTimeout(() => setCopied(false), 2000)
@@ -540,30 +584,27 @@ export function ShareWizard({
 
     setIsSharing(true)
     try {
-      // Record the share with the backend
-      const shareResponse = await recordShareMutation.mutateAsync({
-        campaignId,
-        channel: selectedPlatform as any,
-      })
-
-      // ✅ Capture referral code from response for tracking
-      if (shareResponse?.referral_code) {
-        setReferralCode(shareResponse.referral_code)
-        console.log('🔗 ShareWizard: Referral code captured', { 
-          referral_code: shareResponse.referral_code 
-        })
+      // Ensure the referral code exists (created on preview; reused here), then
+      // share the TRACKABLE url so conversions attribute back to this sharer.
+      const code = await ensureReferralCode(selectedPlatform)
+      if (code) {
+        console.log('🔗 ShareWizard: sharing trackable link', { referral_code: code })
       }
+      const finalUrl = trackableUrl(code)
 
       // Store the platform for result display
       setSharedPlatform(selectedPlatform)
 
       // Handle special cases
       if (selectedPlatform === 'copy') {
-        await handleCopyLink()
+        await navigator.clipboard.writeText(finalUrl)
+        setCopied(true)
+        toast.success('Link copied to clipboard!')
+        setTimeout(() => setCopied(false), 2000)
       } else {
         const platform = SHARING_PLATFORMS.find((p) => p.id === selectedPlatform)
         if (platform && platform.id !== 'copy') {
-          const shareLink = platform.intent(shareText, shareUrl)
+          const shareLink = platform.intent(shareText, finalUrl)
           window.open(shareLink, '_blank', 'width=600,height=600')
         }
       }

@@ -4,7 +4,11 @@ import styled from 'styled-components'
 import { useEffect, useState } from 'react'
 import { Modal } from '@/components/Modal'
 import { useRecordShare, useCampaignShareStats } from '@/api/hooks/useShares'
+import { useQueryClient } from '@tanstack/react-query'
+import { shareLimitKeys } from '@/api/hooks/useShareLimit'
+import { ShareLimitNotice } from '@/components/share/ShareLimitNotice'
 import { toast } from 'react-toastify'
+import { tk } from '@/styles/dashboardTokens'
 
 interface ShareModalProps {
   campaignId: string
@@ -18,6 +22,7 @@ const ModalContent = styled.div`
   flex-direction: column;
   gap: 2rem;
   max-width: 500px;
+  font-family: 'DM Sans', sans-serif;
 `
 
 const SectionContainer = styled.div`
@@ -27,10 +32,12 @@ const SectionContainer = styled.div`
 `
 
 const SectionTitle = styled.h3`
+  font-family: 'Syne', sans-serif;
   font-size: 1rem;
   font-weight: 700;
-  color: #0f172a;
+  color: ${tk.heading};
   margin: 0;
+  letter-spacing: -0.3px;
 `
 
 const ReferralBox = styled.div`
@@ -38,42 +45,43 @@ const ReferralBox = styled.div`
   gap: 0.75rem;
   align-items: center;
   padding: 1rem;
-  background-color: #f0f9ff;
-  border: 1px solid #bfdbfe;
+  background-color: ${tk.blueLight};
+  border: 1px solid ${tk.border};
   border-radius: 8px;
 `
 
 const ReferralLink = styled.input`
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid ${tk.border};
   border-radius: 6px;
   font-size: 0.9rem;
   font-family: 'Courier New', monospace;
-  color: #0f172a;
+  color: ${tk.heading};
   background-color: white;
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: ${tk.blue};
+    box-shadow: 0 0 0 3px rgba(26, 95, 168, 0.12);
   }
 `
 
 const CopyButton = styled.button`
   padding: 0.75rem 1.25rem;
-  background-color: #6366f1;
+  background-color: ${tk.blue};
   color: white;
   border: none;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 8px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 
   &:hover {
-    background-color: #4f46e5;
+    background-color: #0D4A8C;
   }
 
   &:active {
@@ -88,8 +96,8 @@ const CopyButton = styled.button`
 
 const QRCodeContainer = styled.div`
   padding: 1.5rem;
-  background-color: #f8fafc;
-  border: 2px solid #e2e8f0;
+  background-color: ${tk.canvas};
+  border: 2px solid ${tk.border};
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -101,7 +109,7 @@ const QRCodeImage = styled.img`
   width: 200px;
   height: 200px;
   border-radius: 8px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid ${tk.border};
 
   @media (max-width: 640px) {
     width: 160px;
@@ -112,13 +120,13 @@ const QRCodeImage = styled.img`
 const QRCodePlaceholder = styled.div`
   width: 200px;
   height: 200px;
-  background-color: #e2e8f0;
+  background-color: ${tk.border};
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
-  color: #64748b;
+  color: ${tk.muted};
   text-align: center;
   padding: 1rem;
 
@@ -131,8 +139,8 @@ const QRCodePlaceholder = styled.div`
 const DownloadButton = styled.button`
   padding: 0.625rem 1.25rem;
   background-color: white;
-  color: #6366f1;
-  border: 2px solid #6366f1;
+  color: ${tk.blue};
+  border: 2px solid ${tk.blue};
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.9rem;
@@ -140,7 +148,7 @@ const DownloadButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: #ede9fe;
+    background-color: ${tk.blueLight};
   }
 
   &:disabled {
@@ -167,8 +175,8 @@ const SocialButtonsContainer = styled.div`
 const SocialButton = styled.button<{ platform: string }>`
   aspect-ratio: 1;
   padding: 0.75rem;
-  background-color: #f8fafc;
-  border: 2px solid #e2e8f0;
+  background-color: ${tk.canvas};
+  border: 2px solid ${tk.border};
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.85rem;
@@ -179,11 +187,11 @@ const SocialButton = styled.button<{ platform: string }>`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  color: #0f172a;
+  color: ${tk.heading};
 
   &:hover {
-    border-color: #6366f1;
-    background-color: #ede9fe;
+    border-color: ${tk.blue};
+    background-color: ${tk.blueLight};
     transform: translateY(-2px);
   }
 
@@ -213,7 +221,7 @@ const StatsContainer = styled.div`
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   padding: 1rem;
-  background-color: #f0f9ff;
+  background-color: ${tk.blueLight};
   border-radius: 8px;
 `
 
@@ -225,17 +233,19 @@ const StatItem = styled.div`
 `
 
 const StatLabel = styled.span`
-  font-size: 0.8rem;
-  color: #64748b;
-  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  color: ${tk.muted};
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 `
 
 const StatValue = styled.span`
+  font-family: 'Syne', sans-serif;
   font-size: 1.75rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 800;
+  color: ${tk.heading};
 `
 
 interface SocialShareConfig {
@@ -313,17 +323,29 @@ export function ShareModal({
   const [shareId, setShareId] = useState<string | null>(null)
   const { mutate: recordShare, isPending: isRecording } = useRecordShare()
   const { data: shareStats } = useCampaignShareStats(campaignId)
+  const queryClient = useQueryClient()
+
+  // Refresh the daily tip-eligibility notice after each recorded share.
+  const refreshEligibility = () =>
+    queryClient.invalidateQueries({ queryKey: shareLimitKeys.eligibility(campaignId) })
 
   // Generate referral URL when modal opens
   useEffect(() => {
     if (isOpen && !shareId) {
-      // Record initial share (will get shareId from backend)
+      // Record initial share (will get shareId + referralCode from backend)
       recordShare(
         { campaignId, channel: 'link' },
         {
-          onSuccess: (data) => {
+          onSuccess: (data: any) => {
             setShareId(data.shareId)
-            setReferralUrl(data.referralUrl)
+            // Backend returns referralCode as "?ref=<code>". Build a full campaign
+            // deep-link so the copied/shared URL renders the campaign's Open Graph
+            // preview (image + title) on Facebook etc. and attributes the referral.
+            const base =
+              process.env.NEXT_PUBLIC_SITE_URL ||
+              (typeof window !== 'undefined' ? window.location.origin : '')
+            const ref = data.referralCode || ''
+            setReferralUrl(`${base}/campaigns/${campaignId}${ref}`)
           },
         }
       )
@@ -355,8 +377,12 @@ export function ShareModal({
       recordShare(
         { campaignId, channel: socialConfig.id },
         {
-          onSuccess: () => {
-            toast.success(`Shared to ${socialConfig.label}!`)
+          onSuccess: (data: any) => {
+            // Surface the daily-limit outcome (tip-eligible vs free share).
+            toast[data?.rewardEligible === false ? 'info' : 'success'](
+              data?.message || `Shared to ${socialConfig.label}!`
+            )
+            refreshEligibility()
             socialConfig.action(referralUrl, campaignTitle)
           },
         }
@@ -371,6 +397,9 @@ export function ShareModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Share "${campaignTitle}"`}>
       <ModalContent>
+        {/* Daily tip-eligibility + "request another share" flow */}
+        <ShareLimitNotice campaignId={campaignId} />
+
         {/* Referral Link Section */}
         <SectionContainer>
           <SectionTitle>Share Link</SectionTitle>

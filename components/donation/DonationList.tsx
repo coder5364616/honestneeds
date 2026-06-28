@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import { useState } from 'react'
 import Link from 'next/link'
 import { DonationStatusBadge, type DonationStatus } from './DonationStatusBadge'
+import { DONATION_FEE_RATE, DONATION_FEE_PERCENT } from '@/utils/validationSchemas'
 
 interface Donation {
   transactionId: string
@@ -527,9 +528,9 @@ export function DonationList({
                     <FeeTooltip className="fee-tooltip">
                       Gross: ${(donation.amount / 100).toFixed(2)}
                       <br />
-                      Fee (20%): ${((donation.amount / 100) * 0.2).toFixed(2)}
+                      Fee ({DONATION_FEE_PERCENT}%): ${((donation.amount / 100) * DONATION_FEE_RATE).toFixed(2)}
                       <br />
-                      Net: ${((donation.amount / 100) * 0.8).toFixed(2)}
+                      Net: ${((donation.amount / 100) * (1 - DONATION_FEE_RATE)).toFixed(2)}
                     </FeeTooltip>
                   </AmountWrapper>
                 </td>

@@ -1,80 +1,168 @@
 /**
  * Withdrawal Request Modal
  * Allows users to initiate withdrawal requests
+ *
+ * Styled to match the /dashboard design system (Syne / DM Sans / DM Mono,
+ * warm-amber + ink token palette) — same tokens used on the My Shares page
+ * that opens this modal.
  */
 
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import styled from 'styled-components'
-import { X, AlertCircle, Loader, DollarSign } from 'lucide-react'
+import styled, { createGlobalStyle } from 'styled-components'
+import { X, AlertCircle, Loader, DollarSign, Wallet } from 'lucide-react'
+import { apiClient } from '@/lib/api'
 import { useRequestWithdrawal } from '@/api/hooks/useWallet'
 import { usePaymentMethods } from '@/api/hooks/usePaymentMethods'
 import { Modal } from '@/components/Modal'
-import { Button } from '@/components/Button'
-import { FormField } from '@/components/FormField'
+
+// ─── Design Tokens (mirrors /dashboard and /shares) ───────────────────────────
+
+const tk = {
+  ink:         '#18171A',
+  inkLight:    '#242228',
+  inkBorder:   '#3D3A44',
+  canvas:      '#F7F5F1',
+  canvasDeep:  '#EEEBe5',
+  border:      '#E2DDD6',
+  white:       '#FFFFFF',
+  muted:       '#8C8790',
+  body:        '#4A4750',
+  heading:     '#18171A',
+  amber:       '#D4870A',
+  amberLight:  '#FBF3E0',
+  amberMid:    '#F5C961',
+  amberDark:   '#A8680A',
+  green:       '#1A7A4A',
+  greenLight:  '#E8F5EE',
+  red:         '#C0392B',
+  redLight:    '#FBE9E7',
+  blue:        '#1A5FA8',
+  blueLight:   '#E8F0FB',
+}
+
+const GlobalFont = createGlobalStyle`
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+`
 
 const ModalContent = styled.div`
-  padding: 2rem;
-  max-width: 500px;
+  padding: 1.75rem 2rem 2rem;
+  max-width: 520px;
+  font-family: 'DM Sans', sans-serif;
+  color: ${tk.body};
 `
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid ${tk.border};
+`
+
+const HeaderText = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+`
+
+const TitleIcon = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${tk.amberLight};
+  color: ${tk.amber};
 `
 
 const Title = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: ${tk.heading};
   margin: 0;
+  line-height: 1.2;
+`
+
+const Subtitle = styled.p`
+  font-size: 0.8rem;
+  color: ${tk.muted};
+  margin: 2px 0 0;
 `
 
 const CloseButton = styled.button`
   background: none;
   border: none;
-  color: #64748b;
+  color: ${tk.muted};
   cursor: pointer;
-  padding: 0;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 8px;
+  transition: background 140ms, color 140ms;
 
   &:hover {
-    color: #0f172a;
+    background: ${tk.canvasDeep};
+    color: ${tk.ink};
   }
 
   svg {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1.25rem;
+    height: 1.25rem;
   }
 `
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.375rem;
 `
 
-const AmountInput = styled.input`
+const Label = styled.label`
+  display: block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: ${tk.heading};
+  margin-bottom: 0.5rem;
+
+  .required {
+    color: ${tk.red};
+    margin-left: 3px;
+  }
+`
+
+const baseFieldStyles = `
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s;
+  font-family: 'DM Sans', sans-serif;
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid ${tk.border};
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background: ${tk.white};
+  color: ${tk.heading};
+  transition: border-color 140ms, box-shadow 140ms;
 
   &:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: ${tk.amber};
+    box-shadow: 0 0 0 3px ${tk.amberLight};
   }
 
   &::placeholder {
-    color: #cbd5e1;
+    color: ${tk.muted};
+  }
+
+  &:disabled {
+    background: ${tk.canvasDeep};
+    color: ${tk.muted};
+    cursor: not-allowed;
   }
 `
 
@@ -86,89 +174,182 @@ const AmountInputWrapper = styled.div`
 
 const CurrencySymbol = styled.span`
   position: absolute;
-  left: 1rem;
-  color: #64748b;
-  font-weight: 600;
-  font-size: 1.125rem;
+  left: 0.9rem;
+  color: ${tk.muted};
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  font-size: 1rem;
   pointer-events: none;
 `
 
-const AmountInputField = styled(AmountInput)`
-  padding-left: 2.5rem;
+const AmountInputField = styled.input`
+  ${baseFieldStyles}
+  padding-left: 2.25rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 1rem;
 `
 
-const InfoBox = styled.div<{ type: 'info' | 'warning' | 'success' }>`
+const PaymentMethodSelect = styled.select`
+  ${baseFieldStyles}
+  cursor: pointer;
+`
+
+const CampaignSelect = styled.select`
+  ${baseFieldStyles}
+  cursor: pointer;
+`
+
+const Textarea = styled.textarea`
+  ${baseFieldStyles}
+  min-height: 80px;
+  resize: vertical;
+`
+
+const HelpText = styled.div<{ $tone?: 'muted' | 'warning' | 'error' }>`
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: ${(p) => (p.$tone === 'warning' ? tk.amberDark : p.$tone === 'error' ? tk.red : tk.muted)};
+`
+
+const InfoBox = styled.div<{ $type: 'info' | 'warning' | 'success' | 'danger' }>`
   display: flex;
   gap: 0.75rem;
-  padding: 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  border-left: 4px solid;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  border: 1px solid;
+  font-family: 'DM Sans', sans-serif;
 
-  ${(props) => {
-    switch (props.type) {
+  ${(p) => {
+    switch (p.$type) {
       case 'info':
-        return `
-          background: #dbeafe;
-          border-color: #0284c7;
-          color: #0c4a6e;
-        `
+        return `background: ${tk.blueLight}; border-color: ${tk.blue}55; color: ${tk.blue};`
       case 'warning':
-        return `
-          background: #fef3c7;
-          border-color: #ca8a04;
-          color: #713f12;
-        `
+        return `background: ${tk.amberLight}; border-color: ${tk.amber}55; color: ${tk.amberDark};`
       case 'success':
-        return `
-          background: #dcfce7;
-          border-color: #16a34a;
-          color: #166534;
-        `
+        return `background: ${tk.greenLight}; border-color: ${tk.green}55; color: ${tk.green};`
+      case 'danger':
+        return `background: ${tk.redLight}; border-color: ${tk.red}55; color: ${tk.red};`
     }
   }}
 
   svg {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.1rem;
+    height: 1.1rem;
     flex-shrink: 0;
+    margin-top: 1px;
   }
 
   strong {
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: 2px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: ${tk.heading};
   }
 `
 
-const PaymentMethodSelect = styled.select`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  background-color: white;
-  cursor: pointer;
-  transition: all 0.2s;
+const BalanceCard = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 12px;
+  padding: 1rem 1.125rem;
+`
 
-  &:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+const BalanceLabel = styled.div`
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: ${tk.muted};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`
+
+const BalanceValue = styled.div<{ $empty?: boolean }>`
+  font-family: 'Syne', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: ${(p) => (p.$empty ? tk.muted : tk.green)};
+  margin-top: 2px;
+`
+
+const BalanceEmpty = styled.span`
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: ${tk.muted};
+`
+
+const BalanceIcon = styled.div`
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${tk.greenLight};
+  color: ${tk.green};
+`
+
+const CampaignBalanceBox = styled.div`
+  background: ${tk.greenLight};
+  border: 1px solid ${tk.green}40;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+
+  .label {
+    color: ${tk.green};
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
-  option {
-    padding: 0.5rem;
+  .amount {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: ${tk.green};
+    margin-top: 2px;
+  }
+
+  .details {
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid ${tk.green}30;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: ${tk.body};
+
+    div {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .value {
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      color: ${tk.heading};
+    }
   }
 `
 
 const FeeBreakdown = styled.div`
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 1rem;
+  background: ${tk.canvasDeep};
+  border-radius: 10px;
+  padding: 1rem 1.125rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  font-size: 0.875rem;
+  gap: 0.65rem;
+  font-size: 0.85rem;
 `
 
 const FeeRow = styled.div`
@@ -178,114 +359,141 @@ const FeeRow = styled.div`
 
   &.total {
     font-weight: 700;
-    color: #0f172a;
-    border-top: 1px solid #e2e8f0;
-    padding-top: 0.75rem;
-    margin-top: 0.75rem;
+    color: ${tk.heading};
+    border-top: 1px solid ${tk.border};
+    padding-top: 0.65rem;
+    margin-top: 0.15rem;
+    font-family: 'Syne', sans-serif;
   }
 
   .label {
-    color: #64748b;
+    color: ${tk.muted};
   }
 
   .value {
-    color: #0f172a;
-    font-weight: 600;
+    color: ${tk.heading};
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
   }
 `
 
 const LimitInfo = styled.div`
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 8px;
-  padding: 1rem;
-  font-size: 0.875rem;
-  color: #0c4a6e;
+  background: ${tk.amberLight};
+  border: 1px solid ${tk.amber}40;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  font-size: 0.82rem;
+  color: ${tk.amberDark};
 
   strong {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
+    font-family: 'Syne', sans-serif;
+    color: ${tk.heading};
   }
 
   ul {
     margin: 0;
-    padding-left: 1.25rem;
+    padding-left: 1.1rem;
   }
 
   li {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
+  }
+`
+
+const AgreementLabel = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: ${tk.muted};
+
+  input {
+    margin-top: 3px;
+    cursor: pointer;
+    accent-color: ${tk.amber};
   }
 `
 
 const ButtonGroup = styled.div`
   display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
 `
 
-const CampaignSelect = styled.select`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  background-color: white;
+const GhostBtn = styled.button`
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: ${tk.white};
+  color: ${tk.body};
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid ${tk.border};
+  border-radius: 10px;
+  padding: 0.7rem 1.1rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 140ms, border-color 140ms;
 
-  &:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  &:hover:not(:disabled) {
+    background: ${tk.canvasDeep};
+    border-color: ${tk.amber};
   }
 
-  option {
-    padding: 0.5rem;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `
 
-const CampaignBalanceBox = styled.div`
-  background: #f0fdf4;
-  border: 2px solid #86efac;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
+const PrimaryBtn = styled.button`
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: ${tk.ink};
+  color: ${tk.white};
+  font-family: 'Syne', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1.1rem;
+  cursor: pointer;
+  transition: background 140ms, transform 120ms;
 
-  .label {
-    color: #64748b;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  &:hover:not(:disabled) {
+    background: ${tk.inkLight};
+    transform: translateY(-1px);
   }
 
-  .amount {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #16a34a;
-    margin-top: 0.25rem;
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
   }
 
-  .details {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid #86efac;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    font-size: 0.75rem;
-    color: #64748b;
-
-    div {
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .value {
-      font-weight: 600;
-      color: #0f172a;
-    }
+  svg {
+    width: 16px;
+    height: 16px;
   }
+`
+
+const spin = `
+  @keyframes withdrawal-spin {
+    to { transform: rotate(360deg); }
+  }
+`
+
+const SpinIcon = styled(Loader)`
+  ${spin}
+  animation: withdrawal-spin 1s linear infinite;
 `
 
 export interface WithdrawalRequestModalProps {
@@ -321,17 +529,9 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
     const fetchCampaigns = async () => {
       setCampaignsLoading(true)
       try {
-        const response = await fetch('/api/wallet/earning-campaigns', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-          }
-        })
-        if (!response.ok) throw new Error('Failed to fetch campaigns')
-        const data = await response.json()
-        console.log('✅ Campaigns loaded:', data.campaigns?.length)
+        const { data } = await apiClient.get('/wallet/earning-campaigns')
         setCampaigns(data.campaigns || [])
       } catch (err) {
-        console.error('❌ Error fetching campaigns:', err)
         setCampaignsError('Failed to load campaigns')
       } finally {
         setCampaignsLoading(false)
@@ -347,20 +547,8 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId || c._id === selectedCampaignId)
   const campaignAvailableCents = selectedCampaign?.available_cents || 0
 
-  // Debug logging
-  console.log('WithdrawalModal Debug:', {
-    amountCents,
-    selectedPaymentMethod,
-    agreedToTerms,
-    selectedCampaignId,
-    campaignAvailable: campaignAvailableCents,
-    totalCampaigns: campaigns.length,
-    campaignsLoading
-  })
-
   // Calculate fees based on payment method
   const feePercentage = useMemo(() => {
-    // Ensure paymentMethods is always an array
     const methods = Array.isArray(paymentMethods) ? paymentMethods : []
     const method = methods.find((m) => m.id === selectedPaymentMethod)
     if (!method) return 0.02 // Default 2%
@@ -438,16 +626,25 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
 
   return (
     <Modal isOpen={true} onClose={onClose}>
+      <GlobalFont />
       <ModalContent>
         <Header>
-          <Title>Request Payout</Title>
+          <HeaderText>
+            <TitleIcon>
+              <Wallet size={18} />
+            </TitleIcon>
+            <div>
+              <Title>Request Payout</Title>
+              <Subtitle>Withdraw your share-to-earn rewards</Subtitle>
+            </div>
+          </HeaderText>
           <CloseButton onClick={onClose}>
             <X />
           </CloseButton>
         </Header>
 
         {error && (
-          <InfoBox type="warning">
+          <InfoBox $type="danger" style={{ marginBottom: '1.25rem' }}>
             <AlertCircle />
             <div>
               <strong>Request Failed</strong>
@@ -456,21 +653,26 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
           </InfoBox>
         )}
 
-        <InfoBox type="info">
-          <DollarSign />
+        <BalanceCard style={{ marginBottom: '1.5rem' }}>
           <div>
-            <strong>Campaign Balance</strong>
+            <BalanceLabel>Campaign Balance</BalanceLabel>
             {!selectedCampaignId ? (
-              <span style={{ color: '#64748b' }}>Select a campaign to see balance</span>
+              <BalanceEmpty>Select a campaign to see balance</BalanceEmpty>
             ) : (
-              <span>${(campaignAvailableCents / 100).toFixed(2)}</span>
+              <BalanceValue>{formatCurrency(campaignAvailableCents)}</BalanceValue>
             )}
           </div>
-        </InfoBox>
+          <BalanceIcon>
+            <DollarSign size={18} />
+          </BalanceIcon>
+        </BalanceCard>
 
         <Form onSubmit={handleSubmit}>
           {/* Amount Input */}
-          <FormField label="Withdrawal Amount" required>
+          <div>
+            <Label>
+              Withdrawal Amount<span className="required">*</span>
+            </Label>
             <AmountInputWrapper>
               <CurrencySymbol>$</CurrencySymbol>
               <AmountInputField
@@ -485,33 +687,32 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
               />
             </AmountInputWrapper>
             {!selectedCampaignId && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#ca8a04' }}>
-                Select a campaign first
-              </div>
+              <HelpText $tone="warning">Select a campaign first</HelpText>
             )}
             {selectedCampaignId && amountCents > 0 && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#64748b' }}>
+              <>
                 {amountCents < minimumWithdrawal && (
-                  <span>Minimum withdrawal is {formatCurrency(minimumWithdrawal)}</span>
+                  <HelpText>Minimum withdrawal is {formatCurrency(minimumWithdrawal)}</HelpText>
                 )}
                 {amountCents > campaignAvailableCents && (
-                  <span style={{ color: '#ca8a04' }}>
+                  <HelpText $tone="warning">
                     Amount exceeds available balance in this campaign by {formatCurrency(amountCents - campaignAvailableCents)}
-                  </span>
+                  </HelpText>
                 )}
-              </div>
+              </>
             )}
-          </FormField>
+          </div>
 
           {/* Payment Method Select */}
-          <FormField label="Pay To" required>
+          <div>
+            <Label>
+              Pay To<span className="required">*</span>
+            </Label>
             {methodsLoading && (
-              <div style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.875rem' }}>
-                Loading payment methods...
-              </div>
+              <HelpText>Loading payment methods...</HelpText>
             )}
             {!methodsLoading && (!paymentMethods || paymentMethods.length === 0) && (
-              <InfoBox type="warning">
+              <InfoBox $type="warning">
                 <AlertCircle />
                 <div>
                   <strong>No Payment Methods</strong>
@@ -535,30 +736,31 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
                 </PaymentMethodSelect>
 
                 {selectedPaymentMethod && selectedMethod && (
-                  <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#64748b' }}>
-                    Processing time: {formatProcessingTime(selectedMethod.type)}
-                  </div>
+                  <HelpText>Processing time: {formatProcessingTime(selectedMethod.type)}</HelpText>
                 )}
               </>
             )}
-          </FormField>
+          </div>
 
           {/* Campaign Selection (Required) */}
-          <FormField label="Select Campaign" required>
+          <div>
+            <Label>
+              Select Campaign<span className="required">*</span>
+            </Label>
             {campaignsLoading && (
-              <div style={{ padding: '0.75rem 1rem', color: '#64748b', fontSize: '0.875rem' }}>
-                <Loader size={16} style={{ animation: 'spin 1s linear infinite', marginRight: '0.5rem' }} />
+              <HelpText>
+                <SpinIcon size={14} style={{ marginRight: '0.4rem', verticalAlign: 'middle' }} />
                 Loading campaigns...
-              </div>
+              </HelpText>
             )}
             {!campaignsLoading && campaignsError && (
-              <InfoBox type="warning">
+              <InfoBox $type="danger">
                 <AlertCircle />
                 <div>{campaignsError}</div>
               </InfoBox>
             )}
             {!campaignsLoading && (!campaigns || campaigns.length === 0) && (
-              <InfoBox type="info">
+              <InfoBox $type="info">
                 <AlertCircle />
                 <div>No campaigns found with available balance to withdraw from.</div>
               </InfoBox>
@@ -575,7 +777,7 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
                     .filter(c => c.available_cents > 0)
                     .map((campaign) => (
                       <option key={campaign.id || campaign._id} value={campaign.id || campaign._id}>
-                        {campaign.title} - ${(campaign.available_cents / 100).toFixed(2)} available
+                        {campaign.title} - {formatCurrency(campaign.available_cents)} available
                       </option>
                     ))}
                 </CampaignSelect>
@@ -583,20 +785,20 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
                 {selectedCampaign && (
                   <CampaignBalanceBox>
                     <div className="label">Campaign Balance</div>
-                    <div className="amount">${(selectedCampaign.available_cents / 100).toFixed(2)}</div>
+                    <div className="amount">{formatCurrency(selectedCampaign.available_cents)}</div>
                     <div className="details">
                       <div>
                         <span>Earned:</span>
-                        <span className="value">${(selectedCampaign.earned_cents / 100).toFixed(2)}</span>
+                        <span className="value">{formatCurrency(selectedCampaign.earned_cents)}</span>
                       </div>
                       <div>
                         <span>Withdrawn:</span>
-                        <span className="value">${(selectedCampaign.withdrawn_cents / 100).toFixed(2)}</span>
+                        <span className="value">{formatCurrency(selectedCampaign.withdrawn_cents)}</span>
                       </div>
                       {selectedCampaign.reserved_cents > 0 && (
                         <div>
                           <span>Reserved:</span>
-                          <span className="value">${(selectedCampaign.reserved_cents / 100).toFixed(2)}</span>
+                          <span className="value">{formatCurrency(selectedCampaign.reserved_cents)}</span>
                         </div>
                       )}
                     </div>
@@ -604,7 +806,7 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
                 )}
               </>
             )}
-          </FormField>
+          </div>
 
           {/* Fee Breakdown */}
           {amountCents > 0 && isValidAmount && (
@@ -625,48 +827,29 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
           )}
 
           {/* Notes Input */}
-          <FormField label="Notes (Optional)">
-            <textarea
+          <div>
+            <Label>Notes (Optional)</Label>
+            <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any notes about this withdrawal..."
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                border: '2px solid #e2e8f0',
-                borderRadius: '8px',
-                fontFamily: 'inherit',
-                fontSize: '0.875rem',
-                minHeight: '80px',
-                resize: 'vertical'
-              }}
               disabled={isRequesting}
             />
-          </FormField>
+          </div>
 
           {/* Terms Agreement */}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.75rem',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              color: '#64748b'
-            }}
-          >
+          <AgreementLabel>
             <input
               type="checkbox"
               checked={agreedToTerms}
               onChange={(e) => setAgreedToTerms(e.target.checked)}
               disabled={isRequesting}
-              style={{ marginTop: '0.25rem', cursor: 'pointer' }}
             />
             <span>
               I agree that this withdrawal will be processed according to the payout schedule and payment terms. Funds
               may take 1-5 business days to arrive depending on the payment method.
             </span>
-          </label>
+          </AgreementLabel>
 
           {/* Limits Info */}
           <LimitInfo>
@@ -680,17 +863,16 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
 
           {/* Action Buttons */}
           <ButtonGroup>
-            <Button variant="secondary" onClick={onClose} disabled={isRequesting} style={{ flex: 1 }}>
+            <GhostBtn type="button" onClick={onClose} disabled={isRequesting}>
               Cancel
-            </Button>
-            <Button
+            </GhostBtn>
+            <PrimaryBtn
               type="submit"
               disabled={!canSubmit}
-              style={{ flex: 1 }}
               title={(() => {
                 if (!selectedCampaignId) return 'Select a campaign to withdraw from'
-                if (!amountCents) return `Enter an amount between $5 and $${(campaignAvailableCents / 100).toFixed(2)}`
-                if (!isValidAmount) return `Amount must be between $5 and $${(campaignAvailableCents / 100).toFixed(2)}`
+                if (!amountCents) return `Enter an amount between $5 and ${formatCurrency(campaignAvailableCents)}`
+                if (!isValidAmount) return `Amount must be between $5 and ${formatCurrency(campaignAvailableCents)}`
                 if (!selectedPaymentMethod) return 'Select a payment method'
                 if (!agreedToTerms) return 'Check the agreement to proceed'
                 return 'Ready to request payout'
@@ -698,7 +880,7 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
             >
               {isRequesting ? (
                 <>
-                  <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  <SpinIcon size={16} />
                   Processing...
                 </>
               ) : (
@@ -707,7 +889,7 @@ export const WithdrawalRequestModal: React.FC<WithdrawalRequestModalProps> = ({
                   Request {formatCurrency(amountCents)}
                 </>
               )}
-            </Button>
+            </PrimaryBtn>
           </ButtonGroup>
         </Form>
       </ModalContent>

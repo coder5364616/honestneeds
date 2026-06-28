@@ -6,23 +6,20 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import styled from 'styled-components'
 import {
   DollarSign,
   TrendingUp,
-  CreditCard,
   Send,
   Eye,
   EyeOff,
   AlertCircle,
   CheckCircle,
   Clock,
-  ArrowRight
 } from 'lucide-react'
-import { useWalletBalance, useWalletOverview, usePayoutStatus } from '@/api/hooks/useWallet'
-import { WithdrawalRequestModal } from './WithdrawalRequestModal'
+import { useWalletBalance, useWalletOverview } from '@/api/hooks/useWallet'
 import { TransactionHistory } from './TransactionHistory'
-import { PayoutScheduleManager } from './PayoutScheduleManager'
 import { Button } from '@/components/Button'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
@@ -302,12 +299,11 @@ export interface WalletDashboardProps {
  * Main Wallet Dashboard Component
  */
 export const WalletDashboard: React.FC<WalletDashboardProps> = ({ hideBalance = false, compactMode = false }) => {
+  const router = useRouter()
   const [balanceVisible, setBalanceVisible] = useState(!hideBalance)
-  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false)
 
   const { data: balance, isLoading: balanceLoading, error: balanceError } = useWalletBalance()
   const { data: overview, isLoading: overviewLoading } = useWalletOverview()
-  const { data: payoutStatus } = usePayoutStatus()
 
   if (balanceLoading) {
     return (
@@ -350,7 +346,7 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({ hideBalance = 
       {!compactMode && (
         <Header>
           <Title>Wallet</Title>
-          <Subtitle>Manage your earnings and payouts</Subtitle>
+          <Subtitle>Track your share-to-earn earnings</Subtitle>
         </Header>
       )}
 
@@ -374,7 +370,7 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({ hideBalance = 
 
           <BreakdownList>
             <BreakdownItem>
-              <BreakdownLabel>Available to withdraw:</BreakdownLabel>
+              <BreakdownLabel>Available to claim:</BreakdownLabel>
               <BreakdownValue>{availableBalance}</BreakdownValue>
             </BreakdownItem>
             <BreakdownItem>
@@ -388,14 +384,16 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({ hideBalance = 
           </BreakdownList>
 
           <ActionNow>
+            {/* Manual model: no platform-held payout. Claiming routes to the
+                share-rewards flow where the request goes to campaign creators
+                who pay the sharer directly. */}
             <Button
               variant="secondary"
-              onClick={() => setShowWithdrawalModal(true)}
-              disabled={balance.available_cents < 500} // $5 minimum
+              onClick={() => router.push('/dashboard/share-rewards')}
               style={{ flex: 1 }}
             >
               <Send size={16} />
-              Request Payout
+              Request payment from creators
             </Button>
           </ActionNow>
         </CardContent>
@@ -431,36 +429,6 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({ hideBalance = 
         </StatCard>
       </Grid>
 
-      {/* Payout Status Alert */}
-      {payoutStatus && (
-        <AlertBox type="info">
-          <Clock size={20} />
-          <div>
-            <strong>Next Automatic Payout</strong>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-              {payoutStatus.next_payout_date
-                ? new Date(payoutStatus.next_payout_date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })
-                : 'Schedule not set'}
-              {payoutStatus.pending_amount > 0 && ` • ${formatCurrency(payoutStatus.pending_amount)} waiting`}
-            </p>
-          </div>
-        </AlertBox>
-      )}
-
-      {/* Payout Schedule Manager */}
-      <SectionContainer>
-        <SectionTitle>
-          <CreditCard />
-          Payout Settings
-        </SectionTitle>
-        <PayoutScheduleManager />
-      </SectionContainer>
-
       {/* Transaction History */}
       <SectionContainer>
         <SectionTitle>
@@ -469,18 +437,6 @@ export const WalletDashboard: React.FC<WalletDashboardProps> = ({ hideBalance = 
         </SectionTitle>
         <TransactionHistory limit={10} />
       </SectionContainer>
-
-      {/* Withdrawal Request Modal */}
-      {showWithdrawalModal && (
-        <WithdrawalRequestModal
-          availableBalance={balance.available_cents}
-          onClose={() => setShowWithdrawalModal(false)}
-          onSuccess={() => {
-            setShowWithdrawalModal(false)
-            // Refetch wallet data
-          }}
-        />
-      )}
     </Container>
   )
 }

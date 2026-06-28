@@ -6,6 +6,10 @@ import { StyledComponentsRegistry } from '@/lib/styled-components-registry'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import BackgroundMusicPlayer from '@/components/BackgroundMusicPlayer'
+import AIResponderWidget from '@/components/AIResponder/AIResponderWidget'
+import FloatingBottomNav from '@/components/layout/FloatingBottomNav'
+import ConnectivityWatcher from '@/components/ConnectivityWatcher'
+import ConnectivityBanner from '@/components/ConnectivityBanner'
 
 // Styled Components
 const StyledBody = styled.div`
@@ -122,6 +126,10 @@ export default function AppLayout({ children }) {
               Skip to main content
             </SkipLink>
 
+            {/* App-wide connectivity sensor + banner — shown on every page */}
+            <ConnectivityWatcher />
+            <ConnectivityBanner />
+
             {/* Header - only shown when logged in or not on home page */}
             <LayoutHeader />
 
@@ -146,6 +154,13 @@ export default function AppLayout({ children }) {
 
             {/* Global Persistent Background Music Player */}
             <BackgroundMusicPlayer />
+
+            {/* AI-01 — Persistent AI Responder guide (sits next to the music button) */}
+            <AIResponderWidget />
+
+            {/* Floating mobile navigation — self-gates to authed, non-admin,
+                mobile-viewport routes (hidden on desktop & marketing/auth pages) */}
+            <FloatingBottomNav />
           </Providers>
         </StyledComponentsRegistry>
       </body>

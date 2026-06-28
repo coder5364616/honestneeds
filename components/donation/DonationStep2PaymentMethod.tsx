@@ -4,6 +4,8 @@ import { useState } from 'react'
 import styled, { keyframes } from 'styled-components'
 import { AlertCircle } from 'lucide-react'
 import { PaymentDirectory } from '@/components/campaign/PaymentDirectory'
+import { DONATION_FEE_RATE, DONATION_FEE_PERCENT } from '@/utils/validationSchemas'
+import { tk } from '@/styles/dashboardTokens'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,55 +39,43 @@ const Container = styled.div`
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 const StepEyebrow = styled.p`
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #F59E0B;
-  letter-spacing: 0.08em;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: ${tk.amberDark};
+  letter-spacing: 1px;
   text-transform: uppercase;
   margin: 0 0 10px;
 `
 
 const Title = styled.h2`
-  font-family: 'Nunito', 'Poppins', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: clamp(20px, 4vw, 26px);
   font-weight: 800;
-  color: #0F172A;
+  color: ${tk.heading};
   margin: 0 0 8px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.5px;
   line-height: 1.2;
 `
 
 const Subtitle = styled.p`
   font-size: 14px;
-  color: #64748B;
+  color: ${tk.muted};
   margin: 0 0 24px;
   line-height: 1.65;
-  font-weight: 500;
+  font-weight: 400;
 `
 
 // ─── Amount Hero Card ─────────────────────────────────────────────────────────
 
 const AmountCard = styled.div`
   position: relative;
-  border-radius: 20px;
+  border-radius: 14px;
   padding: 20px 20px 18px;
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-  border: 1.5px solid rgba(255,255,255,0.08);
-  box-shadow: 0 12px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.10);
+  background: ${tk.ink};
+  border: 1px solid ${tk.inkBorder};
   margin-bottom: 20px;
   overflow: hidden;
-
-  /* Ambient glow */
-  &::before {
-    content: '';
-    position: absolute;
-    top: -30px; left: 50%;
-    transform: translateX(-50%);
-    width: 200px; height: 80px;
-    background: linear-gradient(90deg, rgba(245,158,11,0.4), rgba(239,68,68,0.30));
-    filter: blur(28px);
-    z-index: 0;
-  }
 `
 
 const AmountCardInner = styled.div`
@@ -110,17 +100,13 @@ const AmountLabel = styled.p`
 `
 
 const AmountValue = styled.p`
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: clamp(28px, 7vw, 40px);
-  font-weight: 900;
-  color: #FFFFFF;
+  font-weight: 800;
+  color: ${tk.amberMid};
   margin: 0;
   line-height: 1;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #FDE68A 0%, #FBBF24 50%, #F59E0B 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: -0.5px;
 `
 
 const AmountRight = styled.div`
@@ -152,28 +138,27 @@ const SecurityNote = styled.div`
   gap: 12px;
   align-items: flex-start;
   padding: 14px 16px;
-  background: rgba(56,189,248,0.07);
-  border: 1.5px solid rgba(56,189,248,0.20);
+  background: ${tk.blueLight};
+  border: 1px solid rgba(26,95,168,0.20);
   border-radius: 14px;
   margin-bottom: 24px;
   font-size: 13px;
-  color: #0C4A6E;
+  color: ${tk.blue};
   line-height: 1.55;
   font-weight: 500;
 
-  svg { flex-shrink: 0; color: #0EA5E9; margin-top: 1px; width: 16px; height: 16px; }
+  svg { flex-shrink: 0; color: ${tk.blue}; margin-top: 1px; width: 16px; height: 16px; }
 
-  strong { font-weight: 700; color: #0369A1; }
+  strong { font-weight: 700; color: ${tk.blue}; }
 `
 
 // ─── Payment Directory Wrapper ────────────────────────────────────────────────
 
 const DirectoryWrapper = styled.div`
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
-  border: 1.5px solid #E2E8F0;
-  background: #FFFFFF;
-  box-shadow: 0 2px 12px rgba(15,23,42,0.06);
+  border: 1px solid ${tk.border};
+  background: ${tk.white};
   margin-bottom: 20px;
 `
 
@@ -186,25 +171,20 @@ const ContinueBtn = styled.button<{ $active: boolean }>`
   justify-content: center;
   gap: 8px;
   padding: 15px 20px;
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   border: none;
-  border-radius: 14px;
+  border-radius: 10px;
   cursor: ${({ $active }) => $active ? 'pointer' : 'not-allowed'};
   letter-spacing: 0.01em;
-  transition: box-shadow 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+  transition: background 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
 
-  background: ${({ $active }) => $active
-    ? 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)'
-    : '#F1F5F9'};
-  color: ${({ $active }) => $active ? '#FFFFFF' : '#94A3B8'};
-  box-shadow: ${({ $active }) => $active
-    ? '0 4px 20px rgba(239,68,68,0.28)'
-    : 'none'};
+  background: ${({ $active }) => $active ? tk.ink : tk.canvasDeep};
+  color: ${({ $active }) => $active ? tk.white : tk.muted};
 
   &:hover:not(:disabled) {
-    box-shadow: ${({ $active }) => $active ? '0 6px 26px rgba(239,68,68,0.38)' : 'none'};
+    background: ${({ $active }) => $active ? tk.inkLight : tk.canvasDeep};
     transform: ${({ $active }) => $active ? 'translateY(-1px)' : 'none'};
   }
 
@@ -212,7 +192,7 @@ const ContinueBtn = styled.button<{ $active: boolean }>`
   &:disabled { cursor: not-allowed; }
 
   &:focus-visible {
-    outline: 2px solid #F59E0B;
+    outline: 2px solid ${tk.amber};
     outline-offset: 2px;
   }
 
@@ -231,7 +211,7 @@ export function DonationStep2PaymentMethod({
   const [selectedMethod, setSelectedMethod] = useState<any | null>(null)
 
   const safeAmount = typeof amount === 'number' ? amount : 0
-  const fee = Number((safeAmount * 0.2).toFixed(2))
+  const fee = Number((safeAmount * DONATION_FEE_RATE).toFixed(2))
   const net = Number((safeAmount - fee).toFixed(2))
 
   const handleMethodSelect = (method: any) => {
@@ -256,7 +236,7 @@ export function DonationStep2PaymentMethod({
             <AmountValue>${safeAmount.toFixed(2)}</AmountValue>
           </AmountLeft>
           <AmountRight>
-            <AmountMeta>Platform fee (20%)</AmountMeta>
+            <AmountMeta>Platform fee ({DONATION_FEE_PERCENT}%)</AmountMeta>
             <AmountNetValue>−${fee.toFixed(2)}</AmountNetValue>
             <AmountMeta style={{ marginTop: 4 }}>Creator receives</AmountMeta>
             <AmountNetValue style={{ color: '#86EFAC' }}>${net.toFixed(2)}</AmountNetValue>

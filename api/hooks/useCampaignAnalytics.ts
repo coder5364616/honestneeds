@@ -9,9 +9,8 @@
  */
 
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // ============================================================================
 // INTERFACES
@@ -111,13 +110,8 @@ export function useMainAnalytics(campaignId: string) {
     queryKey: ['analytics', 'main', campaignId],
     queryFn: async () => {
       try {
-        const { data } = await axios.get(
-          `${API_BASE}/campaigns/${campaignId}/analytics`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-            },
-          }
+        const { data } = await apiClient.get(
+          `/campaigns/${campaignId}/analytics`
         );
         
         console.log('📊 [useMainAnalytics] Backend Analytics Response:', {
@@ -163,13 +157,10 @@ export function useTimeSeriesAnalytics(
     queryKey: analyticsKeys.timeSeries(campaignId, period, days),
     queryFn: async () => {
       try {
-        const { data } = await axios.get(
-          `${API_BASE}/analytics/campaigns/${campaignId}/time-series`,
+        const { data } = await apiClient.get(
+          `/analytics/campaigns/${campaignId}/time-series`,
           {
             params: { period, days },
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-            },
           }
         );
         
@@ -215,13 +206,10 @@ export function useTrendAnalytics(
     queryKey: analyticsKeys.trends(campaignId, days),
     queryFn: async () => {
       try {
-        const { data } = await axios.get(
-          `${API_BASE}/analytics/campaigns/${campaignId}/trends`,
+        const { data } = await apiClient.get(
+          `/analytics/campaigns/${campaignId}/trends`,
           {
             params: { days },
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-            },
           }
         );
         return data.data || {};
@@ -256,13 +244,10 @@ export function usePredictiveAnalytics(
     queryKey: analyticsKeys.predictions(campaignId, forecastDays),
     queryFn: async () => {
       try {
-        const { data } = await axios.get(
-          `${API_BASE}/analytics/campaigns/${campaignId}/predict`,
+        const { data } = await apiClient.get(
+          `/analytics/campaigns/${campaignId}/predict`,
           {
             params: { forecastDays },
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-            },
           }
         );
         
@@ -313,13 +298,8 @@ export function useCohortAnalytics(
     queryKey: analyticsKeys.cohorts(campaignId),
     queryFn: async () => {
       try {
-        const { data } = await axios.get(
-          `${API_BASE}/analytics/campaigns/${campaignId}/cohorts`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-            },
-          }
+        const { data } = await apiClient.get(
+          `/analytics/campaigns/${campaignId}/cohorts`
         );
         return data.data || {};
       } catch (error: any) {
@@ -384,17 +364,14 @@ export function useExportAnalytics(
 ) {
   return async () => {
     try {
-      const response = await axios.get(
-        `${API_BASE}/analytics/export`,
+      const response = await apiClient.get(
+        `/analytics/export`,
         {
           params: {
             campaignId,
             format,
             startDate,
             endDate,
-          },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           },
           responseType: format === 'pdf' ? 'blob' : 'json',
         }

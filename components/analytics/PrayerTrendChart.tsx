@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo } from 'react'
 import styled from 'styled-components'
 import { COLORS, SPACING, TYPOGRAPHY } from '@/styles/tokens'
 
@@ -173,29 +173,16 @@ interface PrayerTrendChartProps {
 const PrayerTrendChart: React.FC<PrayerTrendChartProps> = ({
   analytics,
 }) => {
-  // Generate mock data if not provided (for demo purposes)
-  const generateMockData = useCallback(() => {
-    const today = new Date()
-    const mockData: DailyPrayerData[] = []
-
-    for (let i = 13; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-
-      mockData.push({
-        date: date.toISOString().split('T')[0],
-        count: Math.floor(Math.random() * 15) + 2,
-      })
-    }
-    return mockData
-  }, [])
-
+  // SF-4: NEVER fabricate analytics. Real campaigns must show real data — a
+  // synthetic random trend (the old "demo" mock) made a brand-new campaign with
+  // 0 prayers report 132 prayers / 9.4-a-day, which is misleading. When there is
+  // no real `daily_trends`, fall through to the empty state below.
   const dailyData = useMemo(() => {
     if (analytics?.daily_trends && analytics.daily_trends.length > 0) {
       return analytics.daily_trends.slice(-14) // Last 14 days
     }
-    return generateMockData()
-  }, [analytics, generateMockData])
+    return [] as DailyPrayerData[]
+  }, [analytics])
 
   const maxCount = useMemo(() => {
     return Math.max(...dailyData.map((d) => d.count), 10)

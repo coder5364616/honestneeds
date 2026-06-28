@@ -7,12 +7,14 @@ import {
   DollarSign, Users, TrendingUp, Target, LayoutDashboard,
   Search, Bell, Plus, MoreHorizontal, Pause, Play, Trash2,
   Eye, BarChart2, ChevronRight, CheckSquare, Square,
-  AlertCircle, X, Zap, ArrowUpRight, ArrowDownRight,
+  X, Zap, ArrowUpRight, ArrowDownRight,
   Menu, ChevronDown, Settings, LogOut, HelpCircle,
+  Wallet, Share2, Heart, Activity, Trophy,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { useAuthHydration } from '@/hooks/useAuthHydration'
 import { DashboardProvider, useDashboardContext } from './context/DashboardContext'
-import { useDashboardData } from './hooks/useDashboardData'
+import { useDashboardData, useDashboardMetrics } from './hooks/useDashboardData'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import {
   usePauseCampaign,
@@ -26,9 +28,9 @@ import {
 } from '@/api/hooks/useBatchCampaigns'
 import { PerformanceChart } from './components/PerformanceChart'
 import { ActivityFeed } from './components/ActivityFeed'
-import { ComparisonView } from './components/ComparisonView'
 import { HealthScore } from './components/HealthScore'
 import { SmartConfirmation, useUndoableAction } from './components/SmartConfirmation'
+import { DonationsAwaitingConfirmation } from './components/DonationsAwaitingConfirmation'
 import { useToast } from '@/hooks/useToast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -622,6 +624,39 @@ const SectionAction = styled.button`
   &:hover { background: ${tk.blueLight}; }
 `
 
+// Primary CTA into the full /analytics report — lives on the right of the
+// "Performance Analytics" section header and wraps cleanly under the title on
+// small screens (SectionHead is flex + wrap).
+const ViewAnalyticsBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: ${tk.blue};
+  color: ${tk.white};
+  border: none;
+  border-radius: 10px;
+  padding: 0.5rem 0.95rem;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(26, 95, 168, 0.18);
+  transition: background 140ms, transform 120ms, box-shadow 140ms;
+
+  &:hover {
+    background: #0D4A8C;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(26, 95, 168, 0.28);
+  }
+  &:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(26, 95, 168, 0.18); }
+
+  svg { flex-shrink: 0; }
+
+  @media (max-width: 480px) { width: 100%; justify-content: center; }
+`
+
 // ─── Two-Col Grid ─────────────────────────────────────────────────────────────
 
 const TwoCol = styled.div`
@@ -976,32 +1011,6 @@ const CreateBtn = styled.button`
   &:hover { background: ${tk.inkLight}; }
 `
 
-const ErrorBanner = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: ${tk.redLight};
-  border: 1px solid rgba(192,57,43,0.2);
-  border-radius: 10px;
-  padding: 0.875rem 1rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-  color: ${tk.red};
-  animation: ${fadeUp} 0.3s ease both;
-`
-
-const DismissBtn = styled.button`
-  margin-left: auto;
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 4px;
-  display: flex;
-  &:hover { background: rgba(192,57,43,0.1); }
-`
-
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 const SkeletonLine = styled.div<{ $w?: string; $h?: string }>`
@@ -1091,27 +1100,318 @@ const MobileBottomPad = styled.div`
   @media (max-width: 1024px) { display: block; height: 72px; }
 `
 
+// ─── Quick Actions ────────────────────────────────────────────────────────────
+
+const QuickGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+
+  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 480px) { gap: 0.75rem; }
+`
+
+const QuickCard = styled.button<{ $delay?: number }>`
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  text-align: left;
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
+  padding: 1rem 1.125rem;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  animation: ${fadeUp} 0.5s ease both;
+  animation-delay: ${p => (p.$delay || 0) * 70}ms;
+  transition: border-color 160ms, box-shadow 160ms, transform 120ms;
+
+  &:hover {
+    border-color: ${tk.blue};
+    box-shadow: 0 4px 16px rgba(26, 95, 168, 0.10);
+    transform: translateY(-1px);
+  }
+`
+
+const QuickIcon = styled.div<{ $color: 'amber' | 'green' | 'blue' | 'red' }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${p => ({ amber: tk.amberLight, green: tk.greenLight, blue: tk.blueLight, red: tk.redLight }[p.$color])};
+  color: ${p => ({ amber: tk.amber, green: tk.green, blue: tk.blue, red: tk.red }[p.$color])};
+`
+
+const QuickText = styled.div`
+  min-width: 0;
+`
+
+const QuickTitle = styled.div`
+  font-family: 'Syne', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: ${tk.heading};
+  line-height: 1.2;
+`
+
+const QuickSub = styled.div`
+  font-size: 0.72rem;
+  color: ${tk.muted};
+  margin-top: 2px;
+`
+
+// ─── Secondary Stat Tiles ─────────────────────────────────────────────────────
+
+const StatTiles = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+`
+
+const StatTile = styled.div<{ $delay?: number }>`
+  background: ${tk.white};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
+  padding: 1rem 1.125rem;
+  animation: ${fadeUp} 0.5s ease both;
+  animation-delay: ${p => (p.$delay || 0) * 70}ms;
+`
+
+const StatTileTop = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: ${tk.muted};
+  margin-bottom: 0.625rem;
+`
+
+const StatTileLabel = styled.span`
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+`
+
+const StatTileVal = styled.div`
+  font-family: 'Syne', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: ${tk.heading};
+  line-height: 1;
+`
+
+const StatTileSub = styled.div`
+  font-family: 'DM Mono', monospace;
+  font-size: 0.67rem;
+  color: ${tk.muted};
+  margin-top: 5px;
+`
+
+// ─── Goal Progress Bar ────────────────────────────────────────────────────────
+
+const GoalWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+`
+
+const GoalTop = styled.div`
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+`
+
+const GoalRaised = styled.div`
+  font-family: 'Syne', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: ${tk.heading};
+  line-height: 1;
+
+  span {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: ${tk.muted};
+    margin-left: 6px;
+  }
+`
+
+const GoalPct = styled.div`
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: ${tk.green};
+  background: ${tk.greenLight};
+  padding: 4px 12px;
+  border-radius: 100px;
+`
+
+const GoalTrack = styled.div`
+  height: 10px;
+  background: ${tk.canvasDeep};
+  border-radius: 100px;
+  overflow: hidden;
+`
+
+const GoalFill = styled.div<{ $pct: number }>`
+  height: 100%;
+  --bar-w: ${p => Math.min(p.$pct, 100)}%;
+  width: var(--bar-w);
+  border-radius: 100px;
+  background: linear-gradient(90deg, ${tk.amber}, ${tk.amberMid});
+  animation: ${barGrow} 1.1s cubic-bezier(0.22,1,0.36,1) both;
+  animation-delay: 0.2s;
+`
+
+const GoalMeta = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.25rem;
+`
+
+const GoalMetaItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  b {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    color: ${tk.heading};
+    font-weight: 500;
+  }
+  span {
+    font-size: 0.7rem;
+    color: ${tk.muted};
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+`
+
+// ─── Top Performers ───────────────────────────────────────────────────────────
+
+const RankList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`
+
+const RankRow = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0.625rem 0.5rem;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background 140ms, border-color 140ms;
+
+  &:hover {
+    background: ${tk.canvas};
+    border-color: ${tk.border};
+  }
+`
+
+const RankNum = styled.div<{ $top?: boolean }>`
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 0.78rem;
+  background: ${p => p.$top ? tk.amber : tk.canvasDeep};
+  color: ${p => p.$top ? tk.ink : tk.muted};
+`
+
+const RankBody = styled.div`
+  flex: 1;
+  min-width: 0;
+`
+
+const RankTitle = styled.div`
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: ${tk.heading};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
+const RankBar = styled.div`
+  height: 4px;
+  background: ${tk.canvasDeep};
+  border-radius: 100px;
+  overflow: hidden;
+  margin-top: 5px;
+`
+
+const RankBarFill = styled.div<{ $pct: number }>`
+  height: 100%;
+  width: ${p => Math.min(p.$pct, 100)}%;
+  border-radius: 100px;
+  background: ${tk.amber};
+`
+
+const RankStat = styled.div`
+  text-align: right;
+  flex-shrink: 0;
+
+  b {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: ${tk.heading};
+  }
+  span {
+    font-size: 0.68rem;
+    color: ${tk.muted};
+  }
+`
+
 // ─── Inner Dashboard ─────────────────────────────────────────────────────────
 
 function DashboardContent() {
   const router = useRouter()
   const { user } = useAuthStore()
+  const isHydrated = useAuthHydration()
   const { showToast } = useToast()
   const { filters, updateFilter } = useDashboardContext()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [showError, setShowError] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'campaigns' | 'analytics'>('overview')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const { lastAction, undo, dismiss } = useUndoableAction()
   const [mockTimeSeriesData, setMockTimeSeriesData] = useState<TimeSeriesDataPoint[]>([])
   const [mockActivities, setMockActivities] = useState<ActivityRecord[]>([])
 
-  const { campaigns, stats, totalCount, isLoading, error, refetch } = useDashboardData(
+  const { campaigns, stats, totalCount, isLoading, refetch } = useDashboardData(
     filters.status, 1, searchQuery
   )
+
+  // Real performance metrics (time-series, totals, recent activity) from the backend
+  const { metrics, isLoading: metricsLoading } = useDashboardMetrics()
 
   const { mutate: pauseCampaign }  = usePauseCampaign()
   const { mutate: resumeCampaign } = useUnpauseCampaign()
@@ -1123,43 +1423,34 @@ function DashboardContent() {
   const isBatchLoading = batchPausePending || batchCompletePending || batchDeletePending
 
   useEffect(() => {
-    if (!user) router.push('/auth/login')
-  }, [user, router])
+    // Wait until the auth store has hydrated from localStorage before deciding
+    // to redirect — otherwise a logged-in user gets bounced on a hard load.
+    if (isHydrated && !user) router.push('/login')
+  }, [isHydrated, user, router])
 
+  // Map real backend time-series ({ date, value (USD), donorCount }) into the
+  // shape the PerformanceChart expects. No fabricated/random values.
   useEffect(() => {
-    const perfData = campaigns.filter(c => c.status === 'active' || c.status === 'completed')
-      .slice(0, 1).flatMap(campaign => {
-        const data = []
-        const base = new Date()
-        for (let i = 29; i >= 0; i--) {
-          const d = new Date(base)
-          d.setDate(d.getDate() - i)
-          data.push({
-            date: d.toISOString().split('T')[0],
-            revenue: campaign.raised * ((29 - i) / 30) + Math.random() * (campaign.goal / 30),
-            donorCount: Math.floor((campaign.donor_count || 0) * ((29 - i) / 30)),
-          })
-        }
-        return data
-      })
-    setMockTimeSeriesData(perfData)
-  }, [campaigns])
+    const series = (metrics?.timeSeries || []).map((d: any) => ({
+      date: d.date,
+      revenue: d.value || 0,          // already in dollars from the backend
+      donorCount: d.donorCount || 0,  // cumulative donors to date
+    }))
+    setMockTimeSeriesData(series)
+  }, [metrics])
 
+  // Real recent activity from the backend (most recent donations)
   const memoizedActivities = useMemo(() =>
-    campaigns.slice(0, 5).map((c, i) => {
-      const types = ['donation', 'campaign_activated', 'campaign_created'] as const
-      const type = types[i % 3]
-      return {
-        id: `activity-${i}`,
-        type,
-        title: { donation: 'New Donation', campaign_activated: 'Campaign Activated', campaign_created: 'Campaign Created' }[type],
-        description: { donation: `${c.title} received a donation`, campaign_activated: `${c.title} is now live`, campaign_created: `${c.title} was created` }[type],
-        timestamp: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
-        campaignTitle: c.title,
-        amount: i === 0 ? Math.random() * 500 : undefined,
-      }
-    }),
-  [campaigns])
+    (metrics?.recentActivity || []).map((a: any) => ({
+      id: a.id,
+      type: a.type || 'donation',
+      title: a.title || 'New Donation',
+      description: `${a.campaignTitle} received a donation`,
+      timestamp: a.timestamp,
+      campaignTitle: a.campaignTitle,
+      amount: a.amount,
+    })),
+  [metrics])
 
   useEffect(() => { setMockActivities(memoizedActivities) }, [memoizedActivities])
 
@@ -1180,6 +1471,27 @@ function DashboardContent() {
   [campaigns, statusFilter])
 
   const selectedCampaign = campaigns[0]
+
+  // Aggregate fundraising progress across every campaign (all values in cents)
+  const goalSummary = useMemo(() => {
+    const raised = campaigns.reduce((s, c) => s + (c.raised || 0), 0)
+    const goal = campaigns.reduce((s, c) => s + (c.goal || 0), 0)
+    const funded = campaigns.filter(c => c.goal > 0 && c.raised >= c.goal).length
+    return {
+      raised,
+      goal,
+      pct: goal > 0 ? (raised / goal) * 100 : 0,
+      funded,
+      remaining: Math.max(0, goal - raised),
+    }
+  }, [campaigns])
+
+  // Top performing campaigns by amount raised
+  const topCampaigns = useMemo(() =>
+    [...campaigns]
+      .sort((a, b) => (b.raised || 0) - (a.raised || 0))
+      .slice(0, 5),
+  [campaigns])
 
   const handlePause = (id: string) => pauseCampaign(id, {
     onSuccess: () => { showToast({ type: 'success', message: 'Campaign paused' }); refetch() },
@@ -1209,7 +1521,32 @@ function DashboardContent() {
   const toggleSelect = (id: string) =>
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
-  if (!user) return null
+  // Until hydration completes we don't yet know if the user is authenticated.
+  // Render a loader (never a bare white screen) while hydrating, or while the
+  // redirect above is navigating an unauthenticated visitor to /login.
+  if (!isHydrated || !user) {
+    return (
+      <>
+        <GlobalStyle />
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '1rem',
+            background: tk.canvas,
+            fontFamily: "'DM Sans', sans-serif",
+            color: tk.muted,
+          }}
+        >
+          <SkeletonLine $w="160px" $h="14px" />
+          <span style={{ fontSize: '0.8rem' }}>Loading your dashboard…</span>
+        </div>
+      </>
+    )
+  }
 
   const kpis = [
     {
@@ -1265,17 +1602,6 @@ function DashboardContent() {
 
           {/* Page Body */}
           <PageBody>
-            {/* Error Banner */}
-            {error && showError && (
-              <ErrorBanner>
-                <AlertCircle size={16} />
-                Failed to load dashboard data. Please try again.
-                <DismissBtn onClick={() => setShowError(false)}>
-                  <X size={14} />
-                </DismissBtn>
-              </ErrorBanner>
-            )}
-
             {/* Page Header */}
             <PageHeader>
               <Greeting>
@@ -1285,6 +1611,11 @@ function DashboardContent() {
                 Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
               </PageTitle>
             </PageHeader>
+
+            {/* ── Donations Awaiting Confirmation (CF-1) ── */}
+            <DonationsAwaitingConfirmation
+              campaigns={campaigns.map(c => ({ _id: c._id, title: c.title }))}
+            />
 
             {/* ── KPI Strip ── */}
             <KPIStrip>
@@ -1319,19 +1650,118 @@ function DashboardContent() {
               }
             </KPIStrip>
 
-            {/* ── Analytics Row ── */}
+            {/* ── Quick Actions ── */}
             <SectionHead>
-              <SectionH>Performance Analytics</SectionH>
-              <SectionAction>
-                View full report <ChevronRight size={14} />
-              </SectionAction>
+              <SectionH>Quick Actions</SectionH>
+            </SectionHead>
+
+            <QuickGrid>
+              <QuickCard $delay={0} onClick={() => router.push('/campaigns/new')}>
+                <QuickIcon $color="amber"><Plus size={20} /></QuickIcon>
+                <QuickText>
+                  <QuickTitle>New Campaign</QuickTitle>
+                  <QuickSub>Start raising funds</QuickSub>
+                </QuickText>
+              </QuickCard>
+              <QuickCard $delay={1} onClick={() => router.push('/sharers-payouts')}>
+                <QuickIcon $color="green"><Wallet size={20} /></QuickIcon>
+                <QuickText>
+                  <QuickTitle>Pay Sharers</QuickTitle>
+                  <QuickSub>Settle share-reward claims</QuickSub>
+                </QuickText>
+              </QuickCard>
+              <QuickCard $delay={2} onClick={() => router.push('/dashboard/donations')}>
+                <QuickIcon $color="blue"><Heart size={20} /></QuickIcon>
+                <QuickText>
+                  <QuickTitle>Donations</QuickTitle>
+                  <QuickSub>See who supported you</QuickSub>
+                </QuickText>
+              </QuickCard>
+              <QuickCard $delay={3} onClick={() => router.push('/dashboard/share-rewards')}>
+                <QuickIcon $color="red"><Share2 size={20} /></QuickIcon>
+                <QuickText>
+                  <QuickTitle>Share Rewards</QuickTitle>
+                  <QuickSub>Grow reach & earn</QuickSub>
+                </QuickText>
+              </QuickCard>
+            </QuickGrid>
+
+            {/* ── Fundraising Goal Progress ── */}
+            <SectionHead>
+              <SectionH>
+                Fundraising Progress
+                <span>across all campaigns</span>
+              </SectionH>
             </SectionHead>
 
             <Card $delay={4} style={{ marginBottom: '1.5rem' }}>
-              {mockTimeSeriesData.length > 0 ? (
+              {isLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <SkeletonLine $w="40%" $h="28px" />
+                  <SkeletonLine $h="10px" />
+                  <SkeletonLine $w="70%" $h="12px" />
+                </div>
+              ) : goalSummary.goal > 0 ? (
+                <GoalWrap>
+                  <GoalTop>
+                    <GoalRaised>
+                      {fmtMoney(goalSummary.raised)}
+                      <span>raised of {fmtMoney(goalSummary.goal)} goal</span>
+                    </GoalRaised>
+                    <GoalPct>{goalSummary.pct.toFixed(1)}% funded</GoalPct>
+                  </GoalTop>
+                  <GoalTrack>
+                    <GoalFill $pct={goalSummary.pct} />
+                  </GoalTrack>
+                  <GoalMeta>
+                    <GoalMetaItem>
+                      <b>{fmtMoney(goalSummary.remaining)}</b>
+                      <span>Remaining</span>
+                    </GoalMetaItem>
+                    <GoalMetaItem>
+                      <b>{goalSummary.funded}</b>
+                      <span>Goals Reached</span>
+                    </GoalMetaItem>
+                    <GoalMetaItem>
+                      <b>{stats.totalDonors.toLocaleString()}</b>
+                      <span>Supporters</span>
+                    </GoalMetaItem>
+                    <GoalMetaItem>
+                      <b>{stats.totalCampaigns}</b>
+                      <span>Campaigns</span>
+                    </GoalMetaItem>
+                  </GoalMeta>
+                </GoalWrap>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: tk.muted }}>
+                  <Target size={28} style={{ marginBottom: '0.75rem', opacity: 0.4 }} />
+                  <p style={{ margin: 0, fontSize: '0.875rem' }}>
+                    Set a goal on a campaign to track your overall progress
+                  </p>
+                </div>
+              )}
+            </Card>
+
+            {/* ── Analytics Row ── */}
+            <SectionHead>
+              <SectionH>Performance Analytics<span>across all campaigns</span></SectionH>
+              <ViewAnalyticsBtn onClick={() => router.push('/analytics')}>
+                <BarChart2 size={15} />
+                View Analytics
+                <ArrowUpRight size={14} />
+              </ViewAnalyticsBtn>
+            </SectionHead>
+
+            <Card $delay={4} style={{ marginBottom: '1.5rem' }}>
+              {metricsLoading ? (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: tk.muted }}>
+                  <BarChart2 size={32} style={{ marginBottom: '0.75rem', opacity: 0.4 }} />
+                  <p style={{ margin: 0, fontSize: '0.875rem' }}>Loading performance data…</p>
+                </div>
+              ) : mockTimeSeriesData.length > 0 ? (
                 <PerformanceChart
                   data={mockTimeSeriesData}
-                  goal={campaigns[0]?.goal}
+                  goal={(campaigns[0]?.goal || 0) / 100}
                   chartType="area"
                 />
               ) : (
@@ -1344,6 +1774,55 @@ function DashboardContent() {
               )}
             </Card>
 
+            {/* ── Period Snapshot ── */}
+            <SectionHead>
+              <SectionH>
+                30-Day Snapshot
+                <span>last 30 days</span>
+              </SectionH>
+            </SectionHead>
+
+            <StatTiles>
+              <StatTile $delay={0}>
+                <StatTileTop>
+                  <DollarSign size={14} />
+                  <StatTileLabel>Raised</StatTileLabel>
+                </StatTileTop>
+                <StatTileVal>
+                  ${(metrics?.totalDonations || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </StatTileVal>
+                <StatTileSub>{metrics?.donorCount || 0} donations</StatTileSub>
+              </StatTile>
+              <StatTile $delay={1}>
+                <StatTileTop>
+                  <Activity size={14} />
+                  <StatTileLabel>Daily Avg</StatTileLabel>
+                </StatTileTop>
+                <StatTileVal>
+                  ${(metrics?.dailyAverage || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </StatTileVal>
+                <StatTileSub>per active day</StatTileSub>
+              </StatTile>
+              <StatTile $delay={2}>
+                <StatTileTop>
+                  <TrendingUp size={14} />
+                  <StatTileLabel>Peak Day</StatTileLabel>
+                </StatTileTop>
+                <StatTileVal>
+                  ${(metrics?.peakDay || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </StatTileVal>
+                <StatTileSub>best single day</StatTileSub>
+              </StatTile>
+              <StatTile $delay={3}>
+                <StatTileTop>
+                  <Share2 size={14} />
+                  <StatTileLabel>Shares</StatTileLabel>
+                </StatTileTop>
+                <StatTileVal>{(metrics?.totalShares || 0).toLocaleString()}</StatTileVal>
+                <StatTileSub>paid share rewards</StatTileSub>
+              </StatTile>
+            </StatTiles>
+
             {/* ── Insights Row ── */}
             <SectionHead>
               <SectionH>Campaign Insights</SectionH>
@@ -1354,7 +1833,7 @@ function DashboardContent() {
                 <CardHead>
                   <CardTitle>Recent Activity</CardTitle>
                 </CardHead>
-                <ActivityFeed activities={mockActivities} limit={5} isLoading={isLoading} />
+                <ActivityFeed activities={mockActivities} limit={5} isLoading={metricsLoading} />
               </Card>
 
               {selectedCampaign && (
@@ -1365,8 +1844,11 @@ function DashboardContent() {
                   </CardHead>
                   <HealthScore
                     campaign={{
-                      raised:      selectedCampaign.raised || 0,
-                      goal:        selectedCampaign.goal || 0,
+                      // raised/goal are stored in cents on the campaign; HealthScore
+                      // works in dollars (its display and the $50 avg-donation
+                      // threshold both assume dollars), so convert here.
+                      raised:      (selectedCampaign.raised || 0) / 100,
+                      goal:        (selectedCampaign.goal || 0) / 100,
                       donor_count: selectedCampaign.donor_count || 0,
                       status:      selectedCampaign.status,
                       created_at:  selectedCampaign.created_at,
@@ -1379,25 +1861,50 @@ function DashboardContent() {
               )}
             </TwoCol>
 
-            {/* ── Comparison ── */}
+            {/* ── Top Performers ── */}
             <SectionHead>
-              <SectionH>Campaign Comparison</SectionH>
+              <SectionH>
+                <Trophy size={16} style={{ color: tk.amber }} />
+                Top Performing Campaigns
+              </SectionH>
             </SectionHead>
 
             <Card $delay={7} style={{ marginBottom: '1.5rem' }}>
-              <ComparisonView
-                campaigns={campaigns.map(c => ({
-                  id: c._id,
-                  title: c.title,
-                  raised: c.raised || 0,
-                  goal: c.goal || 0,
-                  donors: c.donor_count || 0,
-                  status: c.status,
-                  created_at: c.created_at,
-                }))}
-                onSelectCampaign={id => router.push(`/campaigns/${id}`)}
-                selectedIds={[]}
-              />
+              {isLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {[...Array(3)].map((_, i) => (
+                    <SkeletonLine key={i} $h="20px" />
+                  ))}
+                </div>
+              ) : topCampaigns.length > 0 ? (
+                <RankList>
+                  {topCampaigns.map((c, i) => {
+                    const pct = c.goal > 0 ? (c.raised / c.goal) * 100 : 0
+                    return (
+                      <RankRow key={c._id} onClick={() => router.push(`/campaigns/${c._id}`)}>
+                        <RankNum $top={i === 0}>{i + 1}</RankNum>
+                        <RankBody>
+                          <RankTitle>{c.title}</RankTitle>
+                          <RankBar>
+                            <RankBarFill $pct={pct} />
+                          </RankBar>
+                        </RankBody>
+                        <RankStat>
+                          <b>{fmtMoney(c.raised || 0)}</b>
+                          <span>{c.donor_count || 0} donors</span>
+                        </RankStat>
+                      </RankRow>
+                    )
+                  })}
+                </RankList>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: tk.muted }}>
+                  <Trophy size={28} style={{ marginBottom: '0.75rem', opacity: 0.4 }} />
+                  <p style={{ margin: 0, fontSize: '0.875rem' }}>
+                    Your best campaigns will appear here once you start raising
+                  </p>
+                </div>
+              )}
             </Card>
 
             {/* ── Campaigns Grid ── */}
@@ -1479,6 +1986,11 @@ function DashboardContent() {
                   )
                 : filteredCampaigns.map((campaign, idx) => {
                     const pct = campaign.goal > 0 ? (campaign.raised / campaign.goal) * 100 : 0
+                    // SF-1: Share-to-Earn reach meter (shares, never dollars).
+                    const reach = campaign.reach_goal
+                    const hasReach = !!reach && (reach.target_shares || 0) > 0
+                    const reachPct = hasReach ? Math.min(100, (reach!.current_shares / reach!.target_shares) * 100) : 0
+                    const showReachAsPrimary = hasReach && campaign.goal === 0
                     const isSelected = selectedIds.includes(campaign._id)
                     return (
                       <CampaignCard
@@ -1512,14 +2024,27 @@ function DashboardContent() {
                           </ProgressRow>
                         )}
 
+                        {/* SF-1: separate reach meter (shares) for Share-to-Earn campaigns */}
+                        {hasReach && (
+                          <ProgressRow>
+                            <ProgressLabels>
+                              <ProgressRaised>{(reach!.current_shares || 0).toLocaleString()} shares</ProgressRaised>
+                              <ProgressGoal>of {reach!.target_shares.toLocaleString()}</ProgressGoal>
+                            </ProgressLabels>
+                            <ProgressTrack>
+                              <ProgressFill $pct={reachPct} $status={campaign.status} />
+                            </ProgressTrack>
+                          </ProgressRow>
+                        )}
+
                         <CardStats>
                           <CardStat>
                             <CardStatVal>{campaign.donor_count || 0}</CardStatVal>
                             <CardStatKey>Donors</CardStatKey>
                           </CardStat>
                           <CardStat>
-                            <CardStatVal>{pct.toFixed(0)}%</CardStatVal>
-                            <CardStatKey>Funded</CardStatKey>
+                            <CardStatVal>{(showReachAsPrimary ? reachPct : pct).toFixed(0)}%</CardStatVal>
+                            <CardStatKey>{showReachAsPrimary ? 'Reach' : 'Funded'}</CardStatKey>
                           </CardStat>
                           {campaign.end_date && (
                             <CardStat>

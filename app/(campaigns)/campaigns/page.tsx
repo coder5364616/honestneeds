@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import styled, { keyframes } from 'styled-components'
+import styled from 'styled-components'
 import { toast } from 'react-toastify'
 import { SlidersHorizontal, Sparkles } from 'lucide-react'
 import { useCampaigns, useNeedTypes } from '@/api/hooks/useCampaigns'
@@ -10,23 +10,20 @@ import { useFilterStore } from '@/store/filterStore'
 import { CampaignGrid } from '@/components/campaign/CampaignGrid'
 import { SearchBar } from '@/components/campaign/SearchBar'
 import { FiltersSidebar } from '@/components/campaign/FiltersSidebar'
-
-// ─── Animations ──────────────────────────────────────────────────────────────
-const fadeDown = keyframes`
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-`
+import { tk, DashboardGlobalStyle, fadeDown } from '@/styles/dashboardTokens'
 
 // ─── Page shell ───────────────────────────────────────────────────────────────
 const Page = styled.div`
   min-height: 100vh;
-  background: #f7f5f1;
+  background: ${tk.canvas};
+  font-family: 'DM Sans', sans-serif;
+  color: ${tk.body};
 `
 
 // ─── Hero header ──────────────────────────────────────────────────────────────
 const Hero = styled.header`
-  background: #f7f5f1;
-  border-bottom: 1px solid rgba(226, 221, 214, 0.6);
+  background: ${tk.canvas};
+  border-bottom: 2px solid ${tk.blue};
   padding: 24px 16px 20px;
 
   @media (min-width: 640px) {
@@ -48,23 +45,28 @@ const HeroEyebrow = styled.p`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  color: #6366f1;
-  background: #eef2ff;
+  color: ${tk.amberDark};
+  background: ${tk.amberLight};
   padding: 4px 12px;
   border-radius: 999px;
   margin: 0 0 12px;
 `
 
 const HeroTitle = styled.h1`
+  font-family: 'Syne', sans-serif;
   font-size: 1.6rem;
   font-weight: 800;
-  color: #0f0f1a;
+  background: linear-gradient(135deg, ${tk.heading} 0%, ${tk.blue} 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0 0 6px;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.5px;
   line-height: 1.2;
 
   @media (min-width: 640px) {
@@ -78,7 +80,7 @@ const HeroTitle = styled.h1`
 
 const HeroSub = styled.p`
   font-size: 0.9rem;
-  color: #9ca3af;
+  color: ${tk.muted};
   margin: 0;
   font-weight: 400;
   line-height: 1.5;
@@ -148,12 +150,13 @@ const ResultsBar = styled.div`
 `
 
 const ResultsCount = styled.p`
+  font-family: 'DM Mono', monospace;
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: ${tk.muted};
   margin: 0;
-  font-weight: 500;
+  font-weight: 400;
 
-  strong { color: #374151; font-weight: 700; }
+  strong { color: ${tk.heading}; font-weight: 500; }
 `
 
 // ─── Mobile filter button ─────────────────────────────────────────────────────
@@ -164,9 +167,10 @@ const MobileFilterBtn = styled.button<{ $active: boolean }>`
   height: 34px;
   padding: 0 14px;
   border-radius: 10px;
-  border: 1.5px solid ${p => p.$active ? '#6366f1' : '#e5e7eb'};
-  background: ${p => p.$active ? '#eef2ff' : 'white'};
-  color: ${p => p.$active ? '#6366f1' : '#6b7280'};
+  border: 1.5px solid ${p => p.$active ? tk.blue : tk.border};
+  background: ${p => p.$active ? tk.blueLight : tk.white};
+  color: ${p => p.$active ? tk.blue : tk.body};
+  font-family: 'Syne', sans-serif;
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
@@ -174,7 +178,7 @@ const MobileFilterBtn = styled.button<{ $active: boolean }>`
 
   @media (min-width: 1024px) { display: none; }
 
-  &:hover { border-color: #6366f1; color: #6366f1; background: #eef2ff; }
+  &:hover { border-color: ${tk.blue}; color: ${tk.blue}; background: ${tk.blueLight}; }
 `
 
 const FilterBadge = styled.span`
@@ -185,10 +189,11 @@ const FilterBadge = styled.span`
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #6366f1;
-  color: white;
+  background: ${tk.blue};
+  color: ${tk.white};
+  font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
-  font-weight: 800;
+  font-weight: 500;
 `
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
@@ -206,11 +211,12 @@ const PageBtn = styled.button<{ $active?: boolean }>`
   height: 36px;
   padding: 0 10px;
   border-radius: 10px;
-  border: 1.5px solid ${p => p.$active ? '#6366f1' : '#e5e7eb'};
-  background: ${p => p.$active ? '#6366f1' : 'white'};
-  color: ${p => p.$active ? 'white' : '#374151'};
+  border: 1.5px solid ${p => p.$active ? tk.blue : tk.border};
+  background: ${p => p.$active ? tk.blue : tk.white};
+  color: ${p => p.$active ? tk.white : tk.body};
+  font-family: 'DM Mono', monospace;
   font-size: 0.82rem;
-  font-weight: ${p => p.$active ? '700' : '500'};
+  font-weight: ${p => p.$active ? '500' : '400'};
   cursor: pointer;
   transition: all 180ms;
   display: flex;
@@ -223,15 +229,16 @@ const PageBtn = styled.button<{ $active?: boolean }>`
   }
 
   &:not(:disabled):hover {
-    border-color: #6366f1;
-    color: ${p => p.$active ? 'white' : '#6366f1'};
-    background: ${p => p.$active ? '#4f46e5' : '#eef2ff'};
+    border-color: ${tk.blue};
+    color: ${p => p.$active ? tk.white : tk.blue};
+    background: ${p => p.$active ? '#0D4A8C' : tk.blueLight};
   }
 `
 
 const Ellipsis = styled.span`
+  font-family: 'DM Mono', monospace;
   font-size: 0.82rem;
-  color: #9ca3af;
+  color: ${tk.muted};
   padding: 0 4px;
 `
 
@@ -332,6 +339,7 @@ export default function CampaignBrowsePage() {
 
   return (
     <Page>
+      <DashboardGlobalStyle />
       {/* Hero */}
       <Hero>
         <HeroInner>

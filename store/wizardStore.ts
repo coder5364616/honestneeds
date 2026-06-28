@@ -9,7 +9,7 @@ import type { CampaignPrayerConfig } from '@/utils/prayerValidationSchemas'
 
 export type CampaignType = 'fundraising' | 'sharing'
 export type MeterType = 'money' | 'helping_hands' | 'customers'
-export type BoostTier = 'free' | 'basic' | 'pro' | 'premium'
+export type BoostTier = 'free' | 'pro'
 
 export interface BoostData {
   selectedTier: BoostTier | null
@@ -39,6 +39,14 @@ export interface SharingData {
   rewardPerShare: number
   budget: number
   maxShares: number
+  // SU-1: a Share-to-Earn campaign still accepts donations — a dollar fundraising
+  // goal (>= $5) and an optional reach target (in shares), plus real payment methods.
+  fundraisingGoal?: number
+  reachTarget?: number
+  paymentMethods?: any[]
+  // Phase A (trust-based): creator agrees to pay sharers directly. Required
+  // before Share-to-Earn can activate.
+  payoutConsent?: boolean
 }
 
 export interface WizardFormData {

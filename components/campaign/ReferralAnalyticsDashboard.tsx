@@ -11,10 +11,24 @@ import { TrendingUp, Users, Eye, Zap } from 'lucide-react'
 import { useCampaignReferralAnalytics } from '@/api/hooks/useReferralUrl'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
+// ─── Design tokens (mirrors /dashboard & the analytics page shell) ───────────
+const tk = {
+  canvas: '#F7F5F1',
+  border: '#E2DDD6',
+  white: '#FFFFFF',
+  muted: '#8C8790',
+  heading: '#18171A',
+  green: '#1A7A4A',
+  red: '#C0392B',
+  blue: '#1A5FA8',
+  blueLight: '#E8F0FB',
+}
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  font-family: 'DM Sans', sans-serif;
 `
 
 const Header = styled.div`
@@ -24,9 +38,10 @@ const Header = styled.div`
 `
 
 const Title = styled.h2`
+  font-family: 'Syne', sans-serif;
   font-size: 1.5rem;
-  font-weight: 700;
-  color: #111827;
+  font-weight: 800;
+  color: ${tk.heading};
   margin: 0;
   display: flex;
   align-items: center;
@@ -48,35 +63,36 @@ const MetricCard = styled.div`
   flex-direction: column;
   gap: 0.75rem;
   padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  transition: all 0.2s;
+  background: ${tk.white};
+  border: 1.5px solid ${tk.border};
+  border-radius: 14px;
+  transition: all 180ms;
 
   &:hover {
-    border-color: #d1d5db;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: ${tk.blue};
+    box-shadow: 0 4px 16px rgba(26, 95, 168, 0.12);
   }
 `
 
 const MetricLabel = styled.span`
-  font-size: 0.875rem;
-  color: #6b7280;
+  font-size: 0.75rem;
+  color: ${tk.muted};
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `
 
 const MetricValue = styled.div`
+  font-family: 'Syne', sans-serif;
   font-size: 2rem;
-  font-weight: 700;
-  color: #667eea;
+  font-weight: 800;
+  color: ${tk.heading};
   line-height: 1;
 `
 
 const MetricChange = styled.span<{ positive?: boolean }>`
-  font-size: 0.875rem;
-  color: ${(props) => (props.positive ? '#10b981' : '#ef4444')};
+  font-size: 0.8rem;
+  color: ${(props) => (props.positive ? tk.green : tk.red)};
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -86,18 +102,19 @@ const MetricChange = styled.span<{ positive?: boolean }>`
 const MetricIcon = styled.div`
   width: 3rem;
   height: 3rem;
-  background: #f3f4f6;
-  border-radius: 0.5rem;
+  background: ${tk.blueLight};
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #667eea;
+  color: ${tk.blue};
 `
 
 const SectionTitle = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${tk.heading};
   margin: 2rem 0 1rem 0;
   display: flex;
   align-items: center;
@@ -106,7 +123,7 @@ const SectionTitle = styled.h3`
   svg {
     width: 1.25rem;
     height: 1.25rem;
-    color: #667eea;
+    color: ${tk.blue};
   }
 `
 

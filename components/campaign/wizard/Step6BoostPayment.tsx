@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import styled, { keyframes, css } from 'styled-components'
 import {
   CreditCard, ShieldCheck, RefreshCw, AlertCircle,
-  Lock, CheckCircle2, Loader2, Rocket, Leaf, Star,
+  Lock, CheckCircle2, Loader2, Rocket, Leaf,
   Eye, Calendar, Bolt,
 } from 'lucide-react'
 import { useCreateCheckoutSession, useGetSessionStatus } from '@/api/hooks/useBoosts'
@@ -432,9 +432,7 @@ const StripeNote = styled.div`
 
 const TIER_ICONS: Record<string, React.ElementType> = {
   free: Leaf,
-  basic: Leaf,
   pro: Rocket,
-  elite: Star,
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -485,7 +483,7 @@ export const Step6BoostPayment: React.FC<Step6BoostPaymentProps> = ({
     try {
       const result = await createCheckoutMutation.mutateAsync({
         campaign_id: campaignId,
-        tier: boostTier,
+        tier: boostTier as 'free' | 'pro',
       })
 
       if (result.checkout_url) {

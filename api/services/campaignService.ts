@@ -47,9 +47,9 @@ export interface Campaign {
   view_count?: number
   // NEW: Campaign Boost fields (visibility enhancement)
   is_boosted?: boolean // whether campaign has active boost
-  current_boost_tier?: 'basic' | 'pro' | 'premium' // active boost tier
+  current_boost_tier?: 'free' | 'pro' // active boost tier
   last_boost_date?: string // when boost was activated
-  visibility_weight?: number // multiplier for feed ranking (1 = normal, 1.5 = pro, 2.5 = premium)
+  visibility_weight?: number // multiplier for feed ranking (1 = normal, 10 = pro boost)
   // NEW: Sharing campaign configuration
   share_config?: {
     total_budget?: number // in cents
@@ -394,9 +394,18 @@ class CampaignService {
   async recordShare(
     campaignId: string,
     channel: 'facebook' | 'twitter' | 'linkedin' | 'email' | 'whatsapp' | 'telegram' | 'instagram' | 'reddit' | 'tiktok' | 'sms' | 'link' | 'other'
-  ): Promise<{ shareId: string; referralUrl: string }> {
+  ): Promise<{ shareId: string; referralCode: string; isPaid?: boolean; rewardAmount?: number; message?: string }> {
     try {
-      const response = await apiClient.post<{ shareId: string; referralUrl: string }>(
+      // Backend (ShareController.recordShare) returns:
+      //   { success, shareId, isPaid, rewardAmount, referralCode: "?ref=<code>", message }
+      const response = await apiClient.post<{
+        success: boolean
+        shareId: string
+        referralCode: string
+        isPaid?: boolean
+        rewardAmount?: number
+        message?: string
+      }>(
         `/campaigns/${campaignId}/share`,
         { platform: channel }  // Campaign route validator expects 'platform' field
       )
@@ -415,10 +424,24 @@ class CampaignService {
       const response = await apiClient.get<{
         success: boolean
         message: string
-        data: Array<{ id: string; name: string; count: number }>
+        // Backend returns need types grouped by category:
+        //   [{ category, types: [{ value, label }] }]
+        data: Array<{ category: string; types: Array<{ value: string; label: string }> }>
       }>('/campaigns/need-types')
-      // Backend returns { success, message, data: needTypes }
-      return Array.isArray(response.data) ? response.data : (response.data.data || [])
+
+      // Unwrap { success, message, data } envelope (or accept a bare array)
+      const raw = Array.isArray(response.data) ? response.data : (response.data?.data || [])
+
+      // Flatten the grouped { category, types } shape into the flat
+      // { id, name, count } shape the filter UI expects. `id` must be the
+      // backend `need_type` value so the campaign-list filter matches exactly.
+      return raw.flatMap((group) =>
+        (group?.types || []).map((t) => ({
+          id: t.value,
+          name: t.label ?? t.value,
+          count: 0,
+        }))
+      )
     } catch (error: any) {
       console.error('Failed to fetch need types:', error)
       return []
@@ -642,16 +665,24 @@ class CampaignService {
       'health-tech': 'medical_treatment',
     }
 
+    // Empty/missing category (e.g. a stale draft, or a step that was skipped):
+    // fall back to the valid 'other' enum value so the backend never 400s.
+    if (!category) {
+      console.warn('⚠️ No category provided, defaulting need_type to "other"')
+      return 'other'
+    }
+
     const mappedType = categoryMap[category]
     if (!mappedType) {
+      // Unknown category id (a category added to the list without a mapping, or a
+      // stale persisted value). A blind hyphen→underscore replacement produces
+      // values that are NOT in the backend need_type enum (e.g. "music_album"),
+      // which the API rejects with a 400. Default to the always-valid 'other'.
       console.warn(
-        `⚠️ No mapping found for category: ${category}, using as-is with underscore replacement`,
-        {
-          category,
-        }
+        `⚠️ No need_type mapping for category "${category}", defaulting to "other"`,
+        { category }
       )
-      // Fallback: just replace hyphens with underscores
-      return category.replace(/-/g, '_')
+      return 'other'
     }
 
     console.log('📋 campaignService.mapCategoryToNeedType:', {
@@ -835,23 +866,38 @@ class CampaignService {
       converted.campaign_type = 'sharing'
       converted.sharingData = sharingData
 
-      // Create sharing goals
-      if (sharingData.platforms?.length > 0) {
+      // SU-1: dollar fundraising goal (sharing campaigns still take donations).
+      // Only added when the creator set a real (>= $5) goal — a pure-virality
+      // campaign legitimately has no dollar goal.
+      if (sharingData.fundraisingGoal && sharingData.fundraisingGoal >= 5) {
         goals.push({
-          goal_type: 'sharing_reach',
-          goal_name: 'Social Sharing Goal',
-          target_amount: sharingData.maxShares || 100,
+          goal_type: 'fundraising',
+          goal_name: 'Fundraising Goal',
+          target_amount: Math.round(sharingData.fundraisingGoal * 100), // cents
           current_amount: 0,
         })
       }
 
-      // Fallback payment method for sharing
-      converted.payment_methods = [
-        {
-          type: 'stripe',
-          is_primary: true,
-        },
-      ]
+      // SU-1: reach target — a SHARE COUNT on its own non-dollar meter. Prefer the
+      // explicit reachTarget; fall back to a sensible default when platforms exist.
+      const reachTarget =
+        sharingData.reachTarget || sharingData.maxShares ||
+        (sharingData.platforms?.length > 0 ? 100 : 0)
+      if (reachTarget > 0) {
+        goals.push({
+          goal_type: 'sharing_reach',
+          goal_name: 'Social Sharing Goal',
+          target_amount: reachTarget, // a share count, NOT dollars
+          current_amount: 0,
+        })
+      }
+
+      // SU-1: real creator payment methods so donations actually work (no more
+      // non-functional stripe placeholder).
+      converted.payment_methods =
+        Array.isArray(sharingData.paymentMethods) && sharingData.paymentMethods.length > 0
+          ? sharingData.paymentMethods
+          : [{ type: 'stripe', is_primary: true }];
 
       // Placeholder tags for sharing
       converted.tags = []
@@ -1000,7 +1046,7 @@ class CampaignService {
 
       // ✅ Handle campaign type and type-specific fields
       if (backendData.campaign_type === 'sharing' && backendData.sharingData) {
-        const { platforms, budget, rewardPerShare, maxShares } = backendData.sharingData
+        const { platforms, budget, rewardPerShare, maxShares, payoutConsent } = backendData.sharingData
 
         // Append campaign_type as 'sharing'
         formData.append('campaign_type', 'sharing')
@@ -1038,6 +1084,13 @@ class CampaignService {
             max_shares_per_person: maxShares,
           })
         }
+
+        // Phase A (trust-based): creator's agreement to pay sharers directly.
+        // Required server-side before Share-to-Earn activates.
+        formData.append('payout_consent', payoutConsent ? 'true' : 'false')
+        console.log('📋 campaignService: payout_consent appended', {
+          payout_consent: !!payoutConsent,
+        })
       } else {
         // Default to fundraising for all other cases
         formData.append('campaign_type', 'fundraising')

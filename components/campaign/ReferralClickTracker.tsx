@@ -7,7 +7,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import axios from 'axios'
+import { apiClient } from '@/lib/api'
 import winstonLogger from '@/utils/logger'
 
 interface ClickTrackerOptions {
@@ -50,7 +50,7 @@ export const useTrackReferralClick = ({
         }
 
         // Record the click on the backend
-        const response = await axios.post('/api/referral/track', {
+        const response = await apiClient.post('/referral/track', {
           campaignId,
           referralCode,
         })

@@ -174,7 +174,7 @@ export const campaignBasicInfoSchema = z.object({
   description: z
     .string()
     .min(20, 'Description must be at least 20 characters')
-    .max(2000, 'Description must not exceed 2000 characters')
+    .max(5000, 'Description must not exceed 5000 characters')
     .trim(),
   category: z.string().min(1, 'Category is required'),
   location: z.string().optional().default(''),
@@ -282,7 +282,7 @@ export const campaignCreationSchema = z.object({
   description: z
     .string()
     .min(20, 'Description must be at least 20 characters')
-    .max(2000, 'Description must not exceed 2000 characters'),
+    .max(5000, 'Description must not exceed 5000 characters'),
   category: z.string().min(1, 'Category is required'),
   location: z.string().optional().default(''),
 })
@@ -516,6 +516,15 @@ export const CAMPAIGN_CATEGORIES = CAMPAIGN_CATEGORY_GROUPS.flatMap((group) =>
   group.categories.map((cat) => cat.id)
 )
 
+// Alphabetized, human-readable category options for dropdowns/search, with a
+// catch-all 'Other' kept at the end. Used by the campaign wizard basic-info step.
+export const CAMPAIGN_CATEGORY_OPTIONS: Array<{ id: string; name: string }> = [
+  ...CAMPAIGN_CATEGORY_GROUPS.flatMap((group) =>
+    group.categories.map((cat) => ({ id: cat.id, name: cat.name }))
+  ).sort((a, b) => a.name.localeCompare(b.name)),
+  { id: 'other', name: 'Other' },
+]
+
 export const PAYMENT_METHOD_TYPES = [
   { id: 'venmo', name: 'Venmo', description: '@username' },
   { id: 'paypal', name: 'PayPal', description: 'email@example.com' },
@@ -626,6 +635,12 @@ export const completeDonationSchema = z.object({
 
 export type CompleteDonationFormData = z.infer<typeof completeDonationSchema>
 
+// ── Canonical donation fee rate (F-9) ──────────────────────────────────────
+// Mirrors the backend feeEngine.DONATION_FEE_RATE. Keep these in sync; this is
+// the single place the frontend defines the donation fee percentage.
+export const DONATION_FEE_RATE = 0.05
+export const DONATION_FEE_PERCENT = Math.round(DONATION_FEE_RATE * 100)
+
 // Currency Utility Functions
 export const currencyUtils = {
   formatCurrency: (cents: number): string => {
@@ -641,7 +656,7 @@ export const currencyUtils = {
 
   calculateFee: (amountInDollars: number): { gross: number; fee: number; net: number } => {
     const gross = amountInDollars
-    const fee = Number((gross * 0.2).toFixed(2))
+    const fee = Number((gross * DONATION_FEE_RATE).toFixed(2))
     const net = Number((gross - fee).toFixed(2))
     return { gross, fee, net }
   },

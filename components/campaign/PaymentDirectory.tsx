@@ -3,6 +3,7 @@
 import styled from 'styled-components'
 import { Copy, Check, QrCode, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
+import { tk } from '@/styles/dashboardTokens'
 
 interface PaymentMethod {
   type: string
@@ -16,13 +17,14 @@ interface PaymentDirectoryProps {
 }
 
 const Container = styled.div`
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
+  background-color: ${tk.canvas};
+  border: 1px solid ${tk.border};
+  border-radius: 14px;
   padding: 2rem;
   margin: 2rem 0;
   width: 100%;
   box-sizing: border-box;
+  font-family: 'DM Sans', sans-serif;
 
   @media (max-width: 640px) {
     padding: 1.5rem 1rem;
@@ -36,10 +38,12 @@ const Container = styled.div`
 `
 
 const Title = styled.h3`
+  font-family: 'Syne', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
+  color: ${tk.heading};
   margin: 0 0 1.5rem 0;
+  letter-spacing: -0.3px;
   word-break: break-word;
   overflow-wrap: break-word;
 
@@ -51,7 +55,7 @@ const Title = styled.h3`
 
 const Subtitle = styled.p`
   font-size: 0.9rem;
-  color: #64748b;
+  color: ${tk.muted};
   margin: 0 0 2rem 0;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -83,7 +87,7 @@ const MethodsGrid = styled.div`
 
 const MethodCard = styled.div`
   background-color: white;
-  border: 2px solid #e2e8f0;
+  border: 2px solid ${tk.border};
   border-radius: 0.5rem;
   padding: 1.5rem;
   transition: all 0.3s ease;
@@ -98,7 +102,7 @@ const MethodCard = styled.div`
   }
 
   &:hover {
-    border-color: #6366f1;
+    border-color: ${tk.blue};
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
   }
 `
@@ -119,15 +123,15 @@ const MethodIcon = styled.div`
   justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
-  background-color: #ecf0ff;
+  background-color: ${tk.blueLight};
   border-radius: 0.5rem;
-  color: #6366f1;
+  color: ${tk.blue};
 `
 
 const MethodName = styled.h4`
   font-size: 1.125rem;
   font-weight: 700;
-  color: #0f172a;
+  color: ${tk.heading};
   margin: 0;
   min-width: 0;
   word-break: break-word;
@@ -139,8 +143,8 @@ const MethodName = styled.h4`
 `
 
 const MethodInfo = styled.div`
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background-color: ${tk.canvasDeep};
+  border: 1px solid ${tk.border};
   border-radius: 0.375rem;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -152,7 +156,7 @@ const MethodInfo = styled.div`
 const InfoLabel = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: ${tk.muted};
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: block;
@@ -166,7 +170,7 @@ const InfoValue = styled.div`
   font-family: 'Monaco', 'Courier New', monospace;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #0f172a;
+  color: ${tk.heading};
   word-break: break-word;
   overflow-wrap: break-word;
   min-width: 0;
@@ -183,11 +187,11 @@ const CopyButton = styled.button`
   gap: 0.5rem;
   padding: 0.375rem 0.5rem;
   background-color: transparent;
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${tk.border};
   border-radius: 0.375rem;
   cursor: pointer;
   font-size: 0.8rem;
-  color: #6366f1;
+  color: ${tk.blue};
   transition: all 0.2s ease;
   margin-left: 0.5rem;
   flex-shrink: 0;
@@ -200,14 +204,14 @@ const CopyButton = styled.button`
   }
 
   &:hover {
-    background-color: #ecf0ff;
-    border-color: #6366f1;
+    background-color: ${tk.blueLight};
+    border-color: ${tk.blue};
   }
 
   &.copied {
-    background-color: #dcfce7;
-    border-color: #22c55e;
-    color: #16a34a;
+    background-color: ${tk.greenLight};
+    border-color: ${tk.green};
+    color: ${tk.green};
   }
 `
 
@@ -216,7 +220,7 @@ const QRSection = styled.div`
   align-items: center;
   justify-content: center;
   background-color: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${tk.border};
   border-radius: 0.375rem;
   padding: 1rem;
   margin: 1rem 0;
@@ -233,12 +237,12 @@ const QRCode = styled.img`
 
 const Instructions = styled.div`
   font-size: 0.85rem;
-  color: #64748b;
+  color: ${tk.muted};
   line-height: 1.6;
   margin: 1rem 0 0 0;
   padding: 0.75rem;
-  background-color: #f0f9ff;
-  border-left: 3px solid #0ea5e9;
+  background-color: ${tk.blueLight};
+  border-left: 3px solid ${tk.blue};
   border-radius: 0.25rem;
   width: 100%;
   box-sizing: border-box;
@@ -255,7 +259,7 @@ const Instructions = styled.div`
 
 const InstructionTitle = styled.strong`
   display: block;
-  color: #0284c7;
+  color: ${tk.blue};
   margin-bottom: 0.5rem;
 `
 
@@ -277,7 +281,7 @@ const ActionButton = styled.button`
   flex: 1;
   min-width: 120px;
   padding: 0.5rem 0.75rem;
-  background-color: #6366f1;
+  background-color: ${tk.blue};
   color: white;
   border: none;
   border-radius: 0.375rem;
@@ -301,11 +305,11 @@ const ActionButton = styled.button`
   }
 
   &:hover {
-    background-color: #4f46e5;
+    background-color: #0D4A8C;
   }
 
   &:disabled {
-    background-color: #cbd5e1;
+    background-color: ${tk.border};
     cursor: not-allowed;
   }
 `
@@ -464,7 +468,7 @@ export function PaymentDirectory({
                       alt={`${method.type} QR Code`}
                       style={{ maxWidth: '120px' }}
                     />
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: tk.muted, marginTop: '0.5rem' }}>
                       Scan or tap
                     </div>
                   </div>

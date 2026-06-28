@@ -21,7 +21,8 @@ const Overlay = styled.div<{ isOpen: boolean }>`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(24, 23, 26, 0.55);
+  backdrop-filter: blur(2px);
   align-items: center;
   justify-content: center;
   z-index: 1000;
@@ -38,13 +39,15 @@ const Overlay = styled.div<{ isOpen: boolean }>`
 `
 
 const ModalContent = styled.div`
-  background: white;
+  background: #FFFFFF;
+  border: 1px solid #E2DDD6;
   border-radius: 16px;
   max-width: 600px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 24px 60px rgba(24, 23, 26, 0.28);
+  font-family: 'DM Sans', sans-serif;
   animation: slideUp 0.3s ease;
 
   @keyframes slideUp {
@@ -64,13 +67,15 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #E2DDD6;
 `
 
 const Title = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #18171A;
+  letter-spacing: -0.3px;
   margin: 0;
 `
 
@@ -78,20 +83,22 @@ const CloseButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
-  transition: color 0.2s ease;
+  color: #8C8790;
+  transition: color 0.2s ease, background 0.2s ease;
 
   &:hover {
-    color: #0f172a;
+    color: #18171A;
+    background: #EEEBe5;
   }
 
   svg {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1.25rem;
+    height: 1.25rem;
   }
 `
 
@@ -125,7 +132,7 @@ export const AddPaymentMethodModal: React.FC<AddPaymentMethodModalProps> = ({
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <Header>
           <Title>
-            {isEditing ? '✏️ Edit Payment Method' : '➕ Add Payment Method'}
+            {isEditing ? 'Edit payout method' : 'Add payout method'}
           </Title>
           <CloseButton onClick={onClose}>
             <X />

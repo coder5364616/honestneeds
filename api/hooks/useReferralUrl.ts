@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import axios from 'axios'
+import { apiClient } from '@/lib/api'
 
 /**
  * Custom hook for referral URL management
@@ -31,7 +31,7 @@ export const useReferralUrl = (campaignId: string, referralCode: string) => {
       setError(null)
 
       try {
-        const response = await axios.post('/api/referral/generate-url', {
+        const response = await apiClient.post('/referral/generate-url', {
           campaignId,
           referralCode,
           platform,
@@ -58,7 +58,7 @@ export const useReferralUrl = (campaignId: string, referralCode: string) => {
   // Validate referral URL
   const validateUrl = useCallback(async (url: string) => {
     try {
-      const response = await axios.post('/api/referral/validate-url', {
+      const response = await apiClient.post('/referral/validate-url', {
         url,
         expectedReferralCode: referralCode,
       })
@@ -129,7 +129,7 @@ export const useRecordReferralClick = (campaignId, referralCode, options = {}) =
 
     const recordClick = async () => {
       try {
-        const response = await axios.post('/api/referral/track', {
+        const response = await apiClient.post('/referral/track', {
           campaignId,
           referralCode,
         })
@@ -158,7 +158,7 @@ export const useReferralStats = (campaignId, referralCode) => {
   return useQuery({
     queryKey: ['referralStats', campaignId, referralCode],
     queryFn: async () => {
-      const response = await axios.get(
+      const response = await apiClient.get(
         `/api/campaigns/${campaignId}/referral/stats/${referralCode}`
       )
       return response.data
@@ -176,7 +176,7 @@ export const useCampaignReferralAnalytics = (campaignId) => {
   return useQuery({
     queryKey: ['campaignReferralAnalytics', campaignId],
     queryFn: async () => {
-      const response = await axios.get(`/api/campaigns/${campaignId}/referrals`)
+      const response = await apiClient.get(`/campaigns/${campaignId}/referrals`)
       return response.data
     },
     enabled: !!campaignId,
@@ -194,7 +194,7 @@ export const useMyReferralPerformance = (options = {}) => {
   return useQuery({
     queryKey: ['myReferralPerformance', page, limit],
     queryFn: async () => {
-      const response = await axios.get('/api/user/referral-performance', {
+      const response = await apiClient.get('/user/referral-performance', {
         params: { page, limit },
       })
       return response.data

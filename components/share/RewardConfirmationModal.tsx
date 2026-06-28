@@ -174,23 +174,23 @@ export const RewardConfirmationModal: React.FC<RewardConfirmationModalProps> = (
         <SuccessIcon>🎉</SuccessIcon>
 
         <Title>Reward Earned!</Title>
-        <Message>Your share has been recorded and your reward is being verified.</Message>
+        <Message>Your share converted — this reward is now owed to you.</Message>
 
         <RewardAmount>${amountDollars}</RewardAmount>
 
         <HoldInfo>
-          <HoldLabel>⏳ 30-Day Verification Hold</HoldLabel>
+          <HoldLabel>✅ Owed to you — no hold</HoldLabel>
           <HoldDetails>
-            Your reward will be verified and available for payout on <strong>{formattedDate}</strong>
-            <br />
-            ({daysRemaining} days from now)
+            This reward is claimable right away. The campaign creator pays you
+            directly when you request a payout.
           </HoldDetails>
         </HoldInfo>
 
         <NextSteps>
           <StepLabel>What's Next?</StepLabel>
           <StepDetails>
-            After the 30-day hold period expires, you'll be able to request a payout of your verified earnings. Check your "Rewards" dashboard to track your rewards.
+            Request a payout from your &quot;Rewards&quot; dashboard anytime. The creator
+            settles it directly and you confirm once you&apos;ve received it.
           </StepDetails>
         </NextSteps>
       </ModalContent>

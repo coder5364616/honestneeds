@@ -1,48 +1,22 @@
-import axios from 'axios'
+import { apiClient } from '@/lib/api'
 import { CreateBoostSessionInput, BoostResponse, BoostSessionResponse } from '@/utils/boostValidationSchemas'
 
 /**
  * Boost Service
  * Handles all boost-related API calls
  * Integrated with Next.js frontend
+ *
+ * Uses the shared apiClient so auth-token injection and silent token
+ * refresh/retry are handled centrally (see lib/api.ts).
  */
 
 class BoostService {
-  private baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-  private api = axios.create({
-    baseURL: this.baseURL,
-  });
-
-  constructor() {
-    // Add auth interceptor
-    this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    // Add response error handler
-    this.api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Handle auth errors
-          localStorage.removeItem('auth_token');
-          window.location.href = '/auth/login';
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
-
   /**
    * Get available boost tiers
    */
   async getBoostTiers() {
     try {
-      const response = await this.api.get('/boosts/tiers');
+      const response = await apiClient.get('/boosts/tiers');
       return {
         success: true,
         data: response.data.data,
@@ -60,7 +34,7 @@ class BoostService {
    */
   async createCheckoutSession(data: CreateBoostSessionInput) {
     try {
-      const response = await this.api.post<any>('/boosts/create-session', {
+      const response = await apiClient.post<any>('/boosts/create-session', {
         campaign_id: data.campaign_id,
         tier: data.tier,
       });
@@ -82,7 +56,7 @@ class BoostService {
    */
   async getCampaignBoost(campaignId: string) {
     try {
-      const response = await this.api.get<any>(`/boosts/campaign/${campaignId}`);
+      const response = await apiClient.get<any>(`/boosts/campaign/${campaignId}`);
       return {
         success: true,
         data: response.data.data,
@@ -100,7 +74,7 @@ class BoostService {
    */
   async getCreatorBoosts(page: number = 1, limit: number = 10) {
     try {
-      const response = await this.api.get<any>('/boosts/my-boosts', {
+      const response = await apiClient.get<any>('/boosts/my-boosts', {
         params: { page, limit },
       });
 
@@ -121,7 +95,7 @@ class BoostService {
    */
   async extendBoost(boostId: string) {
     try {
-      const response = await this.api.post<any>(`/boosts/${boostId}/extend`);
+      const response = await apiClient.post<any>(`/boosts/${boostId}/extend`);
 
       return {
         success: true,
@@ -140,7 +114,7 @@ class BoostService {
    */
   async cancelBoost(boostId: string, reason?: string) {
     try {
-      const response = await this.api.post<any>(`/boosts/${boostId}/cancel`, {
+      const response = await apiClient.post<any>(`/boosts/${boostId}/cancel`, {
         reason: reason || 'user_cancelled',
       });
 
@@ -161,7 +135,7 @@ class BoostService {
    */
   async updateBoostStats(boostId: string, views: number, engagement: number, conversions: number) {
     try {
-      const response = await this.api.post<any>(`/boosts/${boostId}/update-stats`, {
+      const response = await apiClient.post<any>(`/boosts/${boostId}/update-stats`, {
         views,
         engagement,
         conversions,
@@ -184,7 +158,7 @@ class BoostService {
    */
   async getSessionStatus(sessionId: string) {
     try {
-      const response = await this.api.get<any>(`/boosts/session/${sessionId}/status`);
+      const response = await apiClient.get<any>(`/boosts/session/${sessionId}/status`);
 
       return {
         success: true,

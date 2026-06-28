@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { FiUser, FiSmartphone, FiHeart, FiCheck, FiShield, FiLock, FiArrowRight } from 'react-icons/fi';
@@ -431,9 +432,8 @@ export default function HowPaymentsWork() {
         {/* Flow Diagram — always horizontal */}
         <FlowDiagram>
           {flowSteps.map((step, index) => (
-            <>
+            <Fragment key={step.label}>
               <FlowStep
-                key={step.label}
                 custom={index}
                 initial="hidden"
                 whileInView="visible"
@@ -452,11 +452,11 @@ export default function HowPaymentsWork() {
 
               {/* Arrow between steps (not after last) */}
               {index < flowSteps.length - 1 && (
-                <ArrowConnector key={`arrow-${index}`}>
+                <ArrowConnector>
                   <FiArrowRight />
                 </ArrowConnector>
               )}
-            </>
+            </Fragment>
           ))}
         </FlowDiagram>
 
