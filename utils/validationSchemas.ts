@@ -231,7 +231,7 @@ export const fundraisingCampaignSchema = z.object({
   goalAmount: z
     .number()
     .min(1, 'Goal amount must be at least $1')
-    .max(500000000, 'Goal amount cannot exceed $500,000,000'),
+    .max(1000000, 'Goal amount cannot exceed $1,000,000'),
   category: z.string().min(1, 'Category is required'),
   tags: z
     .array(z.string())
@@ -241,7 +241,7 @@ export const fundraisingCampaignSchema = z.object({
   duration: z
     .number()
     .min(7, 'Campaign duration must be at least 7 days')
-    .max(90, 'Campaign duration cannot exceed 90 days'),
+    .max(365, 'Campaign duration cannot exceed 365 days'),
   paymentMethods: z
     .array(paymentMethodSchema)
     .min(1, 'At least one payment method is required')

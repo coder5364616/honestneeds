@@ -546,8 +546,9 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
       if (formData.campaignType === 'fundraising') {
         const fd = formData.fundraisingData
         if (!fd.goalAmount || fd.goalAmount < 1) newErrors.goalAmount = 'Goal amount must be at least $1'
-        if (!fd.duration || fd.duration < 7 || fd.duration > 90)
-          newErrors.duration = 'Duration must be between 7 and 90 days'
+        else if (fd.goalAmount > 1000000) newErrors.goalAmount = 'Goal amount cannot exceed $1,000,000'
+        if (!fd.duration || fd.duration < 7 || fd.duration > 365)
+          newErrors.duration = 'Duration must be between 7 and 365 days'
         if (!fd.paymentMethods || fd.paymentMethods.length === 0)
           newErrors.paymentMethods = 'Add at least one payment method'
       } else if (formData.campaignType === 'sharing') {

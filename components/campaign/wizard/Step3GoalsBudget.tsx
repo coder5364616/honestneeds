@@ -176,12 +176,12 @@ const FundraisingStep: React.FC<FundraisingStepProps> = ({ formData, errors, onC
             <FieldLabel>Goal amount <Req>*</Req></FieldLabel>
             <SliderCombo>
               <SliderInput
-                type="range" min={1} max={100000} step={100}
+                type="range" min={1} max={1000000} step={100}
                 value={goal}
                 onChange={(e) => setFund('goalAmount', parseFloat(e.target.value))}
               />
               <NumberInput
-                type="number" min={1} max={100000}
+                type="number" min={1} max={1000000}
                 value={goal || ''}
                 placeholder="$"
                 onChange={(e) => setFund('goalAmount', parseFloat(e.target.value) || 0)}
@@ -196,19 +196,19 @@ const FundraisingStep: React.FC<FundraisingStepProps> = ({ formData, errors, onC
             <FieldLabel>Campaign duration <Req>*</Req></FieldLabel>
             <SliderCombo>
               <SliderInput
-                type="range" min={7} max={90} step={1}
+                type="range" min={7} max={365} step={1}
                 value={dur}
                 onChange={(e) => setFund('duration', parseInt(e.target.value))}
               />
               <NumberInput
-                type="number" min={7} max={90}
+                type="number" min={7} max={365}
                 value={dur || ''}
                 placeholder="Days"
                 onChange={(e) => setFund('duration', parseInt(e.target.value) || 0)}
                 aria-invalid={!!errors.duration}
               />
             </SliderCombo>
-            <SliderVal>{dur ? `${dur} days` : 'Between 7 and 90 days'}</SliderVal>
+            <SliderVal>{dur ? `${dur} days` : 'Between 7 and 365 days'}</SliderVal>
             {errors.duration && <FieldError>{errors.duration}</FieldError>}
           </Field>
         </FormStack>

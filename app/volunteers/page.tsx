@@ -198,7 +198,7 @@ export default function VolunteerHubPage() {
 
               <Field>
                 <Label>Languages (comma separated)</Label>
-                <Input placeholder="English, Yoruba, French" value={form.languages} onChange={(e) => upd('languages', e.target.value)} />
+                <Input placeholder="English, Spanish, French" value={form.languages} onChange={(e) => upd('languages', e.target.value)} />
               </Field>
 
               {/* Location */}

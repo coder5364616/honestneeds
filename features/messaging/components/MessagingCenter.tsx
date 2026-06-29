@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
-import styled from 'styled-components'
+import styled, { createGlobalStyle } from 'styled-components'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { tk } from './tokens'
 import { useAuthUserId } from '@/store/authStore'
@@ -44,6 +44,31 @@ const Shell = styled.div`
     grid-template-columns: 1fr;
     height: calc(100dvh - 140px);
     border-radius: 14px;
+  }
+`
+
+/**
+ * Mobile only: while the messaging view is mounted, lift the floating AI
+ * Responder guide (#hn-ai-btn / #hn-ai-pulse) up above the message composer so
+ * it never overlays the Send button. It stays in its familiar bottom-right
+ * corner — stacked above the bottom nav / music button — so users still notice
+ * it. Desktop is intentionally left at its default position (no override).
+ *
+ * The `body` prefix raises specificity (0,1,1) above FloatingBottomNav's own
+ * `#hn-ai-btn` lift (0,1,0); without it the two `!important` rules tie and the
+ * winner depends on stylesheet injection order — which is exactly what dragged
+ * the button back onto the composer on mobile. Rules mount/unmount with this
+ * route only.
+ */
+const LiftAiGuide = createGlobalStyle`
+  /* < 1024px: the bottom nav is visible and the composer is anchored near the
+     viewport bottom. Sit above both (mirrors the nav's own 158px stack). */
+  @media (max-width: 1023px) {
+    body #hn-ai-btn,
+    body #hn-ai-pulse {
+      bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
+      right: 14px !important;
+    }
   }
 `
 
@@ -138,6 +163,7 @@ export function MessagingCenter() {
 
   return (
     <Shell>
+      <LiftAiGuide />
       <Pane $show={mobileView === 'list'}>
         <ConversationList
           conversations={conversations}

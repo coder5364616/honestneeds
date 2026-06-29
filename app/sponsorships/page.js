@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import styled from 'styled-components'
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS, TRANSITIONS, MEDIA_QUERIES } from '@/styles/tokens'
 import { SPONSORSHIP_TIERS } from '@/lib/sponsorshipTiers'
 import TierCard from '@/components/sponsorships/TierCard'
 import SponsorWallGrid from '@/components/sponsorships/SponsorWallGrid'
 import apiClient from '@/lib/api'
-import { Heart, Users, TrendingUp, ChevronDown, ChevronUp, Shield } from 'lucide-react'
+import { Heart, Users, TrendingUp, ChevronDown, ChevronUp, Shield, ArrowLeft } from 'lucide-react'
 
 /* ───── Page Container ───── */
 
@@ -31,6 +32,30 @@ const HeroSection = styled.section`
     top: 0; left: 0; right: 0; bottom: 0;
     background: radial-gradient(circle at 30% 50%, rgba(99, 102, 241, 0.3) 0%, transparent 60%),
                 radial-gradient(circle at 70% 80%, rgba(244, 63, 94, 0.15) 0%, transparent 50%);
+  }
+`
+
+const BackButton = styled.button`
+  position: absolute;
+  top: ${SPACING[5]};
+  left: ${SPACING[5]};
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  padding: 8px 16px;
+  border-radius: ${BORDER_RADIUS.FULL};
+  font-size: ${TYPOGRAPHY.SIZE_SM};
+  font-weight: ${TYPOGRAPHY.WEIGHT_SEMIBOLD};
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: background ${TRANSITIONS.BASE};
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.22);
   }
 `
 
@@ -272,6 +297,7 @@ const FAQ_DATA = [
 /* ───── Page Component ───── */
 
 export default function SponsorshipsPage() {
+  const router = useRouter()
   const [sponsors, setSponsors] = useState([])
   const [openFAQ, setOpenFAQ] = useState(null)
 
@@ -291,6 +317,9 @@ export default function SponsorshipsPage() {
     <PageWrapper>
       {/* ── Hero ── */}
       <HeroSection>
+        <BackButton onClick={() => router.back()}>
+          <ArrowLeft size={15} /> Back
+        </BackButton>
         <HeroContent>
           <HeroBadge><Heart size={14} /> Founding Sponsor Program</HeroBadge>
           <HeroTitle>

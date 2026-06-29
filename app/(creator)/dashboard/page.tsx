@@ -1608,7 +1608,7 @@ function DashboardContent() {
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </Greeting>
               <PageTitle>
-                Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
+                Welcome back{user?.displayName ? `, ${user.displayName.split(' ')[0]}` : ''} 👋
               </PageTitle>
             </PageHeader>
 

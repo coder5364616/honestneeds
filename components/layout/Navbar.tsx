@@ -144,7 +144,6 @@ const creatorNavLinks: NavLink[] = [
   { label: 'Analytics', href: '/analytics', icon: <BarChart3 size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
   { label: 'Messages', href: '/messages', icon: <MessageSquare size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
   { label: 'Boosts', href: '/boosts', icon: <Rocket size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
-  { label: 'Wallet', href: '/wallet', icon: <Wallet size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
   { label: 'AI Assistant', href: '/ai', icon: <Sparkles size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
   { label: 'Sharers Payouts', href: '/sharers-payouts', icon: <Banknote size={15} />, roles: ['creator', 'admin'], group: 'Creator Tools' },
 ]
