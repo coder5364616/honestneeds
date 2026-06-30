@@ -234,7 +234,7 @@ const plans = [
   },
   {
     name: 'Standard Campaign',
-    price: 19.99,
+    price: 20,
     period: '/campaign',
     badge: 'Premium',
     description: 'Everything in Free, plus extra reach when you want your need seen by more people.',
@@ -339,7 +339,7 @@ export default function Pricing() {
               </BreakdownItem>
               <BreakdownItem>
                 <BreakdownLabel>Premium Listing</BreakdownLabel>
-                <BreakdownValue>$19.99 (optional)</BreakdownValue>
+                <BreakdownValue>$20 (optional)</BreakdownValue>
               </BreakdownItem>
               <BreakdownItem>
                 <BreakdownLabel>Boost Pricing</BreakdownLabel>

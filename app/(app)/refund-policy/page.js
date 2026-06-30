@@ -7,7 +7,7 @@ export default function RefundPolicy() {
     <PolicyLayout title="Refund and Dispute Policy" lastUpdated="May 2026">
       <h2>1. Platform Fees</h2>
       <p>
-        Campaign creation fees ($19.99 per campaign) are non-refundable once a campaign has been published and made live on the platform. If a campaign was never published due to a technical error on our part, a full refund will be issued within 5–7 business days.
+        Campaign creation fees ($20 per campaign) are non-refundable once a campaign has been published and made live on the platform. If a campaign was never published due to a technical error on our part, a full refund will be issued within 5–7 business days.
       </p>
 
       <h2>2. Peer-to-Peer Donations</h2>

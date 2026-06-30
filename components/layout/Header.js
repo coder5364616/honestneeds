@@ -676,7 +676,7 @@ const DRAWER_NAV = [
   },
   {
     label: 'Pricing',
-    desc: 'Start for just $19.99',
+    desc: 'Start for just $20',
     emoji: '💰',
     href: '#pricing',
     iconBg: 'linear-gradient(145deg, #D1FAE5, #A7F3D0)',
@@ -832,7 +832,7 @@ export default function Header() {
                 >
                   <FiHeart size={14} />
                   Start a Campaign
-                  <span className="price">$19.99</span>
+                  <span className="price">$20</span>
                 </PrimaryBtn>
               </>
             )}
@@ -1004,7 +1004,7 @@ export default function Header() {
                     >
                       <FiHeart size={16} />
                       Start a Campaign
-                      <span className="price-chip">$19.99</span>
+                      <span className="price-chip">$20</span>
                     </DrawerPrimaryBtn>
 
                     <DrawerSecondaryBtn

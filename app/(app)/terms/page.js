@@ -17,7 +17,7 @@ export default function TermsOfService() {
 
       <h2>3. Platform Fees</h2>
       <ul>
-        <li>Campaign creation: $19.99 per campaign</li>
+        <li>Campaign creation: $20 per campaign</li>
         <li>Platform commission: 20% on share reward budgets and applicable transactions</li>
         <li>Withdrawal fee: 7% on fund withdrawals</li>
         <li>All fees are non-refundable unless otherwise stated in our Refund Policy</li>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -537,6 +537,28 @@ const VideoContainer = styled.div`
     aspect-ratio: 16/9;
     display: block;
   }
+
+  /* Landscape full-screen on mobile: fill the viewport and letterbox the
+     16:9 video instead of being constrained to the modal card. */
+  &:fullscreen,
+  &:-webkit-full-screen {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &:fullscreen video,
+  &:-webkit-full-screen video {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: contain;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -602,9 +624,87 @@ const slideInRight = {
 export default function Hero() {
   const router = useRouter();
   const [showVideo, setShowVideo] = useState(false);
+  const videoRef = useRef(null);
+  const videoContainerRef = useRef(null);
 
   const handleStartCampaign = () => router.push('/login');
   const handleBrowseNeeds = () => router.push('/sponsorships');
+
+  const isMobileViewport = () =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(max-width: 768px)').matches;
+
+  // Demo video started → pause background music and, on mobile, go full screen
+  // in landscape for an immersive playback experience.
+  const handleVideoPlay = useCallback(() => {
+    window.dispatchEvent(new Event('hn:duck-audio'));
+
+    if (!isMobileViewport()) return;
+
+    const video = videoRef.current;
+    const container = videoContainerRef.current;
+    if (!video) return;
+
+    // iOS Safari only supports fullscreen on the <video> element itself and
+    // automatically rotates to landscape via its native player.
+    if (typeof video.webkitEnterFullscreen === 'function') {
+      try { video.webkitEnterFullscreen(); } catch {}
+      return;
+    }
+
+    const target = container || video;
+    const request =
+      target.requestFullscreen ||
+      target.webkitRequestFullscreen ||
+      target.webkitRequestFullScreen;
+
+    if (request) {
+      Promise.resolve(request.call(target))
+        .then(() => {
+          if (window.screen?.orientation?.lock) {
+            return window.screen.orientation.lock('landscape');
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  // Resume background music when the demo video is paused or finishes.
+  const handleVideoStop = useCallback(() => {
+    window.dispatchEvent(new Event('hn:unduck-audio'));
+  }, []);
+
+  const closeVideo = useCallback(() => {
+    if (typeof window !== 'undefined' && window.screen?.orientation?.unlock) {
+      try { window.screen.orientation.unlock(); } catch {}
+    }
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+    handleVideoStop();
+    setShowVideo(false);
+  }, [handleVideoStop]);
+
+  // Release the landscape orientation lock whenever the user exits fullscreen
+  // (e.g. via the system back gesture) so the page returns to portrait.
+  useEffect(() => {
+    if (!showVideo) return;
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && window.screen?.orientation?.unlock) {
+        try { window.screen.orientation.unlock(); } catch {}
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      // Safety: make sure music resumes if the overlay unmounts mid-play.
+      window.dispatchEvent(new Event('hn:unduck-audio'));
+    };
+  }, [showVideo]);
 
   return (
     <HeroSection>
@@ -649,7 +749,7 @@ export default function Hero() {
               >
                 <FiHeart />
                 Start a Campaign
-                <span className="price-tag">$19.99</span>
+                <span className="price-tag">$20</span>
               </PrimaryCTA>
 
               <SecondaryCTA
@@ -781,14 +881,18 @@ export default function Hero() {
       </HeroContainer>
 
       {showVideo && (
-        <VideoOverlay onClick={() => setShowVideo(false)}>
-          <VideoContainer onClick={(e) => e.stopPropagation()}>
-            <CloseButton onClick={() => setShowVideo(false)} aria-label="Close video">✕</CloseButton>
+        <VideoOverlay onClick={closeVideo}>
+          <VideoContainer ref={videoContainerRef} onClick={(e) => e.stopPropagation()}>
+            <CloseButton onClick={closeVideo} aria-label="Close video">✕</CloseButton>
             <video
+              ref={videoRef}
               src="https://res.cloudinary.com/dctvil2gu/video/upload/v1780898911/Honestneed_fgty7u.mp4"
               controls
               autoPlay
               playsInline
+              onPlay={handleVideoPlay}
+              onPause={handleVideoStop}
+              onEnded={handleVideoStop}
             />
           </VideoContainer>
         </VideoOverlay>

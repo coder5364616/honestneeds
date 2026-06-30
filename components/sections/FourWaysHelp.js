@@ -216,7 +216,7 @@ export default function FourWaysHelp() {
 
         <CTAWrap>
           <Button size="large" onClick={handleStartCampaign}>
-            Start a Campaign — $19.99
+            Start a Campaign — $20
           </Button>
         </CTAWrap>
       </Container>

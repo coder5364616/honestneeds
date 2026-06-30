@@ -16,6 +16,7 @@ import BecomeSponsor from '@/components/sections/BecomeSponsor';
 import SupportMission from '@/components/sections/SupportMission';
 import Footer from '@/components/sections/Footer';
 import DeferSection from '@/components/DeferSection';
+import PWAInstallButton from '@/components/PWAInstallButton';
 
 // Header is interactive-only; keep it client-only.
 const Header = dynamic(() => import('@/components/layout/Header'), { ssr: false });
@@ -45,6 +46,9 @@ export default function Home() {
         <DeferSection $minHeight={500}><SupportMission /></DeferSection>
       </main>
       <DeferSection $minHeight={400}><Footer /></DeferSection>
+
+      {/* PWA "Add to Home Screen" — floating install prompt (landing page only) */}
+      <PWAInstallButton />
     </>
   );
 }

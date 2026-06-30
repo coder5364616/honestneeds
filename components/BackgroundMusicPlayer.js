@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 
 export default function BackgroundMusicPlayer() {
   const audioRef = useRef(null);
+  const duckedRef = useRef(false);
   const [isMuted, setIsMuted] = useState(true);
   const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -36,6 +37,36 @@ export default function BackgroundMusicPlayer() {
     }
     localStorage.setItem('hn_music_muted', isMuted.toString());
   }, [isMuted]);
+
+  // Auto-pause ("duck") background music while other media (e.g. the demo
+  // video) is playing, then resume afterwards. Coordinated via window events
+  // so any player on the page can request ducking without a shared store.
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    const handleDuck = () => {
+      if (audio && !audio.paused) {
+        audio.pause();
+        duckedRef.current = true;
+      }
+    };
+
+    const handleUnduck = () => {
+      if (audio && duckedRef.current) {
+        duckedRef.current = false;
+        // Resume regardless of mute state to keep the element "primed";
+        // the muted attribute still controls whether it's audible.
+        audio.play().catch(() => {});
+      }
+    };
+
+    window.addEventListener('hn:duck-audio', handleDuck);
+    window.addEventListener('hn:unduck-audio', handleUnduck);
+    return () => {
+      window.removeEventListener('hn:duck-audio', handleDuck);
+      window.removeEventListener('hn:unduck-audio', handleUnduck);
+    };
+  }, []);
 
   const toggleMute = () => {
     const audio = audioRef.current;
