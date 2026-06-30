@@ -500,6 +500,23 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
     getDraftExists,
   } = useWizardStore()
 
+  /* Maps a backend validation `field` to the wizard step that owns it and the
+     form-state key the inline <FieldError> reads, so a server-side rejection
+     surfaces right under the offending input instead of only as a toast. */
+  const FIELD_TO_STEP: Record<string, { step: number; key: string }> = {
+    need_type: { step: 1, key: 'category' },
+    category: { step: 1, key: 'category' },
+    campaign_type: { step: 2, key: 'campaignType' },
+    title: { step: 3, key: 'title' },
+    description: { step: 3, key: 'description' },
+    location: { step: 3, key: 'location' },
+    goals: { step: 4, key: 'goalAmount' },
+    budget: { step: 4, key: 'budget' },
+    reward_per_share: { step: 4, key: 'rewardPerShare' },
+    platforms: { step: 4, key: 'platforms' },
+    payment_methods: { step: 4, key: 'paymentMethods' },
+  }
+
   const step4ReviewRef = useRef<Step4ReviewHandle>(null)
   const createCampaignMutation = useCreateCampaign()
   const [termsAccepted, setTermsAccepted] = React.useState(false)
@@ -540,8 +557,12 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
     } else if (currentStep === 3) {
       if (!formData.title.trim() || formData.title.length < 5)
         newErrors.title = 'Title must be at least 5 characters'
+      else if (formData.title.length > 200)
+        newErrors.title = 'Title must be at most 200 characters'
       if (!formData.description.trim() || formData.description.length < 20)
         newErrors.description = 'Description must be at least 20 characters'
+      else if (formData.description.length > 30000)
+        newErrors.description = 'Description must be at most 30000 characters'
     } else if (currentStep === 4) {
       if (formData.campaignType === 'fundraising') {
         const fd = formData.fundraisingData
@@ -612,10 +633,34 @@ export const CampaignWizard: React.FC<CampaignWizardProps> = ({ draftExists = fa
       setIsSubmitting(false)
     } catch (error: any) {
       console.error('Campaign creation failed:', error)
-      toast.error(error.response?.data?.message || 'Failed to create campaign')
       setIsSubmitting(false)
+
+      // Map server-side validation errors back onto the inline form fields and
+      // jump to the earliest step that owns one, so the user sees the message
+      // right where they need to fix it (not just as a transient toast).
+      const validationErrors: Array<{ field: string; message: string }> =
+        error.response?.data?.validationErrors || []
+
+      if (validationErrors.length > 0) {
+        const fieldErrors: Record<string, string> = {}
+        let earliestStep = Infinity
+
+        validationErrors.forEach(({ field, message }) => {
+          const mapped = FIELD_TO_STEP[field]
+          const key = mapped?.key || field
+          fieldErrors[key] = message
+          if (mapped && mapped.step < earliestStep) earliestStep = mapped.step
+        })
+
+        setErrors(fieldErrors)
+        if (earliestStep !== Infinity) setCurrentStep(earliestStep)
+        toast.error(validationErrors[0].message)
+        return
+      }
+
+      toast.error(error.response?.data?.message || 'Failed to create campaign')
     }
-  }, [validateStep, formData, createCampaignMutation, setIsSubmitting, setCurrentStep])
+  }, [validateStep, formData, createCampaignMutation, setIsSubmitting, setCurrentStep, setErrors])
 
   /* ── Navigation ── */
   const handleNext = useCallback(() => {

@@ -604,7 +604,7 @@ export const Step2BasicInfo: React.FC<Step2BasicInfoProps> = ({
           <Field>
             <FieldLabel htmlFor="description">Description <span className="req">*</span></FieldLabel>
             <Textarea
-              id="description" rows={7} maxLength={5000}
+              id="description" rows={7} maxLength={30000}
               value={formData.description} $error={!!errors.description}
               placeholder="Tell your story. What is this campaign about and why do you need support?…"
               onChange={(e) => onChange('description', e.target.value)}
@@ -612,7 +612,7 @@ export const Step2BasicInfo: React.FC<Step2BasicInfoProps> = ({
             />
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <FieldHint>Be personal — donors connect with stories, not stats</FieldHint>
-              <CharCount $warn={descLen > 4800}>{descLen}/5000</CharCount>
+              <CharCount $warn={descLen > 29500}>{descLen}/30000</CharCount>
             </div>
             {errors.description && <FieldError>{errors.description}</FieldError>}
           </Field>

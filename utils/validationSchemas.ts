@@ -174,7 +174,7 @@ export const campaignBasicInfoSchema = z.object({
   description: z
     .string()
     .min(20, 'Description must be at least 20 characters')
-    .max(5000, 'Description must not exceed 5000 characters')
+    .max(30000, 'Description must not exceed 30000 characters')
     .trim(),
   category: z.string().min(1, 'Category is required'),
   location: z.string().optional().default(''),
@@ -282,7 +282,7 @@ export const campaignCreationSchema = z.object({
   description: z
     .string()
     .min(20, 'Description must be at least 20 characters')
-    .max(5000, 'Description must not exceed 5000 characters'),
+    .max(30000, 'Description must not exceed 30000 characters'),
   category: z.string().min(1, 'Category is required'),
   location: z.string().optional().default(''),
 })

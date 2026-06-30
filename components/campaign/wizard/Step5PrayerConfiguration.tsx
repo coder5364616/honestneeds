@@ -34,7 +34,7 @@ const Shell = styled.div`
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
+  overflow-x: clip;
   animation: ${fadeUp} 0.3s ease;
 
   *, *::before, *::after { box-sizing: border-box; }
@@ -266,6 +266,7 @@ const CharCount = styled.span`
 // ─── Toggle row (for checkboxes) ──────────────────────────────────────────────
 
 const ToggleRow = styled.label<{ $disabled?: boolean }>`
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -324,6 +325,15 @@ const ToggleRowSub = styled.p`
 
 const HiddenCheckbox = styled.input`
   position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
   opacity: 0;
   pointer-events: none;
 `
