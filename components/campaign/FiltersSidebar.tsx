@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import styled, { keyframes } from 'styled-components'
-import { ChevronDown, X, MapPin, Map, Globe, Zap, RotateCcw } from 'lucide-react'
+import { ChevronDown, X, MapPin, Globe, Zap, RotateCcw } from 'lucide-react'
 import { CampaignFilters } from '@/store/filterStore'
 import { tk } from '@/styles/dashboardTokens'
 
@@ -320,10 +320,10 @@ const ApplyBtn = styled.button`
 `
 
 // ─── Scope icons ──────────────────────────────────────────────────────────────
+// Values MUST match the backend `geographic_scope` enum (local|national|global).
 const scopeOptions = [
   { value: 'all', label: 'All Scopes', icon: null },
   { value: 'local', label: 'Local', icon: <MapPin size={13} /> },
-  { value: 'regional', label: 'Regional', icon: <Map size={13} /> },
   { value: 'national', label: 'National', icon: <Globe size={13} /> },
   { value: 'global', label: 'Global', icon: <Zap size={13} /> },
 ]

@@ -264,6 +264,7 @@ export default function CampaignBrowsePage() {
     setSearchQuery,
     setNeedTypes,
     setLocation,
+    setGeographicScope,
     setGoalRange,
     setStatus,
     setSortBy,
@@ -305,11 +306,11 @@ export default function CampaignBrowsePage() {
     if (updated.status !== filters.status) setStatus(updated.status)
     if (updated.sortBy !== filters.sortBy) setSortBy(updated.sortBy)
     if (updated.geographicScope !== filters.geographicScope) {
-      // handled via onFiltersChange spread
+      setGeographicScope(updated.geographicScope)
     }
     // Reset page
     setPage(1)
-  }, [filters, setNeedTypes, setLocation, setGoalRange, setStatus, setSortBy, setPage])
+  }, [filters, setNeedTypes, setLocation, setGeographicScope, setGoalRange, setStatus, setSortBy, setPage])
 
   const campaigns = campaignData?.campaigns ?? []
   const total = campaignData?.total ?? 0

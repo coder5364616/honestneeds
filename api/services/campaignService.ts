@@ -426,7 +426,7 @@ class CampaignService {
         message: string
         // Backend returns need types grouped by category:
         //   [{ category, types: [{ value, label }] }]
-        data: Array<{ category: string; types: Array<{ value: string; label: string }> }>
+        data: Array<{ category: string; types: Array<{ value: string; label: string; count?: number }> }>
       }>('/campaigns/need-types')
 
       // Unwrap { success, message, data } envelope (or accept a bare array)
@@ -435,11 +435,12 @@ class CampaignService {
       // Flatten the grouped { category, types } shape into the flat
       // { id, name, count } shape the filter UI expects. `id` must be the
       // backend `need_type` value so the campaign-list filter matches exactly.
+      // `count` is the live per-category active-campaign count from the backend.
       return raw.flatMap((group) =>
         (group?.types || []).map((t) => ({
           id: t.value,
           name: t.label ?? t.value,
-          count: 0,
+          count: t.count ?? 0,
         }))
       )
     } catch (error: any) {
