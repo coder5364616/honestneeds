@@ -154,7 +154,12 @@ class AuthService {
         data: responseData,
       }
     } catch (error: any) {
-      const message = error.response?.data?.message || error.message
+      // Backend wraps errors as { success:false, error:{ code, message, details } }.
+      // Fall back to the legacy flat shape and axios' own message.
+      const message =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        error.message
       console.error('[Auth Service] Registration error:', error.response?.data || error.message)
       return {
         success: false,
