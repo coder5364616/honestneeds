@@ -10,6 +10,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { refreshAccessToken } from '@/lib/api';
 
 export type NotificationEvent = 'activity:feed' | 'notification:alert' | 'campaign:status_changed' | 'donation:received' | 'goal:reached' | 'milestone:achieved';
 
@@ -44,6 +45,11 @@ const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost
 const RECONNECT_INTERVAL = 3000; // 3 seconds initial
 const MAX_RECONNECT_INTERVAL = 30000; // 30 seconds max
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+// Backend closes an auth-rejected socket with code 1008 (see NotificationService).
+// Re-presenting the same stale token just gets rejected again, so on this code we
+// try a token refresh instead of blindly reconnecting.
+const AUTH_FAILURE_CLOSE_CODE = 1008;
+const MAX_AUTH_REFRESH_ATTEMPTS = 2;
 
 const buildWebSocketUrl = (baseUrl: string, _userId: string) => {
   const url = new URL(baseUrl);
@@ -140,6 +146,7 @@ export const useWebSocketNotifications = (
 ): UseWebSocketNotificationsReturn => {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttemptRef = useRef(0);
+  const authRefreshAttemptRef = useRef(0);
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -198,6 +205,7 @@ export const useWebSocketNotifications = (
         setIsConnected(true);
         setError(null);
         reconnectAttemptRef.current = 0;
+        authRefreshAttemptRef.current = 0;
 
         Array.from(subscribedEvents).forEach((eventType) => {
           socket.send(JSON.stringify({ type: 'subscribe', channel: eventType }));
@@ -230,6 +238,33 @@ export const useWebSocketNotifications = (
         console.warn('⚠️ WebSocket disconnected:', event.reason || event.code);
         setIsConnected(false);
         stopHeartbeat();
+
+        // Auth rejection: the stored access token is stale/expired/wrong-secret.
+        // Reconnecting with it would just be rejected again (the tight rejection
+        // loop seen in the server logs). Refresh the token once, then reconnect
+        // with the fresh one; give up if refresh is impossible so we stop hammering.
+        if (event.code === AUTH_FAILURE_CLOSE_CODE) {
+          if (authRefreshAttemptRef.current >= MAX_AUTH_REFRESH_ATTEMPTS) {
+            console.error('🔒 WebSocket auth failed after token refresh; stopping reconnect loop');
+            setError('Session expired. Please sign in again.');
+            return;
+          }
+          authRefreshAttemptRef.current += 1;
+          refreshAccessToken()
+            .then((newToken) => {
+              if (!newToken) {
+                console.error('🔒 WebSocket auth refresh failed; stopping reconnect loop');
+                setError('Session expired. Please sign in again.');
+                return;
+              }
+              reconnectAttemptRef.current = 0;
+              connect();
+            })
+            .catch(() => {
+              setError('Session expired. Please sign in again.');
+            });
+          return;
+        }
 
         if (reconnectAttemptRef.current < Math.ceil(MAX_RECONNECT_INTERVAL / RECONNECT_INTERVAL)) {
           reconnectAttemptRef.current += 1;

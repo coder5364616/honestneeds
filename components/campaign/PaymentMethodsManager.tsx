@@ -34,12 +34,12 @@ interface PaymentMethodsManagerProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PAYMENT_METHOD_TYPES = [
-  { id: 'venmo',   name: 'Venmo' },
-  { id: 'paypal',  name: 'PayPal' },
-  { id: 'cashapp', name: 'Cash App' },
-  { id: 'bank',    name: 'Bank Transfer' },
-  { id: 'crypto',  name: 'Crypto' },
-  { id: 'other',   name: 'Other' },
+  { id: 'venmo',         name: 'Venmo' },
+  { id: 'paypal',        name: 'PayPal' },
+  { id: 'cashapp',       name: 'Cash App' },
+  { id: 'bank_transfer', name: 'Bank Transfer' },
+  { id: 'crypto',        name: 'Crypto' },
+  { id: 'other',         name: 'Other' },
 ]
 
 const CRYPTO_TYPES = [
@@ -54,7 +54,7 @@ const TYPE_META: Record<string, { accent: string; bg: string; iconBg: string }> 
   venmo:   { accent: '#0F6E56', bg: '#E1F5EE', iconBg: '#9FE1CB' },
   paypal:  { accent: '#185FA5', bg: '#E6F1FB', iconBg: '#B5D4F4' },
   cashapp: { accent: '#3B6D11', bg: '#EAF3DE', iconBg: '#C0DD97' },
-  bank:    { accent: '#5F5E5A', bg: '#F1EFE8', iconBg: '#D3D1C7' },
+  bank_transfer: { accent: '#5F5E5A', bg: '#F1EFE8', iconBg: '#D3D1C7' },
   crypto:  { accent: '#854F0B', bg: '#FAEEDA', iconBg: '#FAC775' },
   other:   { accent: '#993C1D', bg: '#FAECE7', iconBg: '#F5C4B3' },
 }
@@ -493,7 +493,7 @@ function TypeIcon({ type }: { type: string }) {
     case 'venmo':   return <Wallet size={size} />
     case 'paypal':  return <Mail size={size} />
     case 'cashapp': return <DollarSign size={size} />
-    case 'bank':    return <Building2 size={size} />
+    case 'bank_transfer': return <Building2 size={size} />
     case 'crypto':  return <Bitcoin size={size} />
     default:        return <AtSign size={size} />
   }
@@ -564,7 +564,7 @@ const PaymentMethodFields: React.FC<FieldsProps> = ({ method, index, onUpdate })
         </Field>
       )
 
-    case 'bank':
+    case 'bank_transfer':
       return (
         <>
           <FieldGrid>
