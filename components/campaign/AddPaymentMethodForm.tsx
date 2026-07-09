@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import styled, { css, keyframes } from 'styled-components'
 import {
-  CreditCard, Building2, Smartphone,
+  Building2,
   AlertCircle, ShieldCheck, ChevronDown, Star
 } from 'lucide-react'
 
@@ -443,10 +443,9 @@ const Spinner = styled.span`
 `
 
 // ─── Config data ──────────────────────────────────────────────────────────────
+// Card (Stripe) and Mobile money are intentionally not offered as payout options.
 const TYPE_CONFIG = {
-  stripe:        { label: 'Card',         desc: 'Visa, Mastercard, Amex', Icon: CreditCard },
   bank_transfer: { label: 'Bank transfer', desc: 'Direct bank account',    Icon: Building2  },
-  mobile_money:  { label: 'Mobile money', desc: 'Mobile wallet',           Icon: Smartphone },
 } as const
 
 // ─── Component ────────────────────────────────────────────────────────────────

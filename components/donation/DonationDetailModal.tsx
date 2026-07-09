@@ -591,9 +591,14 @@ function maskPaymentMethod(method: string | Record<string, any>): string {
     case 'cashapp':
       return `Cash App: ${method.cashtag ? method.cashtag.substring(0, 2) + '***' : '***'}`
     case 'bank':
-      return `Bank Transfer: ****${method.accountNumber ? method.accountNumber.slice(-4) : '****'}`
+    case 'bank_transfer': {
+      const accountNumber = method.account_number || method.accountNumber
+      return `Bank Transfer: ****${accountNumber ? accountNumber.slice(-4) : '****'}`
+    }
     case 'crypto':
-      return `Crypto (${method.cryptoType || 'Unknown'}): ${maskAddress(method.walletAddress)}`
+      return `Crypto (${method.cryptoType || method.crypto_type || ''}): ${maskAddress(method.wallet_address || method.walletAddress)}`
+    case 'other':
+      return 'Other'
     default:
       return `${type.charAt(0).toUpperCase() + type.slice(1)}: ****`
   }

@@ -319,9 +319,14 @@ interface PaymentMethodExtended extends PaymentMethod {
   username?: string
   email?: string
   cashtag?: string
+  // Backend persists snake_case; the wizard uses camelCase before conversion —
+  // accept either so details render regardless of the source shape.
   routingNumber?: string
+  routing_number?: string
   accountNumber?: string
+  account_number?: string
   walletAddress?: string
+  wallet_address?: string
   details?: string
 }
 
@@ -352,16 +357,22 @@ function getPaymentMethodDetails(method: PaymentMethodExtended): {
           '1. Open Cash App\n2. Search for this $cashtag or scan the QR code\n3. Send your donation\n4. Return here and click "Mark as Paid"',
       }
     case 'bank':
+    case 'bank_transfer': {
+      const accountNumber = method.account_number || method.accountNumber || ''
+      const routingNumber = method.routing_number || method.routingNumber || ''
       return {
-        displayValue: `•••• ${(method.accountNumber || '0000')?.slice(-4)}`,
-        instructions: `1. Use your bank's transfer app\n2. Enter routing #: ${method.routingNumber || '000000000'}\n3. Enter account #: ${method.accountNumber || '••••••••'}\n4. Send your donation\n5. Return here and click "Mark as Paid"`,
+        displayValue: accountNumber ? `•••• ${accountNumber.slice(-4)}` : 'Bank transfer',
+        instructions: `1. Use your bank's transfer app\n2. Enter routing #: ${routingNumber || '—'}\n3. Enter account #: ${accountNumber || '—'}\n4. Send your donation\n5. Return here and click "Mark as Paid"`,
       }
-    case 'crypto':
+    }
+    case 'crypto': {
+      const walletAddress = method.wallet_address || method.walletAddress || '0x...'
       return {
-        displayValue: `${(method.walletAddress || '0x...')?.slice(0, 10)}...${(method.walletAddress || '0x...')?.slice(-6)}`,
+        displayValue: `${walletAddress.slice(0, 10)}...${walletAddress.slice(-6)}`,
         instructions:
           `1. Open your crypto wallet\n2. Scan the QR or copy the address\n3. Send payment to this address\n4. Return here and click "Mark as Paid"`,
       }
+    }
     case 'other':
       return {
         displayValue: 'Custom method',
@@ -385,6 +396,7 @@ function getMethodIcon(type: string): React.ReactNode {
     case 'cashapp':
       return '💵'
     case 'bank':
+    case 'bank_transfer':
       return '🏦'
     case 'crypto':
       return '₿'
@@ -393,6 +405,27 @@ function getMethodIcon(type: string): React.ReactNode {
     default:
       return '💳'
   }
+}
+
+// Human-friendly label for a payment method type (e.g. bank_transfer → "Bank Transfer").
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  venmo: 'Venmo',
+  paypal: 'PayPal',
+  cashapp: 'Cash App',
+  bank: 'Bank Transfer',
+  bank_transfer: 'Bank Transfer',
+  crypto: 'Crypto',
+  other: 'Other',
+}
+
+function getMethodLabel(type: string): string {
+  return (
+    PAYMENT_METHOD_LABELS[type] ||
+    type
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  )
 }
 
 export function PaymentDirectory({
@@ -434,11 +467,11 @@ export function PaymentDirectory({
             <MethodCard key={index}>
               <MethodHeader>
                 <MethodIcon>{getMethodIcon(method.type)}</MethodIcon>
-                <MethodName>{method.type.charAt(0).toUpperCase() + method.type.slice(1)}</MethodName>
+                <MethodName>{getMethodLabel(method.type)}</MethodName>
               </MethodHeader>
 
               <MethodInfo>
-                <InfoLabel>{method.type} Address / ID</InfoLabel>
+                <InfoLabel>{getMethodLabel(method.type)} Address / ID</InfoLabel>
                 <InfoValue>
                   {details.displayValue}
                   <CopyButton

@@ -789,18 +789,25 @@ class CampaignService {
           is_primary: method.is_primary || false,
         }
         
-        // Include all plain text payment details (no encryption needed)
+        // Include all plain text payment details (no encryption needed).
+        // The wizard's PaymentMethodsManager emits camelCase (accountNumber,
+        // routingNumber, walletAddress) while the backend expects snake_case —
+        // accept either so bank/crypto details aren't silently dropped.
+        const accountNumber = method.account_number ?? method.accountNumber
+        const routingNumber = method.routing_number ?? method.routingNumber
+        const walletAddress = method.wallet_address ?? method.walletAddress
+
         // Banking fields
-        if (method.account_number?.trim()) {
-          processedMethod.account_number = method.account_number
+        if (accountNumber?.trim()) {
+          processedMethod.account_number = accountNumber
         }
-        if (method.routing_number?.trim()) {
-          processedMethod.routing_number = method.routing_number
+        if (routingNumber?.trim()) {
+          processedMethod.routing_number = routingNumber
         }
         if (method.account_holder?.trim()) {
           processedMethod.account_holder = method.account_holder
         }
-        
+
         // Payment app fields
         if (method.username?.trim()) {
           processedMethod.username = method.username
@@ -814,8 +821,8 @@ class CampaignService {
         if (method.cashtag?.trim()) {
           processedMethod.cashtag = method.cashtag
         }
-        if (method.wallet_address?.trim()) {
-          processedMethod.wallet_address = method.wallet_address
+        if (walletAddress?.trim()) {
+          processedMethod.wallet_address = walletAddress
         }
         if (method.details?.trim()) {
           processedMethod.details = method.details
