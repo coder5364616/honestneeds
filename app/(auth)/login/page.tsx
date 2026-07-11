@@ -1,7 +1,8 @@
 'use client'
 
 import styled, { keyframes, createGlobalStyle } from 'styled-components'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { clearSessionArtifacts } from '@/lib/api'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
@@ -420,6 +421,18 @@ const SupportLink = styled(Link)`
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const { mutate: login, isPending } = useLogin()
+
+  // Arriving with ?expired=1 means the API rejected this browser's tokens
+  // (e.g. rotated signing key). Purge every stale session artifact — cookies
+  // included — so proxy.ts can't bounce the user back to a dead /dashboard
+  // and the login form actually works.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('expired')) {
+      clearSessionArtifacts()
+    }
+  }, [])
 
   const {
     register,

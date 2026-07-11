@@ -26,13 +26,20 @@ const AUTH_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password
  * This runs on every request before it reaches the page
  */
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
   const token = request.cookies.get('auth_token')?.value || null
   const userRole = request.cookies.get('user_role')?.value || null
 
-  // For auth routes: redirect to dashboard if already authenticated
+  // For auth routes: redirect to dashboard if already authenticated.
+  //
+  // ESCAPE HATCH (`?expired=1`): this cookie check only proves a token EXISTS,
+  // not that it's valid. When the API rejects a user's tokens (rotated signing
+  // key, revoked session), the client clears storage and sends them to
+  // /login?expired=1 — if we bounced that back to /dashboard on a stale
+  // cookie, the user would loop between a dead dashboard and here forever,
+  // stuck on a blank loading screen with no way to re-login.
   if (AUTH_ROUTES.some((route) => pathname.startsWith(route))) {
-    if (token) {
+    if (token && !searchParams.has('expired')) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     return NextResponse.next()

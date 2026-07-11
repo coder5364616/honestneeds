@@ -74,6 +74,25 @@ const reportConnectivityFromError = (error: AxiosError): void => {
 }
 
 /**
+ * Remove every client-side session artifact — localStorage keys AND the
+ * cookies the proxy middleware reads. Clearing localStorage but leaving the
+ * `auth_token` cookie behind traps users in a redirect loop: proxy.ts bounces
+ * /login → /dashboard on cookie existence, the dashboard's API calls 401, and
+ * the user is stuck on a blank loading shell with no way back to the login
+ * form. Always clear both together.
+ */
+export function clearSessionArtifacts(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('user')
+  const past = new Date(0).toUTCString()
+  document.cookie = `auth_token=; expires=${past}; path=/; SameSite=Lax`
+  document.cookie = `user_role=; expires=${past}; path=/; SameSite=Lax`
+  document.cookie = `user_id=; expires=${past}; path=/; SameSite=Lax`
+}
+
+/**
  * Single in-flight refresh promise, shared across all concurrent 401s so we
  * only hit /auth/refresh once even if several requests expire at the same time.
  */
@@ -303,23 +322,53 @@ function handleApiError(error: AxiosError<ApiErrorResponse>): void {
       // Only clear auth if we had a token (session expired), not if token was missing
       if (currentToken && currentUser) {
         console.warn('[API] Clearing auth due to session expiration')
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user')
-        
+        clearSessionArtifacts()
+
         // Store the redirect URL to return after login
         const currentPath = window.location.pathname + window.location.search
-        if (currentPath !== '/login') {
+        if (!currentPath.startsWith('/login')) {
           localStorage.setItem('redirect_after_login', currentPath)
         }
-        window.location.href = '/login'
+        // `expired=1` tells proxy.ts NOT to bounce us back to /dashboard even
+        // if a stale auth cookie somehow survives — guarantees the login form
+        // is reachable after a dead session.
+        window.location.href = '/login?expired=1'
         toast.error('Session expired. Please login again.')
       } else {
-        // No token in localStorage — anonymous/public browsing. A 401 on a
-        // background request (e.g. a public campaign page that also probes an
-        // authed-only endpoint like analytics) is EXPECTED and must NOT nag the
-        // visitor with a login toast. Explicit auth-required actions surface
-        // their own messaging where the user took the action.
+        // No token in localStorage. Two distinct cases:
+        //
+        // 1. TRAPPED SESSION: a stale `auth_token` cookie survives (e.g. an
+        //    earlier cleanup only removed localStorage). proxy.ts keeps
+        //    bouncing /login → /dashboard on cookie existence while every API
+        //    call here 401s — the user sees a permanent blank loading shell.
+        //    Clear the cookies and, if we're on a protected route, send them
+        //    to the login form to recover.
+        const hasStaleAuthCookie = document.cookie
+          .split(';')
+          .some((c) => {
+            const [name, value] = c.trim().split('=')
+            return name === 'auth_token' && !!value
+          })
+
+        if (hasStaleAuthCookie) {
+          console.warn('[API] 401 with stale auth cookie but no localStorage token — clearing trapped session')
+          clearSessionArtifacts()
+
+          const path = window.location.pathname
+          const isProtectedPath = ['/dashboard', '/creator', '/admin', '/profile', '/donations']
+            .some((p) => path.startsWith(p))
+          if (isProtectedPath) {
+            window.location.href = '/login?expired=1'
+            toast.error('Session expired. Please login again.')
+          }
+          return
+        }
+
+        // 2. Anonymous/public browsing. A 401 on a background request (e.g. a
+        //    public campaign page that also probes an authed-only endpoint like
+        //    analytics) is EXPECTED and must NOT nag the visitor with a login
+        //    toast. Explicit auth-required actions surface their own messaging
+        //    where the user took the action.
         console.warn('[API] 401 with no auth token (anonymous browsing). Endpoint:', error.config?.url)
       }
     }
