@@ -1,7 +1,6 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useAuthStore } from '@/store/authStore'
 import Navbar from '@/components/layout/Navbar'
 import styled from 'styled-components'
 
@@ -20,21 +19,32 @@ const Header = styled.header`
   transition: all 300ms ease-in-out;
 `
 
+// Routes under app/(app) render their own <Navbar> in that route group's
+// layout. Skipping them here prevents a stacked double navbar.
+const SELF_HEADERED_ROUTES = [
+  '/contact',
+  '/cookie-policy',
+  '/privacy-policy',
+  '/refund-policy',
+  '/terms',
+]
+
 export default function LayoutHeader() {
-  const pathname = usePathname()
-  const { user } = useAuthStore()
+  const pathname = usePathname() || '/'
 
-  // Hide navbar completely on home page
-  const isHomePage = pathname === '/'
-  if (isHomePage) {
+  // The landing page ships its own full-width marketing header.
+  if (pathname === '/') {
     return null
   }
 
-  // Show navbar on all other pages only if logged in
-  if (!user) {
+  if (SELF_HEADERED_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))) {
     return null
   }
 
+  // Rendered for signed-out visitors too. A shared campaign link is the most
+  // common way someone first lands on the site, and gating the navbar behind
+  // auth left them with no logo, no menu and no way home (user-reported).
+  // Navbar already handles the signed-out state: public links + a Sign in CTA.
   return (
     <Header>
       <Navbar />
