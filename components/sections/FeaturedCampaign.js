@@ -559,16 +559,114 @@ function useCounter(target, duration = 1500) {
   return [count, ref];
 }
 
+// ─── Data helpers ─────────────────────────────────────────────────────────────
+
+// Amounts arrive in cents from the API.
+const centsToDollars = (cents) => Math.max(0, Math.round((Number(cents) || 0) / 100));
+
+const formatNeedType = (needType) =>
+  (needType || 'Community Need')
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+const titleInitials = (title) => {
+  const words = (title || '').trim().split(/\s+/).filter(Boolean);
+  const letters = words.slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('');
+  return letters || 'HN';
+};
+
+const daysLeftOf = (endDate) => {
+  if (!endDate) return null;
+  const diff = new Date(endDate).getTime() - Date.now();
+  if (Number.isNaN(diff)) return null;
+  return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
+};
+
+const locationLabel = (location) => {
+  if (!location) return null;
+  const cityState = [location.city, location.state].filter(Boolean).join(', ');
+  return cityState || location.address || location.country || null;
+};
+
+/**
+ * Pick the campaign to feature from the public active list:
+ * an actively boosted campaign first, otherwise the most recently created.
+ */
+function pickFeaturedCampaign(campaigns) {
+  const active = (campaigns || []).filter((c) => c && c.status === 'active');
+  if (active.length === 0) return null;
+  const boosted = active
+    .filter((c) => c.is_boosted)
+    .sort((a, b) => (b.boost_weight || 0) - (a.boost_weight || 0));
+  if (boosted.length > 0) return boosted[0];
+  return [...active].sort(
+    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+  )[0];
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function FeaturedCampaign() {
   const router = useRouter();
-  const [supporters, supportersRef] = useCounter(48, 1200);
-  const [raised, raisedRef] = useCounter(3600, 1400);
+  const [campaign, setCampaign] = useState(null);
+  const [loadState, setLoadState] = useState('loading'); // 'loading' | 'ready' | 'empty'
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { apiClient } = await import('@/lib/api');
+        const res = await apiClient.get('/campaigns', {
+          params: { status: 'active', limit: 12 },
+          skipRetry: true,
+        });
+        const list = Array.isArray(res.data?.data)
+          ? res.data.data
+          : res.data?.data?.campaigns || [];
+        const picked = pickFeaturedCampaign(list);
+        if (cancelled) return;
+        if (picked) {
+          setCampaign(picked);
+          setLoadState('ready');
+        } else {
+          setLoadState('empty');
+        }
+      } catch {
+        if (!cancelled) setLoadState('empty');
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const goalDollars = centsToDollars(
+    campaign?.goal_amount ?? campaign?.goals?.find((g) => g.goal_type === 'fundraising')?.target_amount
+  );
+  const raisedDollars = centsToDollars(
+    campaign?.raised_amount ?? campaign?.total_donation_amount
+  );
+  const supportersCount = campaign?.total_donors || campaign?.metrics?.total_donations || 0;
+  const remainingDollars = Math.max(0, goalDollars - raisedDollars);
+  const pct = goalDollars > 0 ? Math.min(100, Math.round((raisedDollars / goalDollars) * 100)) : 0;
+  const daysLeft = daysLeftOf(campaign?.end_date);
+  const locLabel = locationLabel(campaign?.location);
+  const shareRewardDollars =
+    campaign?.share_config?.is_paid_sharing_active
+      ? centsToDollars(campaign.share_config.amount_per_share)
+      : 0;
+  const campaignHref = campaign ? `/campaigns/${campaign._id || campaign.campaign_id}` : '/campaigns';
+
+  const [supporters, supportersRef] = useCounter(supportersCount, 1200);
+  const [raised, raisedRef] = useCounter(raisedDollars, 1400);
   const cardRef = useRef(null);
   const cardInView = useInView(cardRef, { once: true });
 
-  const handleSupport = () => router.push('/login');
-  const handleShare   = () => router.push('/login');
+  const handleSupport = () => router.push(campaignHref);
+  const handleShare   = () => router.push(campaignHref);
+
+  // Never show placeholder content: hide the section until a real campaign is
+  // available, and hide it entirely if none exists or the API is unreachable.
+  if (loadState !== 'ready' || !campaign) return null;
 
   return (
     <Section>
@@ -598,18 +696,22 @@ export default function FeaturedCampaign() {
         >
           {/* ── Left: Campaign Image ── */}
           <MediaPanel>
-            <CampaignImage src="/campaign-shelter.jpg" alt="Westside Youth Shelter" />
+            {campaign.image_url && (
+              <CampaignImage src={campaign.image_url} alt={campaign.title} />
+            )}
             <GradientOverlay />
 
             <MediaBottomContent>
               <CampaignCategory>
-                <FiUsers /> Youth & Shelter
+                <FiUsers /> {formatNeedType(campaign.need_type)}
               </CampaignCategory>
-              <div>
-                <BoostedBadge>
-                  <FiZap /> Boosted Campaign
-                </BoostedBadge>
-              </div>
+              {campaign.is_boosted && (
+                <div>
+                  <BoostedBadge>
+                    <FiZap /> Boosted Campaign
+                  </BoostedBadge>
+                </div>
+              )}
             </MediaBottomContent>
           </MediaPanel>
 
@@ -622,26 +724,28 @@ export default function FeaturedCampaign() {
           >
             {/* Creator */}
             <CreatorRow>
-              <AvatarRing>WY</AvatarRing>
+              <AvatarRing>{titleInitials(campaign.title)}</AvatarRing>
               <CreatorInfo>
-                <CreatorName>Westside Youth Shelter</CreatorName>
+                <CreatorName>Verified Creator</CreatorName>
                 <CreatorMeta>
-                  <MetaChip><FiMapPin /> Modesto, CA</MetaChip>
-                  <UrgencyChip><FiClock /> 3 days left</UrgencyChip>
+                  {locLabel && <MetaChip><FiMapPin /> {locLabel}</MetaChip>}
+                  {daysLeft !== null && (
+                    <UrgencyChip><FiClock /> {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</UrgencyChip>
+                  )}
                 </CreatorMeta>
               </CreatorInfo>
             </CreatorRow>
 
             {/* Title */}
             <CampaignTitle>
-              Help the <span className="highlight">Westside Youth Shelter</span> This Winter
+              <span className="highlight">{campaign.title}</span>
             </CampaignTitle>
 
             {/* Story */}
             <StoryText>
-              Urgent shelter funding for winter supplies. We're raising funds to provide warm clothing,
-              blankets, and hot meals for homeless youth in our community. Every dollar goes directly to
-              those who need it most.
+              {(campaign.description || '').length > 220
+                ? `${campaign.description.slice(0, 220).trimEnd()}…`
+                : campaign.description}
             </StoryText>
 
             {/* Progress */}
@@ -649,18 +753,18 @@ export default function FeaturedCampaign() {
               <ProgressHeader>
                 <div>
                   <RaisedAmount ref={raisedRef}>${raised.toLocaleString()}</RaisedAmount>
-                  <GoalLabel>raised of $5,000 goal</GoalLabel>
+                  <GoalLabel>raised of ${goalDollars.toLocaleString()} goal</GoalLabel>
                 </div>
               </ProgressHeader>
               <ProgressTrack>
                 <ProgressFill
                   initial={{ width: '0%' }}
-                  whileInView={{ width: '72%' }}
+                  whileInView={{ width: `${pct}%` }}
                   viewport={{ once: true }}
                   transition={{ duration: 1.4, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
                 />
               </ProgressTrack>
-              <PercentLabel>72% funded</PercentLabel>
+              <PercentLabel>{pct}% funded</PercentLabel>
 
               <StatsRow>
                 <StatTile>
@@ -668,11 +772,11 @@ export default function FeaturedCampaign() {
                   <StatLabel>Supporters</StatLabel>
                 </StatTile>
                 <StatTile>
-                  <StatValue>$1,400</StatValue>
+                  <StatValue>${remainingDollars.toLocaleString()}</StatValue>
                   <StatLabel>Remaining</StatLabel>
                 </StatTile>
                 <StatTile>
-                  <StatValue>3 days</StatValue>
+                  <StatValue>{daysLeft !== null ? `${daysLeft} days` : '—'}</StatValue>
                   <StatLabel>Left</StatLabel>
                 </StatTile>
               </StatsRow>
@@ -682,8 +786,17 @@ export default function FeaturedCampaign() {
             <RewardStrip>
               <RewardIcon><FiGift /></RewardIcon>
               <RewardText>
-                <RewardTitle>Earn $10 per successful share</RewardTitle>
-                <RewardSub>Share this campaign and earn when someone donates through your link</RewardSub>
+                {shareRewardDollars > 0 ? (
+                  <>
+                    <RewardTitle>Earn ${shareRewardDollars} per successful share</RewardTitle>
+                    <RewardSub>Share this campaign and earn when someone donates through your link</RewardSub>
+                  </>
+                ) : (
+                  <>
+                    <RewardTitle>Every share counts</RewardTitle>
+                    <RewardSub>Share this campaign to help it reach more people who can support it</RewardSub>
+                  </>
+                )}
               </RewardText>
             </RewardStrip>
 
