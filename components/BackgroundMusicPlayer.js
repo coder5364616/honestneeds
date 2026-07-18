@@ -1,12 +1,19 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function BackgroundMusicPlayer() {
   const audioRef = useRef(null);
   const duckedRef = useRef(false);
   const [isMuted, setIsMuted] = useState(true);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const pathname = usePathname();
+
+  // The chat composer lives at the bottom-right of /messages and this floating
+  // button covered its send button (user-reported). Keep the <audio> mounted so
+  // music continues seamlessly across navigation — only the button hides.
+  const hideButton = pathname?.startsWith('/messages');
 
   useEffect(() => {
     // Restore user preference from localStorage
@@ -96,6 +103,7 @@ export default function BackgroundMusicPlayer() {
         style={{ display: 'none' }}
       />
 
+      {!hideButton && (
       <button
         id="hn-music-btn"
         onClick={toggleMute}
@@ -131,9 +139,10 @@ export default function BackgroundMusicPlayer() {
       >
         {isMuted ? '🔇' : '🔊'}
       </button>
+      )}
 
       {/* Pulse ring animation when playing */}
-      {!isMuted && (
+      {!hideButton && !isMuted && (
         <div
           id="hn-music-pulse"
           aria-hidden="true"

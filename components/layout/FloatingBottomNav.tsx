@@ -71,7 +71,10 @@ const TABS: NavTab[] = [
 const CREATE_HREF = '/campaigns/new'
 
 // Routes where the floating nav must never appear.
-const HIDDEN_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password', '/auth', '/admin']
+// '/messages': the chat composer sits at the bottom of the viewport and the
+// nav pill covered its send button (user-reported). The thread's back arrow
+// and the top header remain available for navigating out.
+const HIDDEN_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password', '/auth', '/admin', '/messages']
 
 function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + '/')

@@ -28,7 +28,20 @@ import {
   Gift,
   Zap,
   MessageSquare,
+  Music2,
+  MessageCircle,
 } from 'lucide-react'
+
+// lucide-react no longer ships brand icons — inline Instagram glyph.
+function InstagramGlyph({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+      <circle cx="17.5" cy="6.5" r="1.25" fill="currentColor" />
+    </svg>
+  )
+}
 import { toast } from 'react-toastify'
 import {
   useCampaign,
@@ -916,7 +929,7 @@ export default function CampaignDetailClient() {
   }, [analytics?.lastUpdated])
 
   const handleShare = (channel) => {
-    if (['facebook','twitter','linkedin','email','whatsapp','link'].includes(channel)) {
+    if (['facebook','twitter','linkedin','email','whatsapp','instagram','tiktok','link'].includes(channel)) {
       recordShare({ campaignId, channel })
     }
     const base = `${window.location.origin}/campaigns/${campaignId}`
@@ -936,6 +949,26 @@ export default function CampaignDetailClient() {
       window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out: ${campaign.title}`)}&url=${encodeURIComponent(base)}`, '_blank')
     } else if (channel === 'facebook') {
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(base)}`, '_blank')
+    } else if (channel === 'whatsapp') {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Check out: ${campaign.title} ${trackUrl}`)}`, '_blank')
+    } else if (channel === 'instagram' || channel === 'tiktok') {
+      // Neither platform has a web share intent for links — copy the tracked
+      // URL so the user can paste it into a story, caption, or bio.
+      navigator.clipboard.writeText(trackUrl)
+      toast.success(
+        channel === 'instagram'
+          ? 'Link copied! Paste it into your Instagram story, post, or bio.'
+          : 'Link copied! Paste it into your TikTok caption or bio.'
+      )
+    } else if (channel === 'native') {
+      // OS share sheet — reaches every installed app (Instagram, TikTok,
+      // Telegram, SMS, …). Falls back to copying the link on desktop browsers.
+      if (typeof navigator.share === 'function') {
+        navigator.share({ title: campaign.title, url: trackUrl }).catch(() => {})
+      } else {
+        navigator.clipboard.writeText(trackUrl)
+        toast.success('Link copied! Paste it anywhere to share.')
+      }
     } else if (channel === 'email') {
       window.open(`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(trackUrl)}`)
     }
@@ -1427,8 +1460,20 @@ export default function CampaignDetailClient() {
                   <ShareBtn onClick={() => handleShare('facebook')}>
                     FB
                   </ShareBtn>
+                  <ShareBtn onClick={() => handleShare('whatsapp')}>
+                    <MessageCircle size={14} /> WhatsApp
+                  </ShareBtn>
+                  <ShareBtn onClick={() => handleShare('instagram')}>
+                    <InstagramGlyph size={14} /> Instagram
+                  </ShareBtn>
+                  <ShareBtn onClick={() => handleShare('tiktok')}>
+                    <Music2 size={14} /> TikTok
+                  </ShareBtn>
                   <ShareBtn onClick={() => handleShare('email')}>
                     <Mail size={14} /> Email
+                  </ShareBtn>
+                  <ShareBtn onClick={() => handleShare('native')} style={{ gridColumn: '1 / -1' }}>
+                    <Share2 size={14} /> More options
                   </ShareBtn>
                 </ShareGrid>
               </>
@@ -1475,8 +1520,20 @@ export default function CampaignDetailClient() {
                   <ShareBtn onClick={() => handleShare('facebook')}>
                     FB
                   </ShareBtn>
+                  <ShareBtn onClick={() => handleShare('whatsapp')}>
+                    <MessageCircle size={14} /> WhatsApp
+                  </ShareBtn>
+                  <ShareBtn onClick={() => handleShare('instagram')}>
+                    <InstagramGlyph size={14} /> Instagram
+                  </ShareBtn>
+                  <ShareBtn onClick={() => handleShare('tiktok')}>
+                    <Music2 size={14} /> TikTok
+                  </ShareBtn>
                   <ShareBtn onClick={() => handleShare('email')}>
                     <Mail size={14} /> Email
+                  </ShareBtn>
+                  <ShareBtn onClick={() => handleShare('native')} style={{ gridColumn: '1 / -1' }}>
+                    <Share2 size={14} /> More options
                   </ShareBtn>
                 </ShareGrid>
               </>

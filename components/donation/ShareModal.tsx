@@ -249,7 +249,7 @@ const StatValue = styled.span`
 `
 
 interface SocialShareConfig {
-  id: 'facebook' | 'twitter' | 'linkedin' | 'email' | 'whatsapp' | 'link'
+  id: 'facebook' | 'twitter' | 'linkedin' | 'email' | 'whatsapp' | 'instagram' | 'tiktok' | 'link'
   label: string
   icon: (props: any) => React.ReactNode
   action: (url: string, title: string) => void
@@ -309,6 +309,26 @@ const socialConfigs: SocialShareConfig[] = [
         `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`,
         '_blank'
       )
+    },
+  },
+  // Instagram and TikTok have no web share intent for links — copy the
+  // referral URL so the sharer can paste it into a story, caption, or bio.
+  {
+    id: 'instagram',
+    label: 'Instagram',
+    icon: InstagramIcon,
+    action: (url) => {
+      navigator.clipboard.writeText(url)
+      toast.info('Link copied! Paste it into your Instagram story, post, or bio.')
+    },
+  },
+  {
+    id: 'tiktok',
+    label: 'TikTok',
+    icon: TikTokIcon,
+    action: (url) => {
+      navigator.clipboard.writeText(url)
+      toast.info('Link copied! Paste it into your TikTok caption or bio.')
     },
   },
 ]
@@ -511,6 +531,24 @@ function EmailIcon(props: any) {
     <svg viewBox="0 0 24 24" {...props}>
       <rect x="2" y="4" width="20" height="16" rx="2" ry="2" fill="none" stroke="currentColor" strokeWidth="2" />
       <path d="m22 7l-8.97 5.7a1.94 1.94 0 01-2.06 0L2 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function InstagramIcon(props: any) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+      <circle cx="17.5" cy="6.5" r="1.25" fill="currentColor" />
+    </svg>
+  )
+}
+
+function TikTokIcon(props: any) {
+  return (
+    <svg viewBox="0 0 24 24" {...props}>
+      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z" />
     </svg>
   )
 }

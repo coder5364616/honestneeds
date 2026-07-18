@@ -214,6 +214,10 @@ export default function AIResponderWidget() {
   // Only registered users get the Responder.
   if (!isAuthenticated) return null
 
+  // The chat composer lives at the bottom of /messages; this launcher covered
+  // its send button on mobile (user-reported). Hide it there.
+  if (pathname?.startsWith('/messages')) return null
+
   return (
     <>
       {!open && <PulseRing id="hn-ai-pulse" aria-hidden="true" />}
