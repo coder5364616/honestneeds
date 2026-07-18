@@ -35,6 +35,7 @@ import {
   useCampaignAnalytics,
   useRelatedCampaigns,
   useRecordShare,
+  usePublishCampaign,
 } from '@/api/hooks/useCampaigns'
 import { useStartConversation } from '@/api/hooks/useMessaging'
 import { normalizeImageUrl } from '@/utils/imageUtils'
@@ -857,16 +858,48 @@ export default function CampaignDetailClient() {
   const isFundraising = campaign?.campaign_type === 'fundraising'
   const isSharing = campaign?.campaign_type === 'sharing'
 
+  // Track a successful return from Stripe boost checkout. The query param is
+  // stripped immediately, so remember it in state for the publish fallback
+  // below (campaign data usually hasn't loaded yet at this point).
+  const [returnedFromBoostSuccess, setReturnedFromBoostSuccess] = useState(false)
+  const publishAttemptedRef = useRef(false)
+  const publishCampaignMutation = usePublishCampaign()
+
   useEffect(() => {
     const status = searchParams?.get('boost_status')
     if (status === 'success') {
-      toast.success('🎉 Boost payment successful! Your campaign is now boosted!')
+      setReturnedFromBoostSuccess(true)
+      toast.success('🎉 Boost payment successful!')
       window.history.replaceState({}, document.title, `/campaigns/${campaignId}`)
     } else if (status === 'cancelled') {
       toast.info('Boost payment was cancelled.')
       window.history.replaceState({}, document.title, `/campaigns/${campaignId}`)
     }
   }, [searchParams, campaignId])
+
+  // Safety net: a paid boost is a "publish my campaign" purchase. The backend
+  // webhook publishes it server-side, but if that's delayed or missed, the
+  // campaign would sit invisible in draft after the creator already paid. If
+  // we returned from a successful boost checkout and the campaign we own is
+  // still draft, publish it from here.
+  useEffect(() => {
+    if (!returnedFromBoostSuccess || publishAttemptedRef.current) return
+    if (!campaign || !user) return
+    if (user.id !== campaign.creator_id) return
+    if (campaign.status !== 'draft') return
+
+    publishAttemptedRef.current = true
+    publishCampaignMutation.mutate(String(campaignId), {
+      onSuccess: () => {
+        toast.success('🚀 Your campaign is now live!')
+      },
+      onError: () => {
+        toast.warn(
+          'Payment received, but the campaign could not be activated automatically. Open your dashboard and press "Activate" — or contact support.'
+        )
+      },
+    })
+  }, [returnedFromBoostSuccess, campaign, user, campaignId, publishCampaignMutation])
 
   useEffect(() => {
     if (!analytics?.lastUpdated) return
